@@ -1,0 +1,134 @@
+import Script from 'next/script';
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import type { Metadata, Viewport } from 'next';
+import { Archivo, Bungee, Fredoka, Instrument_Serif, JetBrains_Mono, Silkscreen } from 'next/font/google';
+import { siteUrl } from '@/lib/site';
+import { THEME_BOOT } from '@/lib/theme';
+import { clientDevToolsEnabled } from '@/lib/dev/env';
+import { DEV_STORAGE_BOOT } from '@/lib/dev/storageBoot';
+import { GlobalFX } from '@/components/fx/GlobalFX';
+import './globals.css';
+
+/* next/font downloads these at build time and serves them from this site, so a
+   visitor's browser never contacts Google. The CSS variables feed the design
+   system's --fs-* stacks in globals.css. */
+const archivo = Archivo({
+  subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-archivo', display: 'swap',
+});
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'], weight: '400', style: ['normal', 'italic'], variable: '--font-instrument-serif', display: 'swap',
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'], weight: ['400', '500'], variable: '--font-jetbrains-mono', display: 'swap',
+});
+
+/* the 2.5D display face — titles, plates and the big numbers (see app/_cinematic.css) */
+const bungee = Bungee({
+  subsets: ['latin'], weight: '400', variable: '--font-bungee', display: 'swap',
+});
+
+/* the two art-direction themes' own faces (app/_theme-pixel.css, app/_theme-cartoon.css) — only those themes use them */
+const silkscreen = Silkscreen({
+  subsets: ['latin'], weight: ['400', '700'], variable: '--font-silkscreen', display: 'swap', preload: false,
+});
+const fredoka = Fredoka({
+  subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-fredoka', display: 'swap', preload: false,
+});
+
+const SITE = siteUrl();
+const DESCRIPTION =
+  'Start with a stone, a stick, a bone and a length of fibre. Combine them into 1,917 discoveries — each with its evidence, and an honest flag wherever a source is still missing.';
+
+/* Developer Beta build (never true in production — see lib/dev/env.ts). It must not feed the
+   production analytics, and it must not be indexed. */
+const DEV_BUILD = clientDevToolsEnabled();
+const GA_ID = DEV_BUILD ? undefined : process.env.NEXT_PUBLIC_GA_ID;
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE),
+  title: {
+    default: 'Evolution Sandbox',
+    template: '%s · Evolution Sandbox',
+  },
+  description: DESCRIPTION,
+  applicationName: 'Evolution Sandbox',
+  keywords: [
+    'human evolution', 'history of technology', 'discovery graph',
+    'explorable explanation', 'interactive museum', 'science communication',
+  ],
+  authors: [{ name: 'Evolution Sandbox' }],
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    siteName: 'Evolution Sandbox',
+    title: 'Evolution Sandbox',
+    description:
+      'How did we get here? Combine four raw materials into 1,917 discoveries, from a knapped stone to a virtual world.',
+    url: SITE,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Evolution Sandbox',
+    description: 'Combine four raw materials into 1,917 discoveries, from a knapped stone to a virtual world.',
+  },
+  robots: DEV_BUILD ? { index: false, follow: false } : { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f2eee6' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0b' },
+  ],
+  colorScheme: 'dark light',
+  width: 'device-width',
+  initialScale: 1,
+};
+
+// WebSite-level structured data — one static object, no user input, so the
+// "<" escape is really just a habit carried over from the FAQ page's script.
+const WEBSITE_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Evolution Sandbox',
+  url: SITE,
+  description: DESCRIPTION,
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    // data-theme is set by THEME_BOOT before React hydrates, so the server's
+    // markup cannot know it — suppressHydrationWarning covers that one attribute
+    <html lang="en" data-theme="dark" suppressHydrationWarning
+      className={`${archivo.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} ${bungee.variable} ${silkscreen.variable} ${fredoka.variable}`}>
+      <head>
+        {/* Developer Beta only: re-point localStorage at the beta's own keys before any app code runs */}
+        {DEV_BUILD && <script dangerouslySetInnerHTML={{ __html: DEV_STORAGE_BOOT }} />}
+        {/* first thing to run: pick the stored theme — light, dark, or one of the
+            six accent skins (lib/theme.ts THEMES) — before anything paints */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+      </head>
+      <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSON_LD).replace(/</g, '\\u003c') }}
+        />
+        {GA_ID && (
+          <>
+            <Script
+              strategy="afterInteractive"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${GA_ID}');`}
+            </Script>
+          </>
+        )}
+        {children}
+        <GlobalFX />
+        {!DEV_BUILD && <Analytics />}
+        {!DEV_BUILD && <SpeedInsights />}
+      </body>
+    </html>
+  );
+}
