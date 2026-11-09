@@ -49,13 +49,14 @@ export function Companion({ engine, visible }: { engine: Engine; visible: boolea
       }
     });
     // after a long stretch with something within reach, it points — once, gently
-    const iv = window.setInterval(() => {
+    // only ticks while the companion is on the bench; off the bench it costs nothing
+    const iv = visible ? window.setInterval(() => {
       if (Date.now() - lastGood.current < 120_000 || document.hidden) return;
       if (engine.withinReach(false).length > 0) { lastGood.current = Date.now(); show('nudge'); }
-    }, 15_000);
+    }, 15_000) : 0;
     const pend = pending.current;
     return () => { off(); window.clearInterval(iv); window.clearTimeout(timer.current); pend.forEach(t => window.clearTimeout(t)); pend.length = 0; };
-  }, [engine]);
+  }, [engine, visible]);
 
   if (!visible || !r.prefs.companion) return null;
   return (

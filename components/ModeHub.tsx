@@ -17,7 +17,7 @@ import { survivalStore } from '@/lib/survival/store';
 import type { Engine } from '@/lib/engine';
 import type { ModeId } from '@/lib/modes/types';
 import { featureOf, featureOfMode, requirementText, type FeatureId } from '@/lib/unlocks/registry';
-import { NO_LOCKS, type Unlocks } from '@/lib/unlocks/useUnlocks';
+import { NO_LOCKS, progressOf, type Unlocks } from '@/lib/unlocks/useUnlocks';
 
 /* ============================================================================
    MODE HUB — the switcher between Main Evolution and every other experience
@@ -34,7 +34,7 @@ import { NO_LOCKS, type Unlocks } from '@/lib/unlocks/useUnlocks';
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
-function ExhibitCard({ kicker, title, description, stats, ctaLabel, onLaunch, fresh, modeId, lockedReason }: {
+function ExhibitCard({ kicker, title, description, stats, ctaLabel, onLaunch, fresh, modeId, lockedReason, lockedProgress }: {
   kicker: string;
   title: string;
   description: string;
@@ -47,6 +47,8 @@ function ExhibitCard({ kicker, title, description, stats, ctaLabel, onLaunch, fr
   modeId?: ModeId;
   /** Set while the wing is locked: what unlocks it. The card shows it and cannot be launched. */
   lockedReason?: string | null;
+  /** How far the player is toward a discovery-count requirement: shown as a bar on the locked card. */
+  lockedProgress?: { done: number; total: number } | null;
 }) {
   const [note, setNote] = useState<{ text: string; disclosure: string | null } | null>(null);
   useEffect(() => {
@@ -67,6 +69,11 @@ function ExhibitCard({ kicker, title, description, stats, ctaLabel, onLaunch, fr
           <p className="hub-exhibit-lock mono" data-testid="mode-locked">
             <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style={{ marginRight: 6, verticalAlign: '-1px' }}><rect x="3" y="7" width="10" height="7" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
             Locked · {lockedReason}
+            {lockedProgress && lockedProgress.total > 0 && (
+              <span className="gate-bar" role="progressbar" aria-valuemin={0} aria-valuemax={lockedProgress.total} aria-valuenow={lockedProgress.done} aria-label={`${lockedProgress.done} of ${lockedProgress.total} discoveries`} style={{ display: 'block', marginTop: 6 }}>
+                <i style={{ width: `${(lockedProgress.done / lockedProgress.total) * 100}%` }} />
+              </span>
+            )}
           </p>
         )}
         <dl className="hub-exhibit-stats">
@@ -201,6 +208,14 @@ export function ModeHub({ engine, active, onLaunch, onLaunchMode, unlocks = NO_L
     if (!f || unlocks.has(f)) return null;
     return requirementText(featureOf(f), id => engine.db.eras.find(e => e.id === id)?.name ?? id) + '.';
   };
+  /** Progress toward a locked wing's discovery count (null when open, or when it needs an era instead). */
+  const progressFor = (m: ModeId): { done: number; total: number } | null => {
+    const f = featureOfMode(m);
+    if (!f || unlocks.has(f)) return null;
+    const need = featureOf(f).rule.made;
+    if (need === undefined) return null;
+    return { done: Math.min(need, progressOf(engine).made), total: need };
+  };
   const isNew = (m: ModeId) => { const f = featureOfMode(m); return !!f && unlocks.fresh(f as FeatureId); };
 
   return (
@@ -230,7 +245,7 @@ export function ModeHub({ engine, active, onLaunch, onLaunchMode, unlocks = NO_L
 
         {(
         <ExhibitCard
-          lockedReason={lockedFor('survival')}
+          lockedReason={lockedFor('survival')} lockedProgress={progressFor('survival')}
           kicker={survivalMode?.subtitle ?? 'Adapt'}
           title={survivalMode?.title ?? 'Survival'}
           description={survivalMode?.description ?? ''}
@@ -248,7 +263,7 @@ export function ModeHub({ engine, active, onLaunch, onLaunchMode, unlocks = NO_L
 
         {(
         <ExhibitCard
-          lockedReason={lockedFor('civilization')}
+          lockedReason={lockedFor('civilization')} lockedProgress={progressFor('civilization')}
           kicker={civMode?.subtitle ?? 'Build'}
           title={civMode?.title ?? 'Civilization'}
           description={civMode?.description ?? ''}
@@ -266,7 +281,7 @@ export function ModeHub({ engine, active, onLaunch, onLaunchMode, unlocks = NO_L
 
         {(
         <ExhibitCard
-          lockedReason={lockedFor('archaeology')}
+          lockedReason={lockedFor('archaeology')} lockedProgress={progressFor('archaeology')}
           kicker={archMode?.subtitle ?? 'Recover'}
           title={archMode?.title ?? 'Archaeologist'}
           description={archMode?.description ?? ''}
@@ -284,7 +299,7 @@ export function ModeHub({ engine, active, onLaunch, onLaunchMode, unlocks = NO_L
 
         {(
         <ExhibitCard
-          lockedReason={lockedFor('decipher')}
+          lockedReason={lockedFor('decipher')} lockedProgress={progressFor('decipher')}
           kicker={decMode?.subtitle ?? 'Read the Lost'}
           title={decMode?.title ?? 'Decipher'}
           description={decMode?.description ?? ''}
@@ -302,7 +317,7 @@ export function ModeHub({ engine, active, onLaunch, onLaunchMode, unlocks = NO_L
 
         {(
         <ExhibitCard
-          lockedReason={lockedFor('escape-room')}
+          lockedReason={lockedFor('escape-room')} lockedProgress={progressFor('escape-room')}
           kicker={escMode?.subtitle ?? 'Enter the Past'}
           title={escMode?.title ?? 'Historical Escape Room'}
           description={escMode?.description ?? ''}
@@ -320,7 +335,7 @@ export function ModeHub({ engine, active, onLaunch, onLaunchMode, unlocks = NO_L
 
         {(
         <ExhibitCard
-          lockedReason={lockedFor('alien-archaeology')}
+          lockedReason={lockedFor('alien-archaeology')} lockedProgress={progressFor('alien-archaeology')}
           kicker={alienMode?.subtitle ?? 'Unknown Worlds'}
           title={alienMode?.title ?? 'Alien Archaeology'}
           description={alienMode?.description ?? ''}
@@ -338,7 +353,7 @@ export function ModeHub({ engine, active, onLaunch, onLaunchMode, unlocks = NO_L
 
         {(
         <ExhibitCard
-          lockedReason={lockedFor('reverse-evolution')}
+          lockedReason={lockedFor('reverse-evolution')} lockedProgress={progressFor('reverse-evolution')}
           kicker={revMode?.subtitle ?? 'From Smartphone to Stone'}
           title={revMode?.title ?? 'Reverse Evolution'}
           description={revMode?.description ?? ''}
@@ -353,7 +368,7 @@ export function ModeHub({ engine, active, onLaunch, onLaunchMode, unlocks = NO_L
           ]}
         />
         )}
-        {getMode('minimum-path')?.status === 'available' && <ExhibitCard lockedReason={lockedFor('minimum-path')}
+        {getMode('minimum-path')?.status === 'available' && <ExhibitCard lockedReason={lockedFor('minimum-path')} lockedProgress={progressFor('minimum-path')}
           kicker="Atlas"
           title={getMode('minimum-path')?.title ?? 'Minimum Path'}
           description="Find the shortest route through the game's recipe network, with checkpoints and blocked paths."

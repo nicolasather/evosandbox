@@ -7,7 +7,7 @@ import { retentionBus } from '@/lib/retention/bus';
 import { Shop } from './Shop';
 import { CameosTab, EventsTab, GoalsTab, JourneyTab, SettingsTab, WhispersTab } from './tabs';
 import { useHubUi, useRetention } from './hooks';
-import type { FeatureId } from '@/lib/unlocks/registry';
+import { ERA_IDS, type FeatureId } from '@/lib/unlocks/registry';
 
 const TABS: [HubTab, string][] = [
   ['shop', 'Collection'], ['goals', 'Goals'], ['events', 'Scenarios'], ['cameos', 'Visitors'], ['journey', 'Journey'], ['whispers', 'Whispers'], ['settings', 'Settings'],
@@ -16,6 +16,7 @@ const sig = () => { const s = retention.get(); return JSON.stringify([s.owned, s
 
 /** The one drawer for the optional layer. Esc or the backdrop closes it. */
 export function Hub({ engine, version, unlocks = { has: () => true } }: { engine: Engine; version: number; unlocks?: { has: (id: FeatureId) => boolean } }) {
+  const eraIdx = ERA_IDS.indexOf(engine.currentEra().id as (typeof ERA_IDS)[number]);
   // a tab appears only when its feature is open: Goals, Scenarios and Visitors are discovered later, not on first open
   const tabOpen = (id: HubTab) =>
     id === 'goals' ? unlocks.has('goals')
@@ -62,7 +63,7 @@ export function Hub({ engine, version, unlocks = { has: () => true } }: { engine
           {TABS.filter(([id]) => tabOpen(id)).map(([id, label]) => <button key={id} role="tab" aria-selected={ui.tab === id} onClick={() => hubUi.tab(id)}>{label}</button>)}
         </nav>
         <div className="rbody">
-          {ui.tab === 'shop' && <Shop />}
+          {ui.tab === 'shop' && <Shop eraIndex={eraIdx} />}
           {ui.tab === 'goals' && <GoalsTab engine={engine} />}
           {ui.tab === 'events' && <EventsTab engine={engine} />}
           {ui.tab === 'cameos' && <CameosTab engine={engine} />}

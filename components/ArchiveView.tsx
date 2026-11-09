@@ -74,7 +74,10 @@ export function ArchiveView({
   // derived from the engine only when it changes (`version`), not on every render
   const reach = useMemo(() => { void version; return new Set(engine.withinReach().map(n => n.id)); }, [engine, version]);
 
-  let list = engine.db.nodes.slice();
+  // the filtered, sorted collection is rebuilt only when the engine changes or a filter does
+  const list = useMemo(() => {
+    void version;
+    let list = engine.db.nodes.slice();
   if (era) list = list.filter(n => n.era === era);
   if (filter === 'found') list = list.filter(n => engine.has(n.id));
   else if (filter === 'missing') list = list.filter(n => !engine.has(n.id));
@@ -87,7 +90,8 @@ export function ArchiveView({
   // filters narrow the collection, they never reorder it. `no` (catalogue
   // number) is still the tie-break inside the central comparator, so this is
   // a superset of the old behaviour, not a replacement for it.
-  list = sortDiscoveries(list);
+    return sortDiscoveries(list);
+  }, [engine, version, era, filter, reach]);
 
   const stats: [string, React.ReactNode][] = [
     ['discoveries', <StatsCounter key="c" value={s.core} suffix={` / ${s.coreTotal}`} />],

@@ -47,7 +47,7 @@ export function RetentionLayer({ engine, version, entered, view, busy, unlocks }
       {unlocks.has('events') && <EventLayer engine={engine} visible={onBench} />}
       {onBench && deco && SHOP_BY_ID[deco] && <div className="rdeco" aria-hidden="true"><RArt kind="decoration" id={deco} size={96} /></div>}
       {unlocks.has('companion') && <Companion engine={engine} visible={onBench && !busy} />}
-      {unlocks.has('eggs') && <EggWatcher engine={engine} active={entered} />}
+      {unlocks.has('eggs') && onBench && <EggWatcher engine={engine} active />}
       {unlocks.has('visitors') && <NpcEncounter engine={engine} visible={onBench && !busy} />}
       <div className="rhud">
         <div className="rnotes" aria-live="polite">

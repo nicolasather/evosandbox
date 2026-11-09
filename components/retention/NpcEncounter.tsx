@@ -17,7 +17,8 @@ const subs = new Set<() => void>();
 export const showNpc = (id: string | null) => { shown = id; subs.forEach(f => f()); };
 const useShown = () => useSyncExternalStore(f => { subs.add(f); return () => { subs.delete(f); }; }, () => shown, () => null);
 
-const COOLDOWN = 4 * 60_000;
+// a visit should feel special: at most one every six minutes
+const COOLDOWN = 6 * 60_000;
 
 /** The target the quest asks about: the first thing from the visitor's field the player holds. */
 function targetOf(def: NpcDef, engine: Engine, saved?: string): string | null {

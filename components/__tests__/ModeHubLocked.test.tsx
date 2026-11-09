@@ -6,11 +6,11 @@ import type { Unlocks } from '@/lib/unlocks/useUnlocks';
 
 jest.setTimeout(30_000);
 
-/* Locked-but-implemented modes stay visible in the Mode Hub: they show a lock and the requirement, and cannot be launched. */
+/* Locked-but-implemented modes stay visible in the Mode Hub: they show a lock, the requirement and progress, and cannot be launched. */
 describe('ModeHub locked wings', () => {
   const nothing: Pick<Unlocks, 'has' | 'fresh' | 'opened'> = { has: () => false, fresh: () => false, opened: () => {} };
 
-  it('keeps the locked Survival card visible with its requirement and no launch', () => {
+  it('keeps the locked Survival card visible with its requirement, progress and no launch', () => {
     const onLaunchMode = jest.fn();
     render(<ModeHub engine={createEngine(playDb)} active onLaunch={() => {}} onLaunchMode={onLaunchMode} unlocks={nothing} />);
     const locked = screen.getAllByTestId('mode-locked');
@@ -18,6 +18,7 @@ describe('ModeHub locked wings', () => {
     expect(locked[0].textContent).toMatch(/Locked · Make 20 discoveries/);
     const survivalCard = screen.getByText('Survival').closest('.hub-exhibit') as HTMLElement;
     expect(survivalCard.classList.contains('is-locked')).toBe(true);
+    expect(survivalCard.querySelector('[role="progressbar"]')).not.toBeNull();
     const cta = survivalCard.querySelector('button.hub-continue') as HTMLButtonElement;
     expect(cta.disabled).toBe(true);
     fireEvent.click(cta);

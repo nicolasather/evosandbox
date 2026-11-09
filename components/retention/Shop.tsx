@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { CATEGORIES, retention, type CosmeticCategory } from '@/lib/retention/store';
 import { SHOP_BY_ID, shopOf, type CosmeticDef } from '@/lib/retention/catalog';
+import { cosmeticOpen } from '@/lib/unlocks/cosmeticGate';
 import { kindOfCosmetic } from '@/lib/retention/art/loader';
 import { retentionBus } from '@/lib/retention/bus';
 import { hubUi } from '@/lib/retention/ui';
@@ -25,12 +26,13 @@ function Art({ c, size, still }: { c: CosmeticDef; size: number; still?: boolean
   return <RArt kind={kindOfCosmetic(c.category)} id={c.id} size={size} title={c.name} />;
 }
 
-export function Shop() {
+export function Shop({ eraIndex = Number.POSITIVE_INFINITY }: { eraIndex?: number }) {
   const r = useRetention();
   const ui = useHubUi();
   const [cat, setCat] = useState<CosmeticCategory>('icon');
   const [sel, setSel] = useState<string>(() => shopOf('icon')[0].id);
-  const list = shopOf(cat);
+  // rarer cosmetics are offered from later in history; anything already owned is always listed
+  const list = shopOf(cat).filter(x => cosmeticOpen(x.rarity, eraIndex, retention.isOwned(x.id, x.defaultUnlocked)));
   const c = SHOP_BY_ID[sel] && SHOP_BY_ID[sel].category === cat ? SHOP_BY_ID[sel] : list[0];
   const owned = retention.isOwned(c.id, c.defaultUnlocked);
   const equipped = r.equipped[cat] === c.id;
