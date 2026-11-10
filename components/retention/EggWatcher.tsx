@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { getQuality } from '@/lib/perf';
 import type { Engine } from '@/lib/engine';
 import { arbiter, retentionBus } from '@/lib/retention/bus';
 import { EGG_BY_ID, EggEngine, eggPath, type EggDef } from '@/lib/retention/eggs';
@@ -83,7 +84,7 @@ export function EggWatcher({ engine, active }: { engine: Engine; active: boolean
       const p = readProbe();
       e.tick(p);
       setKnot(p && env.view() === 'work' && retention.get().eggs.e01 === undefined ? e.knot(p) : null);
-    }, 250);
+    }, getQuality() === 'low' ? 500 : 250);
     return () => {
       offBus(); window.clearInterval(iv); eng.current = null;
       window.removeEventListener('pointerdown', down, true); window.removeEventListener('pointermove', move);

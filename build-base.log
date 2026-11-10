@@ -1,0 +1,124 @@
+▲ Next.js 16.3.6 (Turbopack)
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\base-tmp\package-lock.json
+
+✓ Running next.config.ts took 1430ms
+- Experiments (use with caution):
+  · clientTraceMetadata
+  · optimizePackageImports
+
+  Creating an optimized production build ...
+Error: Can't resolve './_design-system.css' in 'C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\base-tmp'
+    [2m[at finishWithoutResolve (C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\node_modules\enhanced-resolve\lib\Resolver.js:957:18)][0m
+    [2m[at C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\node_modules\enhanced-resolve\lib\Resolver.js:1053:13][0m
+    [2m[at C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\node_modules\enhanced-resolve\lib\Resolver.js:1137:5][0m
+    [2m[at eval (eval at create (C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\node_modules\tapable\lib\HookCodeFactory.js:31:10), <anonymous>:15:1)][0m
+    [2m[at C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\node_modules\enhanced-resolve\lib\Resolver.js:1137:5][0m
+    [2m[at eval (eval at create (C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\node_modules\tapable\lib\HookCodeFactory.js:31:10), <anonymous>:27:1)][0m
+    [2m[at C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\node_modules\enhanced-resolve\lib\DescriptionFilePlugin.js:94:43][0m
+    [2m[at C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\node_modules\enhanced-resolve\lib\Resolver.js:1137:5][0m
+    [2m[at eval (eval at create (C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\node_modules\tapable\lib\HookCodeFactory.js:31:10), <anonymous>:15:1)][0m
+    [2m[at C:\Users\Admin\AppData\Local\Temp\claude\4e6fe3df1abdc1d4\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\scratchpad\evosandbox\node_modules\enhanced-resolve\lib\Resolver.js:1137:5][0m {
+  details: "resolve './_design-system.css' in 'C:\\Users\\Admin\\AppData\\Local\\Temp\\claude\\4e6fe3df1abdc1d4\\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\\scratchpad\\evosandbox\\base-tmp'\n" +
+    '  using description file: C:\\Users\\Admin\\AppData\\Local\\Temp\\claude\\4e6fe3df1abdc1d4\\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\\scratchpad\\evosandbox\\base-tmp\\package.json (relative path: .)\n' +
+    '    using description file: C:\\Users\\Admin\\AppData\\Local\\Temp\\claude\\4e6fe3df1abdc1d4\\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\\scratchpad\\evosandbox\\base-tmp\\package.json (relative path: ./_design-system.css)\n' +
+    '      no extension\n' +
+    "        C:\\Users\\Admin\\AppData\\Local\\Temp\\claude\\4e6fe3df1abdc1d4\\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\\scratchpad\\evosandbox\\base-tmp\\_design-system.css doesn't exist\n" +
+    '      .css\n' +
+    "        C:\\Users\\Admin\\AppData\\Local\\Temp\\claude\\4e6fe3df1abdc1d4\\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\\scratchpad\\evosandbox\\base-tmp\\_design-system.css.css doesn't exist\n" +
+    '      as directory\n' +
+    "        C:\\Users\\Admin\\AppData\\Local\\Temp\\claude\\4e6fe3df1abdc1d4\\6c3dc2b5-7399-4afd-9cb3-e8b56eea8729\\scratchpad\\evosandbox\\base-tmp\\_design-system.css doesn't exist"
+}
+✓ Compiled successfully in 52s
+  Running next.config.js provided runAfterProductionCompile ...
+✓ Completed runAfterProductionCompile in 5.6s
+  Running TypeScript ...
+  Finished TypeScript in 34.4s ...
+  Collecting page data using 21 workers ...
+  Generating static pages using 21 workers (0/16) ...
+  Generating static pages using 21 workers (4/16) 
+  Generating static pages using 21 workers (8/16) 
+  Generating static pages using 21 workers (12/16) 
+✓ Generating static pages using 21 workers (16/16) in 5.5s
+Turbopack build encountered 1 warning:
+./base-tmp/lib/devlab/store.ts:10:10
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...[36mon[0m labDir(): string {
+[33m[1m>[0m [90m10 |[0m ....resolve(process.env.[33mVISUAL_LAB_DIR[0m || path.join(process.cwd(), [32m'dev-data'[0m, [32m'visual-lab.[0m..
+  [90m   |[0m    [33m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m11 |[0m ...
+  [90m12 |[0m ...
+  [90m13 |[0m ...re(dir: string): string { mkdirSync(dir, { recursive: [36mtrue[0m }); [36mreturn[0m dir; }
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: path.resolve(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import traces:
+  App Route:
+    ./base-tmp/lib/devlab/store.ts
+    ./base-tmp/app/api/dev/visual-lab/route.ts
+
+  Server Component:
+    ./base-tmp/lib/devlab/store.ts
+    ./base-tmp/lib/devlab/server.ts
+    ./base-tmp/app/admin/visual-lab/page.tsx
+
+
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /admin/recipes
+├ ƒ /admin/visual-lab
+├ ƒ /admin/visual3d
+├ ƒ /api/admin/creative/assets
+├ ƒ /api/admin/creative/assets/enqueue
+├ ƒ /api/admin/creative/assets/manifest
+├ ƒ /api/admin/creative/assets/review
+├ ƒ /api/admin/creative/kill-switch
+├ ƒ /api/admin/creative/metrics
+├ ƒ /api/admin/creative/mode-packets/export
+├ ƒ /api/admin/creative/mode-packets/generate
+├ ƒ /api/admin/creative/mode-packets/list
+├ ƒ /api/admin/creative/mode-packets/review
+├ ƒ /api/admin/creative/onboard
+├ ƒ /api/admin/creative/proposals
+├ ƒ /api/admin/creative/proposals/decide
+├ ƒ /api/admin/creative/release/activate
+├ ƒ /api/admin/creative/release/export
+├ ƒ /api/admin/recipe-suggestions
+├ ƒ /api/cache
+├ ƒ /api/creative/try-recipe
+├ ƒ /api/dev/status
+├ ƒ /api/dev/visual-lab
+├ ƒ /api/health
+├ ƒ /api/internal/assets/tick
+├ ƒ /api/internal/onboard/tick
+├ ƒ /api/ready
+├ ○ /faq
+├ ○ /icon.svg
+├ ○ /manifest.webmanifest
+├ ○ /method
+├ ○ /opengraph-image
+├ ○ /privacy
+├ ○ /robots.txt
+├ ○ /sandbox
+├ ○ /sitemap.xml
+└ ○ /terms
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

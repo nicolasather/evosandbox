@@ -14,6 +14,8 @@ import type { StoneAgeTier } from '@/lib/types';
 
 type Filter = 'all' | 'found' | 'missing' | 'reach' | 'routes' | 'rare' | 'hidden' | 'req';
 type Tab = 'collection' | 'history' | 'world';
+/** Cards rendered per page in the Archive grid. */
+const PAGE = 120;
 const STAGES: StoneAgeTier[] = ['olduvai', 'middle', 'late'];
 
 function Stages({ engine }: { engine: Engine }) {
@@ -68,6 +70,8 @@ export function ArchiveView({
   const [tab, setTab] = useState<Tab>('collection');
   const [filter, setFilter] = useState<Filter>('all');
   const [era, setEra] = useState<string | null>(null);
+  // the grid renders a page of cards at a time: every discovery is still listed, just not all as DOM at once
+  const [limit, setLimit] = useState(PAGE);
   const s = engine.stats();
   void version;
   const { counts } = engine.db;
@@ -150,13 +154,13 @@ export function ArchiveView({
           <>
             <div className="chip-row">
               {filters.map(([f, label]) => (
-                <button key={f} className="chip" data-af={f} aria-pressed={filter === f} onClick={() => setFilter(f)}>{label}</button>
+                <button key={f} className="chip" data-af={f} aria-pressed={filter === f} onClick={() => { setFilter(f); setLimit(PAGE); }}>{label}</button>
               ))}
             </div>
             <div className="chip-row">
-              <button className="chip" aria-pressed={!era} onClick={() => setEra(null)}>Every era</button>
+              <button className="chip" aria-pressed={!era} onClick={() => { setEra(null); setLimit(PAGE); }}>Every era</button>
               {eraProgress.map(({ e, have, total }) => (
-                <button key={e.id} className="chip" aria-pressed={era === e.id} onClick={() => setEra(e.id)}>
+                <button key={e.id} className="chip" aria-pressed={era === e.id} onClick={() => { setEra(e.id); setLimit(PAGE); }}>
                   {e.name} <span className="num" style={{ opacity: 0.7 }}>{have}/{total}</span>
                 </button>
               ))}
@@ -170,7 +174,7 @@ export function ArchiveView({
       ) : tab === 'collection' ? (
         <div className="arch-grid" id="arch-grid">
           {list.length === 0 && <p className="arch-note mono">Nothing here yet.</p>}
-          {list.map((n, i) => {
+          {list.slice(0, limit).map((n, i) => {
             const known = engine.has(n.id);
             const r = engine.routeCount(n.id);
             // a hidden find stays a mystery: no number, no name, no era until it is found
@@ -194,6 +198,11 @@ export function ArchiveView({
               </button>
             );
           })}
+          {list.length > limit && (
+            <button type="button" className="chip arch-more" onClick={() => setLimit(l => l + PAGE)}>
+              Show {Math.min(PAGE, list.length - limit)} more · {list.length - limit} left
+            </button>
+          )}
         </div>
       ) : (
         <ol className="history">
