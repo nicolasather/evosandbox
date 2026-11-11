@@ -11,6 +11,7 @@ import { sortDiscoveries } from '@/lib/chronology';
 import { WorldOrigins } from './world/WorldOrigins';
 import type { Engine } from '@/lib/engine';
 import type { StoneAgeTier } from '@/lib/types';
+import { emitHere } from '@/lib/characters/bus';
 
 type Filter = 'all' | 'found' | 'missing' | 'reach' | 'routes' | 'rare' | 'hidden' | 'req';
 type Tab = 'collection' | 'history' | 'world';
@@ -158,9 +159,9 @@ export function ArchiveView({
               ))}
             </div>
             <div className="chip-row">
-              <button className="chip" aria-pressed={!era} onClick={() => { setEra(null); setLimit(PAGE); }}>Every era</button>
+              <button className="chip" aria-pressed={!era} onClick={() => { emitHere('archive-search', undefined, 'ui'); setEra(null); setLimit(PAGE); }}>Every era</button>
               {eraProgress.map(({ e, have, total }) => (
-                <button key={e.id} className="chip" aria-pressed={era === e.id} onClick={() => { setEra(e.id); setLimit(PAGE); }}>
+                <button key={e.id} className="chip" aria-pressed={era === e.id} onClick={() => { emitHere('archive-search', undefined, 'ui'); setEra(e.id); setLimit(PAGE); }}>
                   {e.name} <span className="num" style={{ opacity: 0.7 }}>{have}/{total}</span>
                 </button>
               ))}

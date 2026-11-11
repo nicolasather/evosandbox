@@ -26,8 +26,8 @@ describe('RetentionLayer gating', () => {
   });
 
   it('mounts each system once its unlock holds, on the bench', () => {
-    const { getByTestId } = render(<RetentionLayer engine={createEngine(playDb)} version={0} entered view="work" busy={false} unlocks={all} />);
-    expect(getByTestId('companion')).toBeTruthy();
+    const { getByTestId, queryByTestId } = render(<RetentionLayer engine={createEngine(playDb)} version={0} entered view="work" busy={false} unlocks={all} />);
+    expect(queryByTestId('companion')).toBeNull(); // the corner companion is now the global crew stage, mounted in AppRoot
     expect(getByTestId('egg')).toBeTruthy();
     expect(getByTestId('events')).toBeTruthy();
     expect(getByTestId('npc')).toBeTruthy();
