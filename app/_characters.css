@@ -3,11 +3,14 @@
    The lane never takes the pointer: only the hit button around each creature does.
    Motion is transform / opacity only; the clips are driven by lib/characters/animator.
    ========================================================================== */
-:root{--crew-size:104px;--crew-lift:calc(var(--nav-h,0px) + 74px)}
-@media (max-width:720px){:root{--crew-size:66px;--crew-lift:calc(var(--nav-h,0px) + 64px)}}
+:root{--crew-size:128px;--crew-lift:calc(var(--nav-h,0px) + 74px)}
+@media (max-width:720px){:root{--crew-size:80px;--crew-lift:calc(var(--nav-h,0px) + 64px)}}
 
 .crew-lane{position:fixed;left:0;right:0;bottom:var(--crew-lift);height:0;z-index:41;pointer-events:none;contain:layout style}
-.crew-actor{position:absolute;bottom:0;width:var(--crew-size);height:var(--crew-size);pointer-events:none;transition:opacity .25s ease-out,transform .3s cubic-bezier(.23,1,.32,1)}
+.crew-actor{position:absolute;bottom:0;width:var(--crew-size);height:var(--crew-size);pointer-events:none;transition:opacity .25s ease-out,transform .3s cubic-bezier(.23,1,.32,1),bottom 1.4s ease-in-out}
+.crew-actor[data-char="kip"] .crew-flip{filter:drop-shadow(0 0 7px rgba(255,170,70,.4))}
+.crew-actor[data-char="vex"] .crew-flip{filter:drop-shadow(0 0 7px rgba(255,90,110,.4))}
+.crew-actor[data-char="orra"] .crew-flip{filter:drop-shadow(0 0 7px rgba(90,230,215,.4))}
 .crew-lane[data-tucked="1"] .crew-actor{opacity:0;transform:translateY(60%)}
 .crew-flip{width:100%;height:100%}
 .crew-flip[data-facing="left"]{transform:scaleX(-1)}

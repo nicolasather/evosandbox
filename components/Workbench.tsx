@@ -1398,6 +1398,8 @@ export function Workbench({ engine, active, onCombine, onProcess, onBegin, onIns
       tactile.release(d.body, fresh ? d.vx : 0, fresh ? d.vy : 0);
       dirty = true;
       if (!d.moved && performance.now() - d.t0 < 380) { tap(d.body); tactile.tap(d.body); }
+      // a piece let go over one of the crew is a gift to them (the crew stage listens; nothing else does)
+      if (d.moved && e.type === 'pointerup') window.dispatchEvent(new CustomEvent('evo:piece-drop', { detail: { x: e.clientX, y: e.clientY } }));
       wake();
     };
 
