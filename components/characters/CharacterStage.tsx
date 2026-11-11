@@ -11,6 +11,7 @@ import { attachRetentionBridge } from '@/lib/characters/bridge';
 import { characterBus, emitCrew, provideCrewContext, setCrewMode } from '@/lib/characters/bus';
 import { getClip } from '@/lib/characters/clips';
 import { CrewDirector, type Performance } from '@/lib/characters/director';
+import { bottomS, glidePath, makeGeo, normalise, pointAt, restRot, rotDelta, sFromPoint, type Edge, type Geo } from '@/lib/characters/perimeter';
 import { crewProgress } from '@/lib/characters/progress';
 import { CHARACTERS, CREW } from '@/lib/characters/registry';
 import type { ShownLine } from '@/lib/characters/speech';
@@ -22,13 +23,20 @@ import { benchElement } from '@/lib/craft/bus';
    THE CREW STAGE — mounted ONCE, from AppRoot, so it survives every mode swap.
    It owns the single scheduler tick, the clip playback and the only speech bubble.
    The lane never takes the pointer; only the small hit button around each creature does.
+
+   MOVEMENT. The crew lives on the edge of the screen and walks the whole border (floor mostly, sometimes up a side or along the
+   top, tilted so its feet stay on the border). A creature's place is one number, `s`, along that loop (lib/characters/perimeter).
+   It is moved ONLY with a compositor-friendly transform animation (translate + rotate, never left/top/bottom), one continuous
+   glide per trip, while the pose clips play in place on top. An interrupted glide is settled at the spot actually reached, so a
+   creature never snaps back or pops somewhere else.
    ========================================================================== */
 
 const EMOTES: { label: string; clip: string }[] = [
   { label: 'Cheer', clip: 'cheer-two-arm' }, { label: 'Wave', clip: 'guide-wave-over' }, { label: 'Think', clip: 'guide-think-pose' }, { label: 'Nap', clip: 'transform-sleep-mode' },
 ];
 
-interface Slot { play: Playing; prio: Priority; solid: boolean }
+/** Clips that make a creature disappear or pop up somewhere else: the crew never does that, it walks. */
+const POP = /vanish|portal|teleport|disappear|swap-places|fall-off|climb-back|exit-/;
 
 const GIFT: Record<CharacterId, { clips: string[]; id: string; text: string }> = {
   kip: { clips: ['object-catch', 'item-hug', 'cheer-hop-clap'], id: 'kip.gift', text: 'For me? Thank you!' },
@@ -36,7 +44,18 @@ const GIFT: Record<CharacterId, { clips: string[]; id: string; text: string }> =
   orra: { clips: ['object-catch', 'object-inspect-close', 'cheer-two-arm'], id: 'orra.gift', text: 'How thoughtful. Noted.' },
 };
 
-const DEV = process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true' && process.env.NEXT_PUBLIC_DEPLOY_ENV !== 'production';
+const RUN_FAST = ['walk-hurry', 'walk-hurry', 'walk-bouncy'];
+const RUN_EASY = ['walk-short', 'walk-march', 'walk-waddle', 'walk-follow-leader'];
+const BREATHER = ['jump-small', 'walk-stop-skid', 'cheer-two-arm', 'jump-sideflip', 'jump-spin', 'cheer-spin-burst', 'idle-foot-tap'];
+
+interface Slot { play: Playing; prio: Priority; solid: boolean }
+interface State { s: number; rot: number }
+/** one continuous glide along the border */
+interface Mover { id: number; s0: number; s1: number; r0: number; dur: number; geo: Geo; anims: Animation[]; done: Promise<'done' | 'cancelled'>; finish: (v: 'done' | 'cancelled') => void }
+
+/** the on-screen event log is opt-in even in dev builds (add ?crewdebug to the address): it covers the game's own controls */
+const DEV = process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true' && process.env.NEXT_PUBLIC_DEPLOY_ENV !== 'production' && typeof window !== 'undefined' && window.location.search.includes('crewdebug');
+const EDGE_DIR: Record<Edge, number> = { bottom: 0, right: -90, top: 180, left: 90 };
 
 export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: boolean }) {
   const save = useSyncExternalStore(crewStore.subscribe, crewStore.get, crewStore.getServer);
@@ -58,8 +77,10 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
   const [debugLog, setDebugLog] = useState<string[]>([]);
 
   const director = useRef<CrewDirector | null>(null);
-  const actors = useRef<Partial<Record<CharacterId, HTMLElement | null>>>({});
-  const pos = useRef<Record<CharacterId, number>>({ kip: 0, vex: 0, orra: 0 });
+    const actors = useRef<Partial<Record<CharacterId, HTMLElement | null>>>({});
+  const place = useRef<Record<CharacterId, State>>({ kip: { s: 0, rot: 0 }, vex: { s: 0, rot: 0 }, orra: { s: 0, rot: 0 } });
+  const movers = useRef<Partial<Record<CharacterId, Mover>>>({});
+  const moverSeq = useRef(0);
   const slots = useRef<Partial<Record<CharacterId, Slot>>>({});
   const idle = useRef<Partial<Record<CharacterId, Playing>>>({});
   const timers = useRef(new Set<number>());
@@ -84,7 +105,7 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
   const dragItem = useRef(0);
 
   const reduced = osReduced || save.settings.reducedMotion;
-  const size = () => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 80 : 128);
+  const size = () => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 38 : 48);
   const amp = () => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 0.65 : 1);
 
   /* a stable director, created on first use (not during render) */
@@ -100,22 +121,93 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
   }, []);
 
   const rootOf = (c: CharacterId): HTMLElement | null => actors.current[c]?.querySelector<HTMLElement>('[data-joint="root"]') ?? null;
+  const tiltOf = (c: CharacterId): HTMLElement | null => actors.current[c]?.querySelector<HTMLElement>('.crew-rot') ?? null;
 
-  const homeX = useCallback((c: CharacterId) => {
-    const w = window.innerWidth, s = size();
-    const i = CHARACTER_IDS.indexOf(c);
-    return Math.max(4, w - 52 - (s + 6) * (i + 1));
+  /* ── where things are: the border ─────────────────────────────── */
+
+  const getGeo = useCallback((): Geo => {
+    const de = document.documentElement;
+    return makeGeo(de.clientWidth, de.clientHeight, size(), 4); // the very edge of the screen, feet on the border
   }, []);
-  const place = useCallback((c: CharacterId, x: number) => {
-    const w = window.innerWidth, s = size();
-    const px = Math.max(4, Math.min(w - s - 4, x)); // the whole width of the screen is theirs
-    pos.current[c] = px;
-    const el = actors.current[c];
-    if (el) el.style.left = `${px}px`;
-  }, []);
+
+  /** put a creature where its state says, with no animation */
+  const paint = useCallback((c: CharacterId, g: Geo = getGeo()) => {
+    const el = actors.current[c]; if (!el) return;
+    const st = place.current[c];
+    const p = pointAt(g, st.s);
+    el.style.transform = `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0)`;
+    el.dataset.edge = p.edge; el.dataset.placed = '1';
+    const t = tiltOf(c); if (t) t.style.transform = `rotate(${st.rot.toFixed(1)}deg)`;
+  }, [getGeo]);
+
+  /** jump straight to a place (only used when nobody can see it happen: first appearance, a resize) */
+  const setS = useCallback((c: CharacterId, s: number, rot?: number) => {
+    const g = getGeo();
+    const n = normalise(g, s, rot ?? restRot(g, s));
+    place.current[c] = n; paint(c, g);
+  }, [getGeo, paint]);
+
+  const homeS = useCallback((c: CharacterId) => {
+    const g = getGeo(); const i = CHARACTER_IDS.indexOf(c);
+    return Math.max(4, Math.min(g.A, g.W - 52 - (size() + 6) * (i + 1)));
+  }, [getGeo]);
+
   const face = useCallback((c: CharacterId, d: 1 | -1) => {
     actors.current[c]?.querySelector<HTMLElement>('.crew-flip')?.setAttribute('data-facing', d < 0 ? 'left' : 'right');
   }, []);
+
+  /** which way (+1/-1 along the border) is nearer the pointer */
+  const dirToward = useCallback((c: CharacterId, p: { x: number; y: number }): 1 | -1 => {
+    const g = getGeo(); const s = place.current[c].s;
+    const a = pointAt(g, s + 80), b = pointAt(g, s - 80);
+    const da = Math.hypot(a.x + g.S / 2 - p.x, a.y + g.S / 2 - p.y), db = Math.hypot(b.x + g.S / 2 - p.x, b.y + g.S / 2 - p.y);
+    return da <= db ? 1 : -1;
+  }, [getGeo]);
+
+  /** Stop a creature's glide right now and settle it exactly where it has got to (never back where it started). */
+  const stopGlide = useCallback((c: CharacterId, only?: number) => {
+    const m = movers.current[c];
+    if (!m || (only !== undefined && m.id !== only)) return;
+    delete movers.current[c];
+    const el = actors.current[c];
+    let s = m.s1;
+    if (el) {
+      try {
+        const mat = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+        const t = Number(m.anims[0]?.currentTime ?? 0) / Math.max(1, m.dur);
+        s = sFromPoint(m.geo, mat.m41, mat.m42, m.s0 + (m.s1 - m.s0) * Math.max(0, Math.min(1, t)));
+      } catch { /* keep the end */ }
+    }
+    place.current[c] = normalise(m.geo, s, m.r0 + rotDelta(m.geo, m.s0, s));
+    paint(c, m.geo);
+    for (const a of m.anims) { try { a.cancel(); } catch { /* ignore */ } }
+    m.finish('cancelled');
+  }, [paint]);
+
+  /** One continuous glide along the border from where it is to s1. */
+  const glide = useCallback((c: CharacterId, s1: number, dur: number, easing = 'linear'): Mover | null => {
+    const el = actors.current[c], tilt = tiltOf(c);
+    if (!el || !tilt || typeof el.animate !== 'function') { setS(c, s1); return null; }
+    stopGlide(c);
+    const g = getGeo(); const st = place.current[c];
+    const path = glidePath(g, st.s, s1, st.rot);
+    const opts: KeyframeAnimationOptions = { duration: dur, easing, fill: 'forwards' };
+    let finish: (v: 'done' | 'cancelled') => void = () => {};
+    const done = new Promise<'done' | 'cancelled'>(r => { finish = r; });
+    const a1 = el.animate(path.map(k => ({ offset: k.offset, transform: `translate3d(${k.x.toFixed(1)}px, ${k.y.toFixed(1)}px, 0)` })), opts);
+    const a2 = tilt.animate(path.map(k => ({ offset: k.offset, transform: `rotate(${k.rot.toFixed(1)}deg)` })), opts);
+    const m: Mover = { id: ++moverSeq.current, s0: st.s, s1, r0: st.rot, dur, geo: g, anims: [a1, a2], done, finish };
+    movers.current[c] = m;
+    a1.finished.then(() => {
+      if (movers.current[c] !== m) return;
+      delete movers.current[c];
+      place.current[c] = normalise(g, s1, m.r0 + rotDelta(g, m.s0, s1));
+      paint(c, g); // commit first, then drop the animation: no frame in between
+      for (const a of m.anims) { try { a.cancel(); } catch { /* ignore */ } }
+      finish('done');
+    }, () => { /* cancelled elsewhere */ });
+    return m;
+  }, [getGeo, paint, setS, stopGlide]);
 
   /* ── playback ─────────────────────────────────────────────────── */
 
@@ -130,14 +222,16 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     epoch.current++; roaming.current = {};
     for (const t of timers.current) window.clearTimeout(t);
     timers.current.clear();
-    for (const c of CHARACTER_IDS) { slots.current[c]?.play.cancel(); delete slots.current[c]; held.current[c]?.release(); delete held.current[c]; stopIdle(c); dir().clearPlaying(c); }
+    for (const c of CHARACTER_IDS) { stopGlide(c); slots.current[c]?.play.cancel(); delete slots.current[c]; held.current[c]?.release(); delete held.current[c]; stopIdle(c); dir().clearPlaying(c); }
     dir().speech.clear();
-  }, [dir, stopIdle]);
+  }, [dir, stopGlide, stopIdle]);
 
   /** Play one clip for one or more creatures on one shared timeline. Resolves when the lead's clip ends (or is cancelled). */
-  const play = useCallback((cast: CharacterId[], clipId: string, prio: Priority, travelDir?: 1 | -1, hint?: 'toward-cursor' | 'away-cursor', quiet = false): Promise<'done' | 'cancelled' | 'skipped'> => {
-    const clip = getClip(clipId);
+  const play = useCallback((cast: CharacterId[], clipId: string, prio: Priority, travelDir?: 1 | -1, hint?: 'toward-cursor' | 'away-cursor', quiet = false, keepGlide = false): Promise<'done' | 'cancelled' | 'skipped'> => {
+    let clip = getClip(clipId);
+    if (clip && (clip.holdEnd || POP.test(clip.id))) clip = getClip('emotion-curious'); // nobody pops out and back in; they walk
     if (!clip || !readyRef.current) return Promise.resolve('skipped');
+    const cl = clip;
     for (const c of cast) {
       const cur = slots.current[c];
       if (cur && (PRIORITY_RANK[cur.prio] > PRIORITY_RANK[prio] || (cur.solid && PRIORITY_RANK[cur.prio] === PRIORITY_RANK[prio]))) return Promise.resolve('skipped');
@@ -146,79 +240,96 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     cast.forEach((c, role) => {
       slots.current[c]?.play.cancel(); stopIdle(c);
       held.current[c]?.release(); delete held.current[c];
+      if (!keepGlide) stopGlide(c); // whatever it was doing, it stops where it stands
       const el = rootOf(c);
-      const w = window.innerWidth, s = size();
-      const toCursor: 1 | -1 = ptr.current.x >= pos.current[c] + s / 2 ? 1 : -1;
-      const edge: 1 | -1 = pos.current[c] > w - s - 70 ? -1 : pos.current[c] < 64 ? 1 : (Math.random() < 0.5 ? 1 : -1);
-      const d: 1 | -1 = travelDir ?? (hint === 'toward-cursor' ? toCursor : hint === 'away-cursor' ? (toCursor === 1 ? -1 : 1) : edge);
-      if (clip.travel) face(c, clip.travel * d >= 0 ? 1 : -1);
-      const p = playClip(el, clip, {
-        char: c, unit: size(), amp: amp(), role, dir: d, reduced: reducedRef.current,
-        onTravel: dx => place(c, pos.current[c] + dx),
-      });
-      const slot: Slot = { play: p, prio, solid: !clip.interruptible };
+      const toCursor: 1 | -1 = dirToward(c, ptr.current);
+      const d: 1 | -1 = travelDir ?? (hint === 'toward-cursor' ? toCursor : hint === 'away-cursor' ? (toCursor === 1 ? -1 : 1) : (Math.random() < 0.5 ? 1 : -1));
+      const total = Math.max(250, cl.durationMs * CHARACTERS[c].retarget.speed);
+      if (cl.travel && !reducedRef.current && !keepGlide) {
+        face(c, cl.travel * d >= 0 ? 1 : -1);
+        glide(c, place.current[c].s + cl.travel * size() * amp() * d, total);
+      }
+      const p = playClip(el, cl, { char: c, unit: size(), amp: amp(), role, dir: d, reduced: reducedRef.current, noTravel: true });
+      const slot: Slot = { play: p, prio, solid: !cl.interruptible };
       slots.current[c] = slot;
-      if (!quiet) dir().markPlaying(c, clip.durationMs * CHARACTERS[c].retarget.speed); // running about is not "busy": the director may still cast them
-      p.finished.then(() => { if (slots.current[c] === slot) { delete slots.current[c]; if (!quiet) dir().clearPlaying(c); if (clip.holdEnd) held.current[c] = p; else startIdle(c); } });
+      if (!quiet) dir().markPlaying(c, total);
+      p.finished.then(() => { if (slots.current[c] === slot) { delete slots.current[c]; if (!quiet) dir().clearPlaying(c); if (cl.holdEnd) held.current[c] = p; else startIdle(c); } });
       if (role === 0) lead = p.finished;
     });
     return lead;
-  }, [dir, face, place, startIdle, stopIdle]);
+  }, [dir, dirToward, face, glide, startIdle, stopGlide, stopIdle]);
 
-  const walkTo = useCallback(async (c: CharacterId, x: number) => {
-    for (let i = 0; i < 12; i++) {
-      const dx = x - pos.current[c];
-      if (Math.abs(dx) < size() * 0.5) return;
-      const r = await play([c], 'walk-hurry', 'normal', dx > 0 ? 1 : -1);
-      if (r !== 'done') return;
+  /** Go to s1 along the border in one continuous glide, running the given walk poses in place on top. */
+  const travelTo = useCallback(async (c: CharacterId, s1: number, clips: string[], prio: Priority, quiet: boolean, speed: number): Promise<'done' | 'cancelled' | 'skipped'> => {
+    const my = epoch.current;
+    const dist = Math.abs(s1 - place.current[c].s);
+    if (dist < 6) return 'done';
+    const sign: 1 | -1 = s1 > place.current[c].s ? 1 : -1;
+    stopGlide(c);
+    const m = glide(c, s1, Math.max(350, (dist / speed) * 1000), 'cubic-bezier(.35,0,.65,1)');
+    face(c, sign);
+    if (!m) return 'done';
+    let arrived = false;
+    void m.done.then(r => { if (r === 'done') arrived = true; });
+    while (!arrived) {
+      if (my !== epoch.current || movers.current[c] !== m) return 'cancelled';
+      const r = await play([c], clips[Math.floor(Math.random() * clips.length)], prio, sign, undefined, quiet, true);
+      if (r !== 'done') { stopGlide(c, m.id); return r === 'skipped' ? 'skipped' : 'cancelled'; }
     }
-  }, [play]);
+    return 'done';
+  }, [face, glide, play, stopGlide]);
 
-  /** The crew's default state: running about the whole screen, hopping, chasing each other, stopping only for a breather. */
+  /** walk along the floor to horizontal position x */
+  const walkTo = useCallback(async (c: CharacterId, x: number, clips: string[] = ['walk-hurry']) => {
+    const g = getGeo();
+    return travelTo(c, bottomS(g, x, place.current[c].s), clips, 'normal', false, 330);
+  }, [getGeo, travelTo]);
+
+  /** The crew's default state: patrolling the border, mostly the floor, sometimes up a side or along the top, now and then a hop. */
   const wander = useCallback(async (c: CharacterId) => {
     if (roaming.current[c]) return;
     roaming.current[c] = true;
     const my = epoch.current;
-    const RUN = ['walk-hurry', 'walk-hurry', 'walk-bouncy', 'walk-zigzag', 'jump-long', 'walk-hurry', 'walk-bouncy'];
-    const BREATHER = ['jump-small', 'walk-stop-skid', 'recover-roll', 'cheer-two-arm', 'jump-sideflip', 'jump-spin', 'cheer-spin-burst'];
     const free = () => {
       const d = dir();
       return my === epoch.current && readyRef.current && !reducedRef.current && !merging.current && d.safe() && d.active().includes(c) && crewStore.get().settings.ambientSkits && !gateRef.current;
     };
     try {
-      for (let trip = 0; trip < 40 && free(); trip++) {
-        const w = window.innerWidth, s = size(), h = window.innerHeight;
+      for (let trip = 0; trip < 60 && free(); trip++) {
+        const g = getGeo(); const from = place.current[c].s;
+        const r = Math.random();
+        let u = r < 0.62 ? Math.random() * g.A : r < 0.76 ? g.A + Math.random() * g.V : r < 0.9 ? g.A + g.V + Math.random() * g.A : 2 * g.A + g.V + Math.random() * g.V;
         const others = CHARACTER_IDS.filter(o => o !== c && actors.current[o]);
-        let target = 4 + Math.random() * Math.max(1, w - s - 8);
-        if (others.length && Math.random() < 0.3) target = pos.current[others[Math.floor(Math.random() * others.length)]] + (Math.random() < 0.5 ? -s * 0.8 : s * 0.8); // chase someone
-        if (Math.abs(target - pos.current[c]) < s * 1.2) target = pos.current[c] + (pos.current[c] > w / 2 ? -1 : 1) * (s * 2 + Math.random() * w * 0.25);
-        const el = actors.current[c];
-        if (el) el.style.bottom = `${Math.round(Math.random() * Math.min(h * 0.32, 240))}px`; // up and down the screen too, not only along the floor
-        for (let i = 0; i < 14 && Math.abs(target - pos.current[c]) > s * 0.45; i++) {
-          if (!free() || slots.current[c]) return;
-          const r = await play([c], RUN[Math.floor(Math.random() * RUN.length)], 'ambient', target > pos.current[c] ? 1 : -1, undefined, true);
-          if (r !== 'done') return;
-        }
-        if (!free() || slots.current[c]) return;
-        if (Math.random() < 0.65) {
-          const r = await play([c], BREATHER[Math.floor(Math.random() * BREATHER.length)], 'ambient', undefined, undefined, true);
-          if (r !== 'done') return;
-        } else await new Promise<void>(res => window.setTimeout(res, 200 + Math.random() * 500));
+        if (others.length && Math.random() < 0.25) u = place.current[others[Math.floor(Math.random() * others.length)]].s + (Math.random() < 0.5 ? -1 : 1) * g.S * 0.9; // chase someone
+        let s1 = u + g.P * Math.round((from - u) / g.P); // the short way round
+        if (Math.abs(s1 - from) < g.S * 1.5) s1 = from + (Math.random() < 0.5 ? -1 : 1) * (g.S * 2 + Math.random() * g.A * 0.3);
+        const fast = Math.random() < 0.55;
+        const res = await travelTo(c, s1, fast ? RUN_FAST : RUN_EASY, 'ambient', true, fast ? 330 + Math.random() * 120 : 150 + Math.random() * 60);
+        if (res !== 'done' || !free() || slots.current[c]) return;
+        if (Math.random() < 0.6) {
+          const b = await play([c], BREATHER[Math.floor(Math.random() * BREATHER.length)], 'ambient', undefined, undefined, true);
+          if (b !== 'done') return;
+        } else await new Promise<void>(res2 => window.setTimeout(res2, 250 + Math.random() * 700));
       }
     } finally { if (my === epoch.current) roaming.current[c] = false; }
-  }, [dir, play]);
+  }, [dir, getGeo, play, travelTo]);
 
-  /** Someone gave one of them something (an inventory item or a bench piece dropped on them): they catch it, react, and the others come running. */
+  /** Someone gave one of them something (an inventory item or a bench piece dropped on them): they catch it, react, and the others come over. */
   const receive = useCallback((c: CharacterId) => {
     const d = dir();
     if (!readyRef.current || !d.active().includes(c)) return;
     const g = GIFT[c];
     d.speech.offer({ speakerId: c, lineId: g.id, text: g.text, priority: 'major', expiresAt: Date.now() + 3000, voiceCueId: `vc.${c}.${g.id}` }, true);
     void (async () => { for (const id of g.clips) { if (await play([c], id, 'major') !== 'done') break; } })();
+    const geo = getGeo();
     for (const o of d.active().filter(x => x !== c)) {
-      void (async () => { await walkTo(o, pos.current[c] + (pos.current[o] > pos.current[c] ? 1 : -1) * size() * 0.9); void play([o], 'emotion-curious', 'normal'); })();
+      void (async () => {
+        const near = place.current[c].s + (place.current[o].s >= place.current[c].s ? 1 : -1) * geo.S * 0.9;
+        await travelTo(o, near, RUN_FAST, 'normal', false, 340);
+        void play([o], 'emotion-curious', 'normal');
+      })();
     }
-  }, [dir, play, walkTo]);
+  }, [dir, getGeo, play, travelTo]);
   const giveAt = useCallback((x: number, y: number) => {
     for (const c of CHARACTER_IDS) {
       const r = actors.current[c]?.getBoundingClientRect(); if (!r || !r.width) continue;
@@ -239,10 +350,7 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     if (inv) await walkTo(c, inv.left + inv.width / 2 - size() / 2);
     if (await play([c], 'object-squat-pickup', 'normal') !== 'done') return;
     if (bench) {
-      const target = bench.left + bench.width / 2 - size() / 2;
-      for (let i = 0; i < 10 && Math.abs(target - pos.current[c]) > size() * 0.5; i++) {
-        if (await play([c], 'object-carry-walk', 'normal', target > pos.current[c] ? 1 : -1) !== 'done') return;
-      }
+      if (await walkTo(c, bench.left + bench.width / 2 - size() / 2, ['object-carry-walk']) !== 'done') return;
     }
     const hold = play([c], 'mode-puzzle-hold-breath', 'normal');
     const run = await actionRegistry.run(p.mode, 'bench.tryRandomMerge', { phase: 'run' });
@@ -250,9 +358,9 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     if (!run.ok) { await play([c], 'emotion-apologetic', 'normal'); }
     else if (run.data?.outcome === 'fail') { await play([c], 'emotion-embarrassed', 'normal'); crewStore.bump(`${c}>vex`, 'patience'); }
     else await play([c], 'object-place-carefully', 'normal');
-    await walkTo(c, homeX(c));
+    await walkTo(c, homeS(c));
     } finally { merging.current = false; }
-  }, [homeX, play, walkTo]);
+  }, [homeS, play, walkTo]);
 
   const perform = useCallback((p: Performance) => {
     const d = dir();
@@ -348,12 +456,15 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
           const dx = gx - (r.left + r.width / 2), dy = gy - (r.top + r.height * 0.45);
           const dist = Math.hypot(dx, dy);
           const k = dist > 700 ? 0 : 3 / Math.max(40, dist);
-          // write straight to the eye (no CSS variable on a parent, so no style-recalc fan-out) and only when it visibly moved
           if (dist < 90 && !merging.current && !slots.current[c] && !pointerDown.current && Date.now() - (fleeAt.current[c] ?? 0) > 22_000 && Math.random() < 0.08) {
             fleeAt.current[c] = Date.now(); void play([c], 'screen-flee-cursor', 'ambient', undefined, 'away-cursor');
           }
+          // the gaze, turned into the creature's own frame (it may be standing on a wall, and facing either way)
+          const th = ((EDGE_DIR[(el.dataset.edge as Edge) ?? 'bottom']) * Math.PI) / 180;
+          let lx = dx * Math.cos(th) + dy * Math.sin(th); const ly = -dx * Math.sin(th) + dy * Math.cos(th);
+          if (el.querySelector('.crew-flip')?.getAttribute('data-facing') === 'left') lx = -lx;
           const eye = el.querySelector<HTMLElement>('[data-joint="eye"]');
-          const v = `${Math.round(dx * k * 2) / 2}px ${Math.round(dy * k * 2) / 2}px`;
+          const v = `${Math.round(lx * k * 2) / 2}px ${Math.round(ly * k * 2) / 2}px`;
           if (eye && eye.style.translate !== v) eye.style.translate = v;
         }
       });
@@ -373,7 +484,7 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
       if (document.hidden) cancelAll();
       else { for (const c of CHARACTER_IDS) if (appeared[c]) startIdle(c); emitCrew(modeRef.current, 'app-return-focus', undefined, 'ui'); }
     };
-    const resize = () => { for (const c of CHARACTER_IDS) place(c, homeX(c)); };
+    const resize = () => { for (const c of CHARACTER_IDS) { stopGlide(c); setS(c, homeS(c)); } };
     window.addEventListener('pointermove', move, { passive: true });
     window.addEventListener('pointerdown', down, { passive: true });
     window.addEventListener('pointerup', up, { passive: true });
@@ -391,7 +502,7 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
       document.removeEventListener('visibilitychange', vis); window.removeEventListener('resize', resize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [dir, cancelAll, startIdle, appeared, place, homeX, play, giveAt]);
+  }, [dir, cancelAll, startIdle, appeared, setS, homeS, play, giveAt, stopGlide]);
 
   // THE scheduler: one timer for the whole crew
   useEffect(() => {
@@ -399,8 +510,20 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     const tick = () => {
       if (!readyRef.current) return;
       for (const p of d.tick()) perform(p);
-      // between performances they are never standing about: off running somewhere
+      // between performances they are never standing about: off patrolling the border
       for (const c of d.active()) if (!roaming.current[c] && !slots.current[c] && !held.current[c]) void wander(c);
+      // keep each speech bubble on the screen side of its creature, whichever edge it is on
+      const g = getGeo();
+      for (const c of CHARACTER_IDS) {
+        const el = actors.current[c]; if (!el) continue;
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const near: [Edge, number][] = [['left', cx - g.S / 2], ['right', g.W - cx - g.S / 2], ['top', cy - g.S / 2], ['bottom', g.H - cy - g.S / 2]];
+        const edge = near.reduce((a, b) => (b[1] < a[1] ? b : a))[0];
+        if (el.dataset.edge !== edge) el.dataset.edge = edge;
+        const shift = (cx < 100 ? 100 - cx : cx > g.W - 100 ? g.W - 100 - cx : 0);
+        el.style.setProperty('--bshift', `${Math.round(shift)}px`);
+      }
       // ceremony queue: only at a quiet moment
       if (!ceremonyBusy.current && pending.current.length && d.calm() && !gateRef.current) {
         const id = pending.current.shift()!;
@@ -408,7 +531,7 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
         setAppeared(a => ({ ...a, [id]: true }));
         setCeremony(id);
         later(() => {
-          place(id, homeX(id)); face(id, -1);
+          stopGlide(id); setS(id, homeS(id)); face(id, -1);
           void play([id], 'transform-unlock-evolution', 'major');
           emitCrew(modeRef.current, 'crew-arrive-together', { characterId: id }, 'crew');
         }, 120);
@@ -425,13 +548,13 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     const id = window.setInterval(tick, 1000);
     const sub = d.speech.subscribe(setLine);
     return () => { window.clearInterval(id); sub(); };
-  }, [dir, perform, later, place, homeX, face, play, wander]);
+  }, [dir, perform, later, setS, homeS, face, play, wander, getGeo, stopGlide]);
 
   // set the home slots when creatures first appear
   useEffect(() => {
     if (!mounted) return;
-    for (const c of CHARACTER_IDS) if (appeared[c] && !pos.current[c]) { place(c, homeX(c)); startIdle(c); }
-  }, [mounted, appeared, ready, place, homeX, startIdle]);
+    for (const c of CHARACTER_IDS) if (appeared[c] && actors.current[c] && !actors.current[c]!.dataset.placed) { setS(c, homeS(c)); startIdle(c); }
+  }, [mounted, appeared, ready, setS, homeS, startIdle]);
 
   // unmount: kill every timeline, timer and subscription
   useEffect(() => () => { cancelAll(); }, [cancelAll]);
@@ -464,12 +587,14 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     <>
       <div className="crew-lane" data-tucked={tucked || !ready ? '1' : undefined} data-mode={mode}>
         {visible.map(c => (
-          <div key={c.id} className="crew-actor" data-char={c.id} ref={el => { actors.current[c.id] = el; }}>
-            <div className="crew-flip" data-facing="right"><CharacterRig id={c.id} size={size()} /></div>
-            <button type="button" className="crew-hit" aria-label={`${c.name}, ${c.role}. Activate for a reaction.`}
-              onClick={e => onClick(c.id, e.timeStamp)} onKeyDown={e => onKey(c.id, e)}
-              onPointerDown={() => pressStart(c.id)} onPointerUp={pressEnd} onPointerLeave={() => { pressEnd(); poke(c.id, 'pointer-leaves-character'); }}
-              onPointerEnter={() => poke(c.id, 'pointer-near-character')} />
+          <div key={c.id} className="crew-actor" data-char={c.id} data-edge="bottom" ref={el => { actors.current[c.id] = el; }}>
+            <div className="crew-rot">
+              <div className="crew-flip" data-facing="right"><CharacterRig id={c.id} size={size()} /></div>
+              <button type="button" className="crew-hit" aria-label={`${c.name}, ${c.role}. Activate for a reaction.`}
+                onClick={e => onClick(c.id, e.timeStamp)} onKeyDown={e => onKey(c.id, e)}
+                onPointerDown={() => pressStart(c.id)} onPointerUp={pressEnd} onPointerLeave={() => { pressEnd(); poke(c.id, 'pointer-leaves-character'); }}
+                onPointerEnter={() => poke(c.id, 'pointer-near-character')} />
+            </div>
             {line?.speakerId === c.id && !tucked && <CharacterSpeechBubble line={line} />}
             {prankFor === c.id && <CharacterPrankTag />}
             {emoteFor === c.id && (

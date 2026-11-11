@@ -3,15 +3,17 @@
    The lane never takes the pointer: only the hit button around each creature does.
    Motion is transform / opacity only; the clips are driven by lib/characters/animator.
    ========================================================================== */
-:root{--crew-size:128px;--crew-lift:calc(var(--nav-h,0px) + 74px)}
-@media (max-width:720px){:root{--crew-size:80px;--crew-lift:calc(var(--nav-h,0px) + 64px)}}
+:root{--crew-size:48px;--crew-lift:calc(var(--nav-h,0px) + 74px)}
+@media (max-width:720px){:root{--crew-size:38px;--crew-lift:calc(var(--nav-h,0px) + 64px)}}
 
-.crew-lane{position:fixed;left:0;right:0;bottom:var(--crew-lift);height:0;z-index:41;pointer-events:none;contain:layout style}
-.crew-actor{position:absolute;bottom:0;width:var(--crew-size);height:var(--crew-size);pointer-events:none;transition:opacity .25s ease-out,transform .3s cubic-bezier(.23,1,.32,1),bottom 1.4s ease-in-out}
-.crew-actor[data-char="kip"] .crew-flip{filter:drop-shadow(0 0 7px rgba(255,170,70,.4))}
-.crew-actor[data-char="vex"] .crew-flip{filter:drop-shadow(0 0 7px rgba(255,90,110,.4))}
-.crew-actor[data-char="orra"] .crew-flip{filter:drop-shadow(0 0 7px rgba(90,230,215,.4))}
-.crew-lane[data-tucked="1"] .crew-actor{opacity:0;transform:translateY(60%)}
+.crew-lane{position:fixed;left:0;right:0;top:0;height:0;z-index:41;pointer-events:none;contain:layout style}
+.crew-actor{position:absolute;left:0;top:0;width:var(--crew-size);height:var(--crew-size);pointer-events:none;will-change:transform;transition:opacity .35s ease-out,translate .35s cubic-bezier(.23,1,.32,1)}
+.crew-actor:not([data-placed]){visibility:hidden}
+.crew-rot{position:relative;width:100%;height:100%;transform-origin:50% 50%}
+
+
+
+.crew-lane[data-tucked="1"] .crew-actor{opacity:0;translate:0 30%}
 .crew-flip{width:100%;height:100%}
 .crew-flip[data-facing="left"]{transform:scaleX(-1)}
 .crew-rig{position:relative;transform-origin:50% 100%;color:var(--bone,#e8dfc8)}
@@ -48,12 +50,19 @@
 .crew-hit{position:absolute;left:14%;right:14%;top:18%;bottom:0;border:0;padding:0;border-radius:40% 40% 18% 18%;background:transparent;cursor:pointer;pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .crew-hit:focus-visible{outline:2px solid var(--ochre,#c9974a);outline-offset:2px}
 
-.crew-bubble{position:absolute;bottom:calc(100% - 6px);left:50%;transform:translateX(-50%);max-width:190px;width:max-content;padding:4px 9px;border:1px solid var(--line-2,#4a4640);background:var(--ink-1,#14120f);color:var(--bone,#e8dfc8);font:500 11px/1.35 var(--font-mono,ui-monospace,monospace);letter-spacing:.02em;white-space:nowrap;pointer-events:none;animation:crewBubble .22s ease-out both}
+.crew-bubble{position:absolute;bottom:calc(100% - 6px);left:50%;translate:calc(-50% + var(--bshift,0px)) 0;max-width:190px;width:max-content;padding:4px 9px;border:1px solid var(--line-2,#4a4640);background:var(--ink-1,#14120f);color:var(--bone,#e8dfc8);font:500 11px/1.35 var(--font-mono,ui-monospace,monospace);letter-spacing:.02em;white-space:nowrap;pointer-events:none;animation:crewBubble .22s ease-out both}
 .crew-bubble[data-who="vex"]{border-color:#b8683a}
 .crew-bubble[data-who="orra"]{border-color:#9fb0b4}
 .crew-bubble[data-who="kip"]{border-color:var(--ochre,#c9974a)}
-.crew-prank{position:absolute;bottom:calc(100% + 18px);left:50%;transform:translateX(-50%);padding:1px 6px;border:1px dashed #b8683a;color:#e1a47e;background:var(--ink-1,#14120f);font:600 9px/1.4 var(--font-mono,monospace);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;pointer-events:none}
-@keyframes crewBubble{from{opacity:0;transform:translateX(-50%) translateY(4px)}to{opacity:1;transform:translateX(-50%)}}
+.crew-prank{position:absolute;bottom:calc(100% + 18px);left:50%;translate:calc(-50% + var(--bshift,0px)) 0;padding:1px 6px;border:1px dashed #b8683a;color:#e1a47e;background:var(--ink-1,#14120f);font:600 9px/1.4 var(--font-mono,monospace);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;pointer-events:none}
+@keyframes crewBubble{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+/* the creature may be on any edge: its speech goes to the screen side of it, never rotated */
+.crew-actor[data-edge="top"] :is(.crew-bubble,.crew-emotes){bottom:auto;top:calc(100% - 6px)}
+.crew-actor[data-edge="top"] .crew-prank{bottom:auto;top:calc(100% + 18px)}
+.crew-actor[data-edge="left"] :is(.crew-bubble,.crew-prank,.crew-emotes){bottom:auto;top:14%;left:calc(100% - 6px);translate:0 0}
+.crew-actor[data-edge="right"] :is(.crew-bubble,.crew-prank,.crew-emotes){bottom:auto;top:14%;left:auto;right:calc(100% - 6px);translate:0 0}
+.crew-actor[data-edge="left"] .crew-prank{top:calc(14% + 34px)}
+.crew-actor[data-edge="right"] .crew-prank{top:calc(14% + 34px)}
 
 .crew-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
@@ -83,7 +92,7 @@
 
 .crew-ceremony{position:fixed;left:50%;bottom:calc(var(--crew-lift) + 130px);transform:translateX(-50%);z-index:46;padding:7px 14px;border:1px solid var(--ochre,#c9974a);background:var(--ink-1,#14120f);color:var(--bone,#e8dfc8);font:600 11px/1.3 var(--font-mono,monospace);letter-spacing:.14em;text-transform:uppercase;pointer-events:none;animation:crewBubble .4s ease-out both}
 
-.crew-emotes{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);display:flex;gap:4px;padding:4px;border:1px solid var(--line-2,#4a4640);background:var(--ink-1,#14120f);pointer-events:auto}
+.crew-emotes{position:absolute;bottom:calc(100% + 4px);left:50%;translate:calc(-50% + var(--bshift,0px)) 0;display:flex;gap:4px;padding:4px;border:1px solid var(--line-2,#4a4640);background:var(--ink-1,#14120f);pointer-events:auto}
 .crew-emotes button{border:0;background:none;color:var(--bone-2,#cfc4a6);font:600 10px/1 var(--font-mono,monospace);letter-spacing:.06em;padding:6px 7px;cursor:pointer;text-transform:uppercase}
 .crew-emotes button:hover,.crew-emotes button:focus-visible{color:var(--ochre,#c9974a);outline:1px solid var(--ochre,#c9974a)}
 

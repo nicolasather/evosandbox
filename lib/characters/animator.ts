@@ -17,6 +17,8 @@ export interface PlayOpts {
   /** called once with the net horizontal travel in px, just before the animation is released */
   onTravel?: (dx: number) => void;
   speed?: number;
+  /** play the pose only; the caller moves the creature (so it glides continuously and an interrupted walk never snaps back) */
+  noTravel?: boolean;
 }
 
 export interface Playing {
@@ -100,7 +102,7 @@ export function playClip(root: HTMLElement | null, clip: ClipDef, o: PlayOpts): 
     }
   } else {
     total = Math.max(250, clip.durationMs * rt.speed * (o.speed ?? 1));
-    travelPx = (clip.travel ?? 0) * o.unit * (o.dir ?? 1) * amp;
+    travelPx = o.noTravel ? 0 : (clip.travel ?? 0) * o.unit * (o.dir ?? 1) * amp; // noTravel: the stage glides the whole creature instead
     const ease = clip.easing === 'ease-in-out' ? rt.easing : clip.easing;
     for (const j of JOINTS) {
       if (!frames.some(f => f.pose[j]) && !(j === 'root' && travelPx)) continue;
