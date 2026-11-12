@@ -47,6 +47,10 @@ const GIFT: Record<CharacterId, { clips: string[]; id: string; text: string }> =
 const RUN_FAST = ['walk-hurry', 'walk-hurry', 'walk-bouncy'];
 const RUN_EASY = ['walk-short', 'walk-march', 'walk-waddle', 'walk-follow-leader'];
 const BREATHER = ['jump-small', 'walk-stop-skid', 'cheer-two-arm', 'jump-sideflip', 'jump-spin', 'cheer-spin-burst', 'idle-foot-tap'];
+/** the idle poses a creature shows while it rests in a quiet spot */
+const REST_IDLE = ['idle-blink-slow', 'idle-look-left', 'idle-look-right', 'idle-foot-tap'];
+/** while the bench is busy, the crew hop about and float now and then */
+const CRAFT_HOPS = ['jump-small', 'jump-small', 'jump-big', 'move-float'];
 
 interface Slot { play: Playing; prio: Priority; solid: boolean }
 interface State { s: number; rot: number }
@@ -56,6 +60,22 @@ interface Mover { id: number; s0: number; s1: number; r0: number; dur: number; g
 /** the on-screen event log is opt-in even in dev builds (add ?crewdebug to the address): it covers the game's own controls */
 const DEV = process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true' && process.env.NEXT_PUBLIC_DEPLOY_ENV !== 'production' && typeof window !== 'undefined' && window.location.search.includes('crewdebug');
 const EDGE_DIR: Record<Edge, number> = { bottom: 0, right: -90, top: 180, left: 90 };
+
+/** Where words, buttons and pictures sit on screen right now (leaf elements only; the crew's own parts are ignored). */
+function contentBoxes(): DOMRect[] {
+  const out: DOMRect[] = [];
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const media = /^(BUTTON|A|INPUT|SELECT|TEXTAREA|IMG|SVG|CANVAS|VIDEO)$/;
+  document.querySelectorAll<HTMLElement>('body *').forEach(el => {
+    if (el.closest('.crew-lane,.crew-chip,.crew-panel,.crew-ask,.crew-debug')) return;
+    if (el.childElementCount > 0 && !media.test(el.tagName)) return;
+    if (!media.test(el.tagName) && !el.textContent?.trim()) return;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2 || r.bottom < 0 || r.right < 0 || r.top > vh || r.left > vw) return;
+    out.push(r);
+  });
+  return out;
+}
 
 export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: boolean }) {
   const save = useSyncExternalStore(crewStore.subscribe, crewStore.get, crewStore.getServer);
@@ -103,9 +123,11 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
   const roaming = useRef<Partial<Record<CharacterId, boolean>>>({});
   const epoch = useRef(0);
   const dragItem = useRef(0);
+  const lastCraft = useRef(0);
+  const restAt = useRef<Partial<Record<CharacterId, { s: number; t: number }>>>({});
 
   const reduced = osReduced || save.settings.reducedMotion;
-  const size = () => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 38 : 48);
+  const size = () => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 48 : 60);
   const amp = () => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 0.65 : 1);
 
   /* a stable director, created on first use (not during render) */
@@ -150,6 +172,34 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
   const homeS = useCallback((c: CharacterId) => {
     const g = getGeo(); const i = CHARACTER_IDS.indexOf(c);
     return Math.max(4, Math.min(g.A, g.W - 52 - (size() + 6) * (i + 1)));
+  }, [getGeo]);
+
+  /** The quietest stretch of the border: where the least content sits under a creature, kept a little apart from the others. Cached for a minute. */
+  const restSpot = useCallback((c: CharacterId): number => {
+    const g = getGeo();
+    const hit = restAt.current[c];
+    if (hit && Date.now() - hit.t < 60_000) return hit.s;
+    const boxes = contentBoxes();
+    const others = CHARACTER_IDS.filter(o => o !== c && actors.current[o]).map(o => place.current[o].s);
+    const gap = (a: number, b: number) => { const d = (((a - b) % g.P) + g.P) % g.P; return Math.min(d, g.P - d); };
+    const scored: { s: number; score: number }[] = [];
+    for (let s = 0; s < g.P; s += 24) {
+      if (others.some(o => gap(s, o) < g.S + 14)) continue;
+      const p = pointAt(g, s);
+      const x0 = p.x - 12, x1 = p.x + g.S + 12, y0 = p.y - 12, y1 = p.y + g.S + 12;
+      let score = 0;
+      for (const r of boxes) {
+        const ix = Math.min(r.right, x1) - Math.max(r.left, x0), iy = Math.min(r.bottom, y1) - Math.max(r.top, y0);
+        if (ix > 0 && iy > 0) score += ix * iy;
+      }
+      scored.push({ s, score });
+    }
+    if (!scored.length) return place.current[c].s;
+    const best = Math.min(...scored.map(x => x.score));
+    const cands = scored.filter(x => x.score <= best * 1.15 + 40);
+    const s = cands[Math.floor(Math.random() * cands.length)].s;
+    restAt.current[c] = { s, t: Date.now() };
+    return s;
   }, [getGeo]);
 
   const face = useCallback((c: CharacterId, d: 1 | -1) => {
@@ -297,22 +347,29 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     try {
       for (let trip = 0; trip < 60 && free(); trip++) {
         const g = getGeo(); const from = place.current[c].s;
+        const resting = Math.random() < 0.6; // most trips end at the quiet spot; the rest patrol the border
         const r = Math.random();
         let u = r < 0.62 ? Math.random() * g.A : r < 0.76 ? g.A + Math.random() * g.V : r < 0.9 ? g.A + g.V + Math.random() * g.A : 2 * g.A + g.V + Math.random() * g.V;
         const others = CHARACTER_IDS.filter(o => o !== c && actors.current[o]);
         if (others.length && Math.random() < 0.25) u = place.current[others[Math.floor(Math.random() * others.length)]].s + (Math.random() < 0.5 ? -1 : 1) * g.S * 0.9; // chase someone
         let s1 = u + g.P * Math.round((from - u) / g.P); // the short way round
         if (Math.abs(s1 - from) < g.S * 1.5) s1 = from + (Math.random() < 0.5 ? -1 : 1) * (g.S * 2 + Math.random() * g.A * 0.3);
-        const fast = Math.random() < 0.55;
+        if (resting) { const rs = restSpot(c); s1 = rs + g.P * Math.round((from - rs) / g.P) + (Math.random() - 0.5) * g.S * 0.5; }
+        const fast = !resting && Math.random() < 0.55;
         const res = await travelTo(c, s1, fast ? RUN_FAST : RUN_EASY, 'ambient', true, fast ? 330 + Math.random() * 120 : 150 + Math.random() * 60);
         if (res !== 'done' || !free() || slots.current[c]) return;
-        if (Math.random() < 0.6) {
+        if (resting) {
+          // at the quiet spot: an idle pose, then they stay put for a few seconds (the breathing loop keeps going)
+          const idleClip = REST_IDLE[Math.floor(Math.random() * REST_IDLE.length)];
+          if (await play([c], idleClip, 'ambient', undefined, undefined, true) !== 'done') return;
+          await new Promise<void>(res2 => window.setTimeout(res2, 3500 + Math.random() * 4500));
+        } else if (Math.random() < 0.6) {
           const b = await play([c], BREATHER[Math.floor(Math.random() * BREATHER.length)], 'ambient', undefined, undefined, true);
           if (b !== 'done') return;
         } else await new Promise<void>(res2 => window.setTimeout(res2, 250 + Math.random() * 700));
       }
     } finally { if (my === epoch.current) roaming.current[c] = false; }
-  }, [dir, getGeo, play, travelTo]);
+  }, [dir, getGeo, play, restSpot, travelTo]);
 
   /** Someone gave one of them something (an inventory item or a bench piece dropped on them): they catch it, react, and the others come over. */
   const receive = useCallback((c: CharacterId) => {
@@ -412,6 +469,7 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     const off = characterBus.on(e => {
       if (e.id === 'app-enter') { readyRef.current = true; setReady(true); }
       if (e.id === 'inventory-drag-item') dragItem.current = Date.now();
+      if (/^(craft-|bench-|technique-|inventory-drop)/.test(e.id)) lastCraft.current = Date.now();
       for (const p of dir().handle(e)) perform(p);
     });
     const offBridge = attachRetentionBridge();
@@ -484,7 +542,7 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
       if (document.hidden) cancelAll();
       else { for (const c of CHARACTER_IDS) if (appeared[c]) startIdle(c); emitCrew(modeRef.current, 'app-return-focus', undefined, 'ui'); }
     };
-    const resize = () => { for (const c of CHARACTER_IDS) { stopGlide(c); setS(c, homeS(c)); } };
+    const resize = () => { restAt.current = {}; for (const c of CHARACTER_IDS) { stopGlide(c); setS(c, homeS(c)); } };
     window.addEventListener('pointermove', move, { passive: true });
     window.addEventListener('pointerdown', down, { passive: true });
     window.addEventListener('pointerup', up, { passive: true });
@@ -512,6 +570,11 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
       for (const p of d.tick()) perform(p);
       // between performances they are never standing about: off patrolling the border
       for (const c of d.active()) if (!roaming.current[c] && !slots.current[c] && !held.current[c]) void wander(c);
+      // while the bench is busy, a creature now and then hops or floats where it stands
+      if (modeRef.current === 'main-evolution' && Date.now() - lastCraft.current < 30_000 && !merging.current && Math.random() < 0.2) {
+        const free = d.active().filter(c => actors.current[c] && !slots.current[c] && !held.current[c]);
+        if (free.length) void play([free[Math.floor(Math.random() * free.length)]], CRAFT_HOPS[Math.floor(Math.random() * CRAFT_HOPS.length)], 'ambient', undefined, undefined, true);
+      }
       // keep each speech bubble on the screen side of its creature, whichever edge it is on
       const g = getGeo();
       for (const c of CHARACTER_IDS) {
