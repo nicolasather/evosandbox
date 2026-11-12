@@ -3,8 +3,8 @@
    The lane never takes the pointer: only the hit button around each creature does.
    Motion is transform / opacity only; the clips are driven by lib/characters/animator.
    ========================================================================== */
-:root{--crew-size:60px;--crew-lift:calc(var(--nav-h,0px) + 74px)}
-@media (max-width:720px){:root{--crew-size:48px;--crew-lift:calc(var(--nav-h,0px) + 64px)}}
+:root{--crew-size:84px;--crew-lift:calc(var(--nav-h,0px) + 74px)}
+@media (max-width:720px){:root{--crew-size:64px;--crew-lift:calc(var(--nav-h,0px) + 64px)}}
 
 .crew-lane{position:fixed;left:0;right:0;top:0;height:0;z-index:41;pointer-events:none;contain:layout style}
 .crew-actor{position:absolute;left:0;top:0;width:var(--crew-size);height:var(--crew-size);pointer-events:none;will-change:transform;transition:opacity .35s ease-out,translate .35s cubic-bezier(.23,1,.32,1)}

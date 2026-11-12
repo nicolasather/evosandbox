@@ -11,7 +11,7 @@ import { attachRetentionBridge } from '@/lib/characters/bridge';
 import { characterBus, emitCrew, provideCrewContext, setCrewMode } from '@/lib/characters/bus';
 import { getClip } from '@/lib/characters/clips';
 import { CrewDirector, type Performance } from '@/lib/characters/director';
-import { bottomS, glidePath, makeGeo, normalise, pointAt, restRot, rotDelta, sFromPoint, type Edge, type Geo } from '@/lib/characters/perimeter';
+import { bottomS, boxAt, freePath, glidePath, makeGeo, nearestS, normalise, pointAt, rotAt, type Edge, type Geo, type Key } from '@/lib/characters/perimeter';
 import { crewProgress } from '@/lib/characters/progress';
 import { CHARACTERS, CREW } from '@/lib/characters/registry';
 import type { ShownLine } from '@/lib/characters/speech';
@@ -37,6 +37,8 @@ const EMOTES: { label: string; clip: string }[] = [
 
 /** Clips that make a creature disappear or pop up somewhere else: the crew never does that, it walks. */
 const POP = /vanish|portal|teleport|disappear|swap-places|fall-off|climb-back|exit-/;
+/** Clips that flip, spin or fall: fine on the floor, but on a wall they would carry the body off the screen */
+const WALL_UNSAFE = /spin|flip|fall|slip|trip|upside|somersault|roll|tumble|backflip|dive|sideflip/;
 
 const GIFT: Record<CharacterId, { clips: string[]; id: string; text: string }> = {
   kip: { clips: ['object-catch', 'item-hug', 'cheer-hop-clap'], id: 'kip.gift', text: 'For me? Thank you!' },
@@ -53,9 +55,13 @@ const REST_IDLE = ['idle-blink-slow', 'idle-look-left', 'idle-look-right', 'idle
 const CRAFT_HOPS = ['jump-small', 'jump-small', 'jump-big', 'move-float'];
 
 interface Slot { play: Playing; prio: Priority; solid: boolean }
-interface State { s: number; rot: number }
-/** one continuous glide along the border */
-interface Mover { id: number; s0: number; s1: number; r0: number; dur: number; geo: Geo; anims: Animation[]; done: Promise<'done' | 'cancelled'>; finish: (v: 'done' | 'cancelled') => void }
+/** where a creature is: on the border at `s`, or (free) out in the room with its feet at `free` */
+interface State { s: number; rot: number; free?: { x: number; y: number } }
+/** one continuous glide: keys of feet and tilt over time, and where it ends up */
+interface Mover { id: number; keys: Key[]; dur: number; done: Promise<'done' | 'cancelled'>; finish: (v: 'done' | 'cancelled') => void; after: (k: Key) => State; raf: number; elapsed: number; last: number }
+
+/** what a creature does in the middle of the screen, for a little while */
+const ROOM_ACTS = ['move-float', 'jump-big', 'jump-small', 'cheer-two-arm', 'emotion-delighted'];
 
 /** the on-screen event log is opt-in even in dev builds (add ?crewdebug to the address): it covers the game's own controls */
 const DEV = process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true' && process.env.NEXT_PUBLIC_DEPLOY_ENV !== 'production' && typeof window !== 'undefined' && window.location.search.includes('crewdebug');
@@ -75,6 +81,22 @@ function contentBoxes(): DOMRect[] {
     out.push(r);
   });
   return out;
+}
+
+/** where a glide is part-way through, given how far it has got (0..1): feet, tilt and (on the border) the place along it */
+function sampleKeys(keys: Key[], t: number): Key {
+  if (t <= keys[0].offset) return keys[0];
+  for (let i = 1; i < keys.length; i++) {
+    const a = keys[i - 1], b = keys[i];
+    if (t <= b.offset) {
+      const f = b.offset === a.offset ? 1 : (t - a.offset) / (b.offset - a.offset);
+      return {
+        offset: t, x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, rot: a.rot + (b.rot - a.rot) * f,
+        s: a.s !== undefined && b.s !== undefined ? a.s + (b.s - a.s) * f : undefined,
+      };
+    }
+  }
+  return keys[keys.length - 1];
 }
 
 export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: boolean }) {
@@ -127,7 +149,7 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
   const restAt = useRef<Partial<Record<CharacterId, { s: number; t: number }>>>({});
 
   const reduced = osReduced || save.settings.reducedMotion;
-  const size = () => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 48 : 60);
+  const size = () => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 64 : 84);
   const amp = () => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 0.65 : 1);
 
   /* a stable director, created on first use (not during render) */
@@ -149,29 +171,31 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
 
   const getGeo = useCallback((): Geo => {
     const de = document.documentElement;
-    return makeGeo(de.clientWidth, de.clientHeight, size(), 4); // the very edge of the screen, feet on the border
+    return makeGeo(de.clientWidth, de.clientHeight, size(), 8); // the feet walk just inside the edge of the screen, the body stays on it
   }, []);
 
   /** put a creature where its state says, with no animation */
   const paint = useCallback((c: CharacterId, g: Geo = getGeo()) => {
     const el = actors.current[c]; if (!el) return;
     const st = place.current[c];
-    const p = pointAt(g, st.s);
-    el.style.transform = `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0)`;
-    el.dataset.edge = p.edge; el.dataset.placed = '1';
-    const t = tiltOf(c); if (t) t.style.transform = `rotate(${st.rot.toFixed(1)}deg)`;
+    const p = st.free ?? pointAt(g, st.s);
+    const rot = st.free ? st.rot : rotAt(g, st.s);
+    const b = boxAt(g, p.x, p.y, rot);
+    el.style.transform = `translate3d(${b.x.toFixed(1)}px, ${b.y.toFixed(1)}px, 0)`;
+    el.dataset.edge = st.free ? 'bottom' : pointAt(g, st.s).edge; el.dataset.placed = '1';
+    const t = tiltOf(c); if (t) t.style.transform = `rotate(${rot.toFixed(1)}deg)`;
   }, [getGeo]);
 
   /** jump straight to a place (only used when nobody can see it happen: first appearance, a resize) */
-  const setS = useCallback((c: CharacterId, s: number, rot?: number) => {
+  const setS = useCallback((c: CharacterId, s: number) => {
     const g = getGeo();
-    const n = normalise(g, s, rot ?? restRot(g, s));
-    place.current[c] = n; paint(c, g);
+    const n = normalise(g, s, rotAt(g, s));
+    place.current[c] = { s: n.s, rot: n.rot }; paint(c, g);
   }, [getGeo, paint]);
 
   const homeS = useCallback((c: CharacterId) => {
     const g = getGeo(); const i = CHARACTER_IDS.indexOf(c);
-    return Math.max(4, Math.min(g.A, g.W - 52 - (size() + 6) * (i + 1)));
+    return bottomS(g, g.W - 52 - (size() + 6) * (i + 1), 0);
   }, [getGeo]);
 
   /** The quietest stretch of the border: where the least content sits under a creature, kept a little apart from the others. Cached for a minute. */
@@ -185,8 +209,8 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     const scored: { s: number; score: number }[] = [];
     for (let s = 0; s < g.P; s += 24) {
       if (others.some(o => gap(s, o) < g.S + 14)) continue;
-      const p = pointAt(g, s);
-      const x0 = p.x - 12, x1 = p.x + g.S + 12, y0 = p.y - 12, y1 = p.y + g.S + 12;
+      const p = pointAt(g, s), b = boxAt(g, p.x, p.y, rotAt(g, s));
+      const x0 = b.x - 12, x1 = b.x + g.S + 12, y0 = b.y - 12, y1 = b.y + g.S + 12;
       let score = 0;
       for (const r of boxes) {
         const ix = Math.min(r.right, x1) - Math.max(r.left, x0), iy = Math.min(r.bottom, y1) - Math.max(r.top, y0);
@@ -210,7 +234,7 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
   const dirToward = useCallback((c: CharacterId, p: { x: number; y: number }): 1 | -1 => {
     const g = getGeo(); const s = place.current[c].s;
     const a = pointAt(g, s + 80), b = pointAt(g, s - 80);
-    const da = Math.hypot(a.x + g.S / 2 - p.x, a.y + g.S / 2 - p.y), db = Math.hypot(b.x + g.S / 2 - p.x, b.y + g.S / 2 - p.y);
+    const da = Math.hypot(a.x - p.x, a.y - p.y), db = Math.hypot(b.x - p.x, b.y - p.y);
     return da <= db ? 1 : -1;
   }, [getGeo]);
 
@@ -219,45 +243,52 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     const m = movers.current[c];
     if (!m || (only !== undefined && m.id !== only)) return;
     delete movers.current[c];
-    const el = actors.current[c];
-    let s = m.s1;
-    if (el) {
-      try {
-        const mat = new DOMMatrixReadOnly(getComputedStyle(el).transform);
-        const t = Number(m.anims[0]?.currentTime ?? 0) / Math.max(1, m.dur);
-        s = sFromPoint(m.geo, mat.m41, mat.m42, m.s0 + (m.s1 - m.s0) * Math.max(0, Math.min(1, t)));
-      } catch { /* keep the end */ }
-    }
-    place.current[c] = normalise(m.geo, s, m.r0 + rotDelta(m.geo, m.s0, s));
-    paint(c, m.geo);
-    for (const a of m.anims) { try { a.cancel(); } catch { /* ignore */ } }
+    cancelAnimationFrame(m.raf);
+    place.current[c] = m.after(sampleKeys(m.keys, m.dur > 0 ? m.elapsed / m.dur : 1));
+    paint(c);
     m.finish('cancelled');
   }, [paint]);
 
-  /** One continuous glide along the border from where it is to s1. */
-  const glide = useCallback((c: CharacterId, s1: number, dur: number, easing = 'linear'): Mover | null => {
+  /** Glide along keys of feet and tilt (linear in time, so the speed never pulses). `after` says where it ends up. */
+  const runKeys = useCallback((c: CharacterId, keys: Key[], dur: number, after: (k: Key) => State): Mover | null => {
     const el = actors.current[c], tilt = tiltOf(c);
-    if (!el || !tilt || typeof el.animate !== 'function') { setS(c, s1); return null; }
+    if (!el || !tilt) return null;
     stopGlide(c);
-    const g = getGeo(); const st = place.current[c];
-    const path = glidePath(g, st.s, s1, st.rot);
-    const opts: KeyframeAnimationOptions = { duration: dur, easing, fill: 'forwards' };
+    const g = getGeo();
     let finish: (v: 'done' | 'cancelled') => void = () => {};
     const done = new Promise<'done' | 'cancelled'>(r => { finish = r; });
-    const a1 = el.animate(path.map(k => ({ offset: k.offset, transform: `translate3d(${k.x.toFixed(1)}px, ${k.y.toFixed(1)}px, 0)` })), opts);
-    const a2 = tilt.animate(path.map(k => ({ offset: k.offset, transform: `rotate(${k.rot.toFixed(1)}deg)` })), opts);
-    const m: Mover = { id: ++moverSeq.current, s0: st.s, s1, r0: st.rot, dur, geo: g, anims: [a1, a2], done, finish };
-    movers.current[c] = m;
-    a1.finished.then(() => {
+    const m: Mover = { id: ++moverSeq.current, keys, dur, done, finish, after, raf: 0, elapsed: 0, last: performance.now() };
+    // Driven by the frame clock, not a browser animation: each frame advances the glide by at most 100 ms, so a
+    // stall (the page busy, a tab in the background) slows the crew down instead of letting it jump ahead.
+    const frame = (now: number) => {
       if (movers.current[c] !== m) return;
-      delete movers.current[c];
-      place.current[c] = normalise(g, s1, m.r0 + rotDelta(g, m.s0, s1));
-      paint(c, g); // commit first, then drop the animation: no frame in between
-      for (const a of m.anims) { try { a.cancel(); } catch { /* ignore */ } }
-      finish('done');
-    }, () => { /* cancelled elsewhere */ });
+      m.elapsed = Math.min(m.dur, m.elapsed + Math.min(100, Math.max(0, now - m.last)));
+      m.last = now;
+      const k = sampleKeys(keys, m.dur > 0 ? m.elapsed / m.dur : 1);
+      const b = boxAt(g, k.x, k.y, k.rot);
+      el.style.transform = `translate3d(${b.x.toFixed(1)}px, ${b.y.toFixed(1)}px, 0)`;
+      tilt.style.transform = `rotate(${k.rot.toFixed(1)}deg)`;
+      if (m.elapsed >= m.dur) {
+        delete movers.current[c];
+        place.current[c] = after(keys[keys.length - 1]);
+        paint(c, g);
+        finish('done');
+        return;
+      }
+      m.raf = requestAnimationFrame(frame);
+    };
+    movers.current[c] = m;
+    m.raf = requestAnimationFrame(frame);
     return m;
-  }, [getGeo, paint, setS, stopGlide]);
+  }, [getGeo, paint, stopGlide]);
+
+  /** One continuous glide along the border from where it is to s1. */
+  const glide = useCallback((c: CharacterId, s1: number, dur: number): Mover | null => {
+    const g = getGeo(); const st = place.current[c];
+    if (st.free) return null;
+    if (!tiltOf(c) || !actors.current[c]) { setS(c, s1); return null; }
+    return runKeys(c, glidePath(g, st.s, s1), dur, k => ({ s: k.s ?? s1, rot: rotAt(g, k.s ?? s1) }));
+  }, [getGeo, runKeys, setS]);
 
   /* ── playback ─────────────────────────────────────────────────── */
 
@@ -280,6 +311,8 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
   const play = useCallback((cast: CharacterId[], clipId: string, prio: Priority, travelDir?: 1 | -1, hint?: 'toward-cursor' | 'away-cursor', quiet = false, keepGlide = false): Promise<'done' | 'cancelled' | 'skipped'> => {
     let clip = getClip(clipId);
     if (clip && (clip.holdEnd || POP.test(clip.id))) clip = getClip('emotion-curious'); // nobody pops out and back in; they walk
+    // on the border a flip, spin or fall would swing the body off the screen (under the floor, off a wall): they do a calm pose there
+    if (clip && WALL_UNSAFE.test(clip.id) && cast.some(c => !place.current[c].free)) clip = getClip('emotion-delighted') ?? clip;
     if (!clip || !readyRef.current) return Promise.resolve('skipped');
     const cl = clip;
     for (const c of cast) {
@@ -294,8 +327,9 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
       const el = rootOf(c);
       const toCursor: 1 | -1 = dirToward(c, ptr.current);
       const d: 1 | -1 = travelDir ?? (hint === 'toward-cursor' ? toCursor : hint === 'away-cursor' ? (toCursor === 1 ? -1 : 1) : (Math.random() < 0.5 ? 1 : -1));
-      const total = Math.max(250, cl.durationMs * CHARACTERS[c].retarget.speed);
-      if (cl.travel && !reducedRef.current && !keepGlide) {
+      // a travelling clip never moves faster than a run (about 420 px a second), however short the clip is
+      const total = Math.max(250, cl.durationMs * CHARACTERS[c].retarget.speed, (Math.abs(cl.travel ?? 0) * size() * amp()) / 0.42);
+      if (cl.travel && !reducedRef.current && !keepGlide && !place.current[c].free) {
         face(c, cl.travel * d >= 0 ? 1 : -1);
         glide(c, place.current[c].s + cl.travel * size() * amp() * d, total);
       }
@@ -309,14 +343,78 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     return lead;
   }, [dir, dirToward, face, glide, startIdle, stopGlide, stopIdle]);
 
+  /** Back from the room to the nearest place on the border, turning to face the wall as it lands. */
+  const returnToLoop = useCallback(async (c: CharacterId): Promise<'done' | 'cancelled'> => {
+    stopGlide(c); // settle wherever it has got to before reading where that is
+    const g = getGeo(); const st = place.current[c];
+    if (!st.free) return 'done';
+    const from = st.free;
+    const b = nearestS(g, from.x, from.y, st.s);
+    const p = pointAt(g, b);
+    const rotB = normalise(g, 0, rotAt(g, b)).rot;
+    const dist = Math.hypot(p.x - from.x, p.y - from.y);
+    const m = runKeys(c, freePath({ x: from.x, y: from.y, rot: st.rot }, { x: p.x, y: p.y, rot: rotB }), Math.max(500, (dist / 170) * 1000), () => ({ s: b, rot: rotAt(g, b) }));
+    if (!m) { place.current[c] = { s: b, rot: rotAt(g, b) }; paint(c, g); return 'done'; }
+    return m.done;
+  }, [getGeo, paint, runKeys, stopGlide]);
+
+  /** A place in the quiet middle of the screen for a visit: the one with the least content under it, clear of the others. */
+  const pickRoomSpot = useCallback((c: CharacterId): { x: number; y: number } | null => {
+    const g = getGeo();
+    const boxes = contentBoxes();
+    const others = CHARACTER_IDS.filter(o => o !== c && actors.current[o]).map(o => {
+      const st = place.current[o]; return st.free ?? pointAt(g, st.s);
+    });
+    const cands: { x: number; y: number; score: number }[] = [];
+    for (let fx = 0.3 * g.W; fx <= 0.7 * g.W; fx += 40) {
+      for (let fy = 0.4 * g.H; fy <= 0.75 * g.H; fy += 40) {
+        if (others.some(p => Math.hypot(p.x - fx, p.y - fy) < g.S * 1.6)) continue;
+        const x0 = fx - g.h - 8, x1 = fx + g.h + 8, y0 = fy - g.S - 8, y1 = fy + 8;
+        let score = 0;
+        for (const r of boxes) {
+          const ix = Math.min(r.right, x1) - Math.max(r.left, x0), iy = Math.min(r.bottom, y1) - Math.max(r.top, y0);
+          if (ix > 0 && iy > 0) score += ix * iy;
+        }
+        cands.push({ x: fx, y: fy, score });
+      }
+    }
+    if (!cands.length) return null;
+    const best = Math.min(...cands.map(x => x.score));
+    const pick = cands.filter(x => x.score <= best * 1.15 + 40);
+    return pick[Math.floor(Math.random() * pick.length)];
+  }, [getGeo]);
+
+  /** A visit into the room: they leave the border, float or hop in the quiet middle of the screen, then go back to the border. */
+  const excursion = useCallback(async (c: CharacterId): Promise<'done' | 'cancelled'> => {
+    stopGlide(c); // a glide still running must be settled first, or the visit would start from where it began
+    const g = getGeo(); const st = place.current[c];
+    const spot = pickRoomSpot(c);
+    if (!spot) return 'done';
+    const from = pointAt(g, st.s);
+    const rot0 = normalise(g, 0, rotAt(g, st.s)).rot;
+    const sNear = st.s;
+    const dist = Math.hypot(spot.x - from.x, spot.y - from.y);
+    const m = runKeys(c, freePath({ x: from.x, y: from.y, rot: rot0 }, { x: spot.x, y: spot.y, rot: 0 }), Math.max(900, (dist / 170) * 1000), k => ({ s: sNear, rot: k.rot, free: { x: k.x, y: k.y } }));
+    if (!m) return 'done';
+    if (await m.done !== 'done') return 'cancelled';
+    const acts = [...ROOM_ACTS].sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 2));
+    for (const clip of acts) {
+      if (!place.current[c].free) return 'cancelled';
+      await play([c], clip, 'ambient', undefined, undefined, true, true);
+    }
+    await new Promise<void>(res => window.setTimeout(res, 800));
+    return returnToLoop(c);
+  }, [getGeo, pickRoomSpot, play, returnToLoop, runKeys, stopGlide]);
+
   /** Go to s1 along the border in one continuous glide, running the given walk poses in place on top. */
   const travelTo = useCallback(async (c: CharacterId, s1: number, clips: string[], prio: Priority, quiet: boolean, speed: number): Promise<'done' | 'cancelled' | 'skipped'> => {
     const my = epoch.current;
+    if (place.current[c].free) { if (await returnToLoop(c) !== 'done') return 'cancelled'; }
     const dist = Math.abs(s1 - place.current[c].s);
     if (dist < 6) return 'done';
     const sign: 1 | -1 = s1 > place.current[c].s ? 1 : -1;
     stopGlide(c);
-    const m = glide(c, s1, Math.max(350, (dist / speed) * 1000), 'cubic-bezier(.35,0,.65,1)');
+    const m = glide(c, s1, Math.max(350, (dist / speed) * 1000));
     face(c, sign);
     if (!m) return 'done';
     let arrived = false;
@@ -327,7 +425,7 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
       if (r !== 'done') { stopGlide(c, m.id); return r === 'skipped' ? 'skipped' : 'cancelled'; }
     }
     return 'done';
-  }, [face, glide, play, stopGlide]);
+  }, [face, glide, play, returnToLoop, stopGlide]);
 
   /** walk along the floor to horizontal position x */
   const walkTo = useCallback(async (c: CharacterId, x: number, clips: string[] = ['walk-hurry']) => {
@@ -346,6 +444,9 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
     };
     try {
       for (let trip = 0; trip < 60 && free(); trip++) {
+        // out in the room (an interrupted visit) they come back first; now and then a visit starts
+        if (place.current[c].free) { if (await returnToLoop(c) !== 'done') return; }
+        else if (Math.random() < 0.3) { if (await excursion(c) !== 'done') return; continue; }
         const g = getGeo(); const from = place.current[c].s;
         const resting = Math.random() < 0.6; // most trips end at the quiet spot; the rest patrol the border
         const r = Math.random();
@@ -361,15 +462,15 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
         if (resting) {
           // at the quiet spot: an idle pose, then they stay put for a few seconds (the breathing loop keeps going)
           const idleClip = REST_IDLE[Math.floor(Math.random() * REST_IDLE.length)];
-          if (await play([c], idleClip, 'ambient', undefined, undefined, true) !== 'done') return;
+          if (await play([c], idleClip, 'ambient', undefined, undefined, true, true) !== 'done') return;
           await new Promise<void>(res2 => window.setTimeout(res2, 3500 + Math.random() * 4500));
         } else if (Math.random() < 0.6) {
-          const b = await play([c], BREATHER[Math.floor(Math.random() * BREATHER.length)], 'ambient', undefined, undefined, true);
+          const b = await play([c], BREATHER[Math.floor(Math.random() * BREATHER.length)], 'ambient', undefined, undefined, true, true);
           if (b !== 'done') return;
         } else await new Promise<void>(res2 => window.setTimeout(res2, 250 + Math.random() * 700));
       }
     } finally { if (my === epoch.current) roaming.current[c] = false; }
-  }, [dir, getGeo, play, restSpot, travelTo]);
+  }, [dir, excursion, getGeo, play, restSpot, returnToLoop, travelTo]);
 
   /** Someone gave one of them something (an inventory item or a bench piece dropped on them): they catch it, react, and the others come over. */
   const receive = useCallback((c: CharacterId) => {
@@ -573,7 +674,7 @@ export function CharacterStage({ mode, gate }: { mode: CharacterMode; gate: bool
       // while the bench is busy, a creature now and then hops or floats where it stands
       if (modeRef.current === 'main-evolution' && Date.now() - lastCraft.current < 30_000 && !merging.current && Math.random() < 0.2) {
         const free = d.active().filter(c => actors.current[c] && !slots.current[c] && !held.current[c]);
-        if (free.length) void play([free[Math.floor(Math.random() * free.length)]], CRAFT_HOPS[Math.floor(Math.random() * CRAFT_HOPS.length)], 'ambient', undefined, undefined, true);
+        if (free.length) void play([free[Math.floor(Math.random() * free.length)]], CRAFT_HOPS[Math.floor(Math.random() * CRAFT_HOPS.length)], 'ambient', undefined, undefined, true, true);
       }
       // keep each speech bubble on the screen side of its creature, whichever edge it is on
       const g = getGeo();
