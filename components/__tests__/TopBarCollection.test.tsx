@@ -18,7 +18,7 @@ describe('TopBar Collection tile', () => {
 
   const base = {
     engine, view: 'work' as const, onView: () => {}, onOpen: () => {}, onReset: () => {}, onShortcuts: () => {},
-    onJournal: () => {}, onWorld: () => {}, onHub: () => {}, onTrade: () => {}, onLab: () => {}, onMuseum: () => {}, onMinPath: () => {},
+    onJournal: () => {}, onWorld: () => {}, onHub: () => {}, onTrade: () => {}, onLab: () => {}, onMuseum: () => {},
   };
 
   it('shows the tile only when Collection is unlocked, and opens the drawer when pressed', () => {
