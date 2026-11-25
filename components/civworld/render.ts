@@ -373,5 +373,5 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   const t = (s.tick % DAY_TICKS) / DAY_TICKS;
   const start = 1 - NIGHT_FRACTION;
   const night = t >= start ? Math.min(1, (t - start) / 0.06, (1 - t) / 0.04) : 0;
-  if (night > 0) { ctx.fillStyle = `rgba(12,20,52,${(0.42 * night).toFixed(3)})`; ctx.fillRect(0, 0, view.w, view.h); }
+  if (night > 0) { ctx.fillStyle = `rgba(12,20,52,${(0.28 * night).toFixed(3)})`; ctx.fillRect(0, 0, view.w, view.h); }
 }

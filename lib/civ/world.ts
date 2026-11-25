@@ -75,7 +75,13 @@ export function createWorld(seed = 1): WorldMap {
     if (d < 1 && rnd() > 0.15) set(x, y, 'dirt');
   }
   // path from the clearing down to the river bank
-  for (let y = cy + 3; y < 19; y++) set(cx + 1 + Math.round((y - cy) / 6), y, 'path');
+  for (let y = cy + 3; y < h; y++) {
+    const col = cx + 1 + Math.round((y - cy) / 6);
+    const t = terrain[y * w + col];
+    if (t === 'water') break;
+    set(col, y, 'path'); // runs down to the shore and stops there
+    if (t === 'sand') break;
+  }
 
   const nodes: ResourceNode[] = [];
   const taken = new Set<number>();
