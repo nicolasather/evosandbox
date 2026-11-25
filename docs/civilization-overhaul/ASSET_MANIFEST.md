@@ -79,6 +79,12 @@
 |---|---|---|---|---|---|---|---|---|
 | `ui_hint_icons_24` | `public/civilization/ui/hint-icons-24.png` | Icon strip | 192x24 (24x24 cells) | 8 | — | — | Center | Thought, warning, food, storage, water, build, discovery, danger |
 
+### Final portraits (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `character_role_portraits_final_64` | `public/civilization/characters/role-portraits-final-64.png` | Portrait strip | 384x64 (64x64 cells) | 6 | — | — | (32,59) | Gatherer, hunter, builder, toolmaker, elder, child |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
