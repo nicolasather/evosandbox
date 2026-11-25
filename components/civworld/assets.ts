@@ -24,6 +24,9 @@ export const ASSET_SPECS: Record<string, AssetSpec> = {
   prop_tree: { url: `${BASE}/terrain/tree.png`, w: 48, h: 64 },
   fx_campfire_sheet: { url: `${BASE}/effects/campfire-sheet.png`, w: 32, h: 32, frames: 6, fps: 8 },
   fx_campfire_static: { url: `${BASE}/effects/campfire-static.png`, w: 32, h: 32 },
+  fx_shore_water: { url: `${BASE}/effects/shore-water-sheet.png`, w: 32, h: 32, frames: 6, fps: 8 },
+  fx_grass_wind: { url: `${BASE}/effects/grass-wind-sheet.png`, w: 32, h: 32, frames: 4, fps: 8 },
+  fx_smoke: { url: `${BASE}/effects/smoke-sheet.png`, w: 32, h: 32, frames: 6, fps: 8 },
   char_gatherer_directional: { url: `${BASE}/characters/gatherer-directions-32x48.png`, w: 32, h: 48, frames: 10 },
   // construction-stage sheets: 3 frames of 64x64 (foundation, frame, finished), anchor (32,57)
   bld_shelter: { url: `${BASE}/buildings/shelter-stages.png`, w: 64, h: 64, frames: 3 },

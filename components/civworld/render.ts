@@ -229,6 +229,22 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   const y0 = Math.floor((cam.cy - view.h / cam.zoom / 2) / TILE) - 2;
   const y1 = Math.ceil((cam.cy + view.h / cam.zoom / 2) / TILE) + 3;
 
+  // looping environment sheets (shore foam, wind in the grass). Reduced motion draws frame 0 only, so nothing flickers.
+  const shore = assets.get('fx_shore_water');
+  const wind = assets.get('fx_grass_wind');
+  if (shore || wind) {
+    for (let y = Math.max(0, y0); y < Math.min(map.h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(map.w, x1); x++) {
+      const t = tileAt(map, x, y);
+      if (shore && t === 'water' && tileAt(map, x, y - 1) !== null && !isWater(tileAt(map, x, y - 1))) {
+        const fr = f.animate ? Math.floor(f.now / 125) % 6 : 0;
+        ctx.drawImage(shore, fr * 32, 0, 32, 32, x * TILE, y * TILE, TILE, TILE);
+      } else if (wind && t === 'grass' && (x * 7 + y * 13) % 9 === 0) {
+        const fr = f.animate ? (Math.floor(f.now / 125) + x + y) % 4 : 0;
+        ctx.drawImage(wind, fr * 32, 0, 32, 32, x * TILE, y * TILE, TILE, TILE);
+      }
+    }
+  }
+
   // water shimmer on deep tiles (cheap line glints; static when reduced motion is on)
   if (f.animate) {
     ctx.fillStyle = 'rgba(255,255,255,0.10)';
@@ -257,6 +273,11 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   for (const c of s.citizens) {
     const iy = c.py + (c.y - c.py) * f.alpha;
     list.push({ y: iy + 1, draw: () => drawCitizen(ctx, assets, c, f.alpha, f.now, f.animate) });
+  }
+  const smoke = assets.get('fx_smoke');
+  if (smoke && f.animate) {
+    const fire = s.buildings[0];
+    list.push({ y: fire.y + 2, draw: () => ctx.drawImage(smoke, (Math.floor(f.now / 125) % 6) * 32, 0, 32, 32, fire.x * TILE, fire.y * TILE - 26, TILE, TILE) });
   }
   list.sort((a, b) => a.y - b.y);
   for (const d of list) d.draw();
