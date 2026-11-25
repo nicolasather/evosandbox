@@ -1,0 +1,39 @@
+﻿{
+    "role":  "child",
+    "anchor":  {
+                   "y":  47,
+                   "x":  16
+               },
+    "columns":  10,
+    "license":  "Original project asset; © Evolution Sandbox contributors",
+    "frameHeight":  48,
+    "background":  "transparent",
+    "frameWidth":  32,
+    "directions":  [
+                       "south",
+                       "north",
+                       "east",
+                       "west"
+                   ],
+    "rows":  4,
+    "states":  {
+                   "work":  [
+                                6,
+                                7,
+                                8,
+                                9
+                            ],
+                   "idle":  [
+                                0,
+                                1
+                            ],
+                   "walk":  [
+                                2,
+                                3,
+                                4,
+                                5
+                            ]
+               },
+    "status":  "shared-base-provisional",
+    "assetId":  "char_child_directional_32x48"
+}

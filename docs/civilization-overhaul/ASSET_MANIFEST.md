@@ -41,6 +41,12 @@
 | `char_gatherer_directional_32x48` | `public/civilization/characters/gatherer-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W rows; idle 2, walk 4, work 4 |
 | `char_gatherer_directional_preview_4x` | `public/civilization/characters/gatherer-directions-4x-preview.png` | Review preview | 1280x768 | 40 | — | — | — | Nearest-neighbor 4x preview |
 
+| `char_hunter_directional_32x48` | `public/civilization/characters/hunter-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |
+| `char_builder_directional_32x48` | `public/civilization/characters/builder-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |
+| `char_toolmaker_directional_32x48` | `public/civilization/characters/toolmaker-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |
+| `char_elder_directional_32x48` | `public/civilization/characters/elder-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |
+| `char_child_directional_32x48` | `public/civilization/characters/child-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
