@@ -91,6 +91,21 @@ function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: Buil
     return;
   }
   const def = BUILDINGS[b.kind];
+  // farm plots show their growth: seed (new site), growing, ripe, harvested (nothing left to gather)
+  const growth = b.kind === 'farm' ? assets.get('bld_farm_growth') : null;
+  if (growth) {
+    const ratio = (b.amount ?? 0) / Math.max(1, b.max ?? 1);
+    const stage = b.state === 'site' ? 0 : ratio > 0.66 ? 2 : ratio > 0 ? 1 : 3;
+    ctx.save();
+    if (b.state === 'site') ctx.globalAlpha = 0.5 + 0.5 * b.progress;
+    for (let i = 0; i < Math.ceil(b.w / 2); i++) {
+      const gx = px + Math.min(i * 64, b.w * TILE - 64);
+      ctx.drawImage(growth, stage * 64, 0, 64, 64, gx, py + h - 6 - 57, 64, 64);
+    }
+    ctx.restore();
+    if (b.state === 'site') { ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(px + 2, py - 6, w - 4, 5); ctx.fillStyle = '#ffd166'; ctx.fillRect(px + 3, py - 5, Math.round((w - 6) * b.progress), 3); }
+    return;
+  }
   const site = b.state === 'site';
   // construction stages from the sheet: frame 0 foundation, 1 frame, 2 finished; anchor (32,57) sits at the footprint's bottom centre
   const sheet = assets.get(def.visualAssetId);

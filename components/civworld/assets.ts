@@ -51,6 +51,7 @@ export const ASSET_SPECS: Record<string, AssetSpec> = {
   ui_emote_tired: { url: `${BASE}/ui/emote_tired.png`, w: 16, h: 16 },
   ui_emote_idea: { url: `${BASE}/ui/emote_idea.png`, w: 16, h: 16 },
   ui_emote_alert: { url: `${BASE}/ui/emote_alert.png`, w: 16, h: 16 },
+  bld_farm_growth: { url: `${BASE}/buildings/farm-growth-stages.png`, w: 64, h: 64, frames: 4 },
   terrain_sand: { url: `${BASE}/terrain/sand.png`, w: 32, h: 32 },
   bld_farm: { url: `${BASE}/buildings/farm.png`, w: 96, h: 64 },
   portrait_villager_a: { url: `${BASE}/portraits/villager_a.png`, w: 48, h: 48 },
