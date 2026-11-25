@@ -73,6 +73,12 @@
 | `fx_grass_wind` | `public/civilization/effects/grass-wind-sheet.png` | Animation sheet | 128x32 | 4 | 8 FPS | Yes | (16,31) | Wind sway loop |
 | `fx_smoke` | `public/civilization/effects/smoke-sheet.png` | Animation sheet | 192x32 | 6 | 8 FPS | Yes | (16,31) | Campfire smoke loop |
 
+### UI hint and emote icons (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `ui_hint_icons_24` | `public/civilization/ui/hint-icons-24.png` | Icon strip | 192x24 (24x24 cells) | 8 | — | — | Center | Thought, warning, food, storage, water, build, discovery, danger |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
