@@ -17,9 +17,24 @@ function drawTile(ctx: CanvasRenderingContext2D, assets: AssetStore, m: WorldMap
   const px = x * TILE;
   const py = y * TILE;
   let id: string | null = null;
-  if (t === 'grass') id = 'terrain_grass';
-  else if (t === 'dirt') id = 'terrain_dirt';
-  else if (t === 'path') id = 'terrain_path';
+  if (t === 'grass' || t === 'path') {
+    // low-noise variants scattered by a stable per-tile hash break up the visible repetition
+    const h = (x * 31 + y * 17 + x * y * 7) % 10;
+    const soft = h === 0 ? 'terrain_grass_soft_a' : h === 1 ? 'terrain_grass_soft_b' : 'terrain_grass';
+    const base = assets.get(soft) ?? assets.get('terrain_grass');
+    if (base) ctx.drawImage(base, px, py, TILE, TILE);
+    else { ctx.fillStyle = FLAT.grass; ctx.fillRect(px, py, TILE, TILE); }
+    if (t === 'grass') {
+      // soft transition where the dirt clearing meets grass: the overlay carries the dirt on the side that touches it
+      const dirs: [string, number, number][] = [['north', 0, -1], ['east', 1, 0], ['south', 0, 1], ['west', -1, 0]];
+      for (const [d, dx, dy] of dirs) if (tileAt(m, x + dx, y + dy) === 'dirt') { const e = assets.get(`terrain_dirt_edge_${d}`); if (e) ctx.drawImage(e, px, py, TILE, TILE); }
+      if (base) return;
+    } else {
+      const pimg = assets.get('terrain_path');
+      if (pimg) { ctx.drawImage(pimg, px, py, TILE, TILE); return; }
+    }
+    if (base && t === 'path') return;
+  } else if (t === 'dirt') id = 'terrain_dirt';
   else if (t === 'sand') id = 'terrain_sand';
   else if (t === 'water' && !isWater(tileAt(m, x, y - 1)) && tileAt(m, x, y - 1) !== null) id = 'terrain_shore_water';
   const img = id ? assets.get(id) : null;
@@ -108,6 +123,11 @@ function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: Buil
   }
   const site = b.state === 'site';
   // construction stages from the sheet: frame 0 foundation, 1 frame, 2 finished; anchor (32,57) sits at the footprint's bottom centre
+  const large = b.kind === 'shelter' && !site ? assets.get('bld_shelter_large') : null;
+  if (large) {
+    ctx.drawImage(large, px + w / 2 - 48, py + h - 6 - 89);
+    return;
+  }
   const sheet = assets.get(def.visualAssetId);
   const frame = site ? (b.progress < 0.5 ? 0 : 1) : 2;
   const img = sheet && sheet.width >= 192 ? null : sheet;

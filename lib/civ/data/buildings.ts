@@ -27,7 +27,7 @@ export interface BuildingDef {
 export const BUILDINGS: Record<string, BuildingDef> = {
   shelter: {
     id: 'shelter', name: 'Shelter', description: 'A simple roofed place to sleep out of the weather.',
-    footprint: { w: 2, h: 2 }, cost: { wood: 10 }, buildTicks: 28, workerSlots: 2, requires: null,
+    footprint: { w: 3, h: 2 }, cost: { wood: 10 }, buildTicks: 28, workerSlots: 2, requires: null,
     terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Available from the start.', visualAssetId: 'bld_shelter',
     purpose: 'Sleeps 3 people. Rested people work longer.',
   },

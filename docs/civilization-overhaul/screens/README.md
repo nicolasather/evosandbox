@@ -12,3 +12,6 @@ Captured from the running app (localhost, Civilization tab, 1x speed). Review no
 - Animation: campfire and smoke loop cleanly; shore foam overlay and deep-water loop show no visible flicker at 2x. Walk frames advance by distance walked (no foot sliding observed); idle frames alternate slowly.
 - Jitter: none seen; the camera is snapped to whole screen pixels and sprites are drawn at integer pixel positions.
 - Palette: berry bush and tree greens are slightly bluer than the grass tile; the placeholder-free dirt is more saturated orange than the characters' earth tones.
+
+## Round 2 (after IMAGE3 terrain fixes)
+- `04_after_terrain_fixes_camp.jpg`: softened grass and dirt, soft grass variants scattered per tile, dirt-edge overlays on grass beside the clearing, 96x96 shelter on a 3x2 footprint, straight path. Night tint is on (dusk), so colours read darker than daytime. Grass repetition and double sand band are gone from this view; dirt/grass edge is smoother. Still to check: shore band at river and path-to-sand join.
