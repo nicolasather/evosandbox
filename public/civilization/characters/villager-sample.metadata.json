@@ -1,0 +1,13 @@
+{
+  "assetId": "character_villager_sample_32",
+  "status": "style-sample",
+  "dimensions": { "frameWidth": 32, "frameHeight": 32, "columns": 8, "rows": 2 },
+  "directions": ["east", "west"],
+  "rowMeaning": { "0": "east-facing gatherer", "1": "west-facing builder" },
+  "frames": { "idle": [0, 1], "walk": [0, 1, 2, 3], "work": [4, 5, 6, 7] },
+  "anchor": { "x": 16, "y": 31 },
+  "background": "transparent",
+  "palette": ["#271f2c", "#b6704a", "#da9a63", "#4a704f", "#6c915b", "#3f4859", "#4e3126", "#d4a443"],
+  "generatedBy": "IMAGE3 hand-authored raster style sample while image generator connection is reauthenticated",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
