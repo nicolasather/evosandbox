@@ -42,7 +42,7 @@ export function jobStatuses(s: CivState): JobStatus[] {
       if (!s.buildings.some(b => b.state === 'site')) blocked = 'Nothing to build: place something in Build';
     } else if (cat === 'craft') {
       if (!hasCapability(s, 'stone_tool')) blocked = 'Needs the Stone Tool discovery (Merging)';
-      else if (doneBuildings(s, 'workshop').length === 0) blocked = 'Needs a workshop';
+      else if (doneBuildings(s, 'workshop').length + doneBuildings(s, 'forge').length === 0) blocked = 'Needs a workshop';
       else if (s.stock.wood < 2) blocked = 'Missing wood';
       else if (s.stock.stone < 1) blocked = 'Missing stone';
       else if (s.stock.tools >= 6) blocked = 'Tool stock is full';

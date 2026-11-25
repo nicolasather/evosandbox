@@ -28,6 +28,8 @@ export function goalsFor(s: CivState): Goal[] {
   }
   list.push({ id: 'plant', kind: 'discovery', title: 'Learn to plant', detail: 'Wild berries will not last forever. Look for a way to grow food.', done: hasCapability(s, 'agriculture') });
   if (hasCapability(s, 'agriculture')) list.push({ id: 'farm', kind: 'infrastructure', title: 'Till a farm plot', detail: 'A plot regrows food for as long as it is worked.', done: doneBuildings(s, 'farm').length > 0 });
+  if (hasCapability(s, 'granary')) list.push({ id: 'granary', kind: 'infrastructure', title: 'Build a granary', detail: 'Raises capacity by 60 for every good.', done: doneBuildings(s, 'granary').length > 0 });
+  if (hasCapability(s, 'smelting')) list.push({ id: 'forge', kind: 'infrastructure', title: 'Build a forge', detail: 'Makes two tools per cycle.', done: doneBuildings(s, 'forge').length > 0 });
   list.push({ id: 'people_8', kind: 'community', title: 'Grow to 8 people', detail: 'Newcomers stay only where there is a bed and food in reserve.', done: s.citizens.length >= 8 });
   void hasShelter;
   return list;

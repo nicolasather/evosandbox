@@ -68,7 +68,7 @@ function drawNode(ctx: CanvasRenderingContext2D, assets: AssetStore, n: NodeStat
 }
 
 const PLACEHOLDER_COLOR: Record<string, [string, string]> = {
-  shelter: ['#8a6a3c', '#b8863c'], storage: ['#7a5a3a', '#9c7a4a'], workshop: ['#6d6a62', '#a05a32'], farm: ['#6b4a2c', '#3f7a35'],
+  granary: ['#8a7a4c', '#c9a85a'], forge: ['#5a5550', '#c0562a'], shelter: ['#8a6a3c', '#b8863c'], storage: ['#7a5a3a', '#9c7a4a'], workshop: ['#6d6a62', '#a05a32'], farm: ['#6b4a2c', '#3f7a35'],
 };
 
 function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: BuildingState, now: number, animate: boolean) {
@@ -114,7 +114,7 @@ function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: Buil
   ctx.save();
   if (site) ctx.globalAlpha = 0.45 + 0.5 * b.progress;
   if (sheet && sheet.width >= 192) {
-    ctx.drawImage(sheet, frame * 64, 0, 64, 64, px + w / 2 - 32, py + h - 6 - 57, 64, 64);
+    ctx.drawImage(sheet, frame * 64, 0, 64, 64, px + w / 2 - 32, py + h - 6 - (def.anchorY ?? 57), 64, 64);
   } else if (img) {
     ctx.drawImage(img, px, py + h - img.height);
   } else {

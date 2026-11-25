@@ -81,7 +81,7 @@ export function createSim(seed = 1): CivSim {
 /* ---------- derived values (selectors) ---------- */
 
 export const doneBuildings = (s: CivState, kind: string) => s.buildings.filter(b => b.kind === kind && b.state === 'done');
-export const capacity = (s: CivState) => STOCK.baseCapacity + STOCK.perStorage * doneBuildings(s, 'storage').length;
+export const capacity = (s: CivState) => STOCK.baseCapacity + STOCK.perStorage * doneBuildings(s, 'storage').length + 60 * doneBuildings(s, 'granary').length;
 export const hasCapability = (s: CivState, id: string) => s.capabilities.some(c => c.id === id);
 /** Beds in finished shelters. Without one, people sleep rough by the fire and recover slowly. */
 export const sleepCapacity = (s: CivState) => SHELTER_SLEEPERS * doneBuildings(s, 'shelter').length;
@@ -260,7 +260,7 @@ function decide(sim: CivSim, g: Grid, c: Citizen, occupancy: Map<string, number>
       for (const b of s.buildings) if (b.state === 'site' && (workers.get(b.id) ?? 0) < BUILDINGS[b.kind].workerSlots) pushBuilding(b, base + 6, 'build', undefined, `Building a ${BUILDINGS[b.kind].name.toLowerCase()}`);
     } else if (cat === 'craft') {
       if (!hasCapability(s, 'stone_tool') || s.stock.tools >= 6 || s.stock.wood < 2 || s.stock.stone < 1) return;
-      for (const b of doneBuildings(s, 'workshop')) if ((workers.get(b.id) ?? 0) < BUILDINGS.workshop.workerSlots) pushBuilding(b, base, 'craft', undefined, 'Making a tool at the workshop');
+      for (const b of [...doneBuildings(s, 'workshop'), ...doneBuildings(s, 'forge')]) if ((workers.get(b.id) ?? 0) < BUILDINGS[b.kind].workerSlots) pushBuilding(b, base + (b.kind === 'forge' ? 2 : 0), 'craft', undefined, b.kind === 'forge' ? 'Making tools at the forge' : 'Making a tool at the workshop');
     }
     function pushNode(n: NodeState, score: number, res: ResourceId) {
       const near = nearestOf(g, reach, ringAround(g, n.x, n.y, 1, 1));
@@ -474,7 +474,8 @@ function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: M
     b.note = undefined;
     t.left = (t.left ?? CITIZEN.craftTicks) - weak * intensity * (1 + (c.skill.craft - 1) * 0.1);
     if (t.left > 0) return;
-    s.stock.wood -= 2; s.stock.stone -= 1; s.stock.tools += 1; s.counters.crafted += 1;
+    const made = b.kind === 'forge' ? 2 : 1;
+    s.stock.wood -= 2; s.stock.stone -= 1; s.stock.tools += made; s.counters.crafted += made;
     c.skill.craft = Math.min(5, c.skill.craft + 0.05);
     if (!s.milestones.includes('first_craft')) {
       s.milestones.push('first_craft');
