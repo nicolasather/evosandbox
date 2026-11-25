@@ -12,6 +12,7 @@
    Tailwind utility, so a padded or bordered button written in Tailwind silently
    lost its styling. Layered, the order is: preflight < design system < utilities. */
 @import "./_design-system.css" layer(components);
+@import "./_workspace.css" layer(components);
 
 /* The shared cinematic motion language — five duration/easing tiers, a
    handful of reveal/dissolve/breathe keyframes — the CSS half of

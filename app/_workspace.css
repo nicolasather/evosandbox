@@ -1,0 +1,26 @@
+/* Workspace shell (components/workspace). Layout only. */
+.ws{position:fixed;inset:0;display:flex;flex-direction:column;background:#0f1411;color:#e9efe6;z-index:1}
+.ws-tabs{flex:0 0 40px;display:flex;align-items:center;gap:4px;padding:0 10px;background:#161d18;border-bottom:1px solid #2b372e;position:relative;z-index:6}
+.ws-tab,.ws-controls button{font:600 12px/1 var(--font-mono,ui-monospace,monospace);letter-spacing:.08em;text-transform:uppercase;color:#aebbaa;background:transparent;border:1px solid transparent;border-radius:6px;padding:8px 12px;cursor:pointer}
+.ws-tab[aria-selected="true"]{color:#f3f7ef;background:#24332a;border-color:#3b5142}
+.ws-tab:hover,.ws-controls button:hover{color:#fff}
+.ws-tab:focus-visible,.ws-controls button:focus-visible,.ws-handle:focus-visible,.ws-divider:focus-visible{outline:2px solid #ffd166;outline-offset:2px}
+.ws-spacer{flex:1}
+.ws-controls{display:flex;gap:2px}
+.ws-controls button{padding:6px 9px;font-size:11px}
+.ws-controls button[aria-pressed="true"]{color:#f3f7ef;background:#24332a;border-color:#3b5142}
+.ws-stage{position:relative;flex:1 1 0;min-height:0;overflow:hidden}
+.ws-pane{position:absolute;overflow:hidden;isolation:isolate}
+/* A transform makes the pane the containing block for the position:fixed layers inside Sandbox. */
+.ws-pane-merge{transform:translateZ(0);background:var(--bg,#0b0d0c)}
+.ws-pane[data-visible="0"]{visibility:hidden;pointer-events:none}
+.ws-divider{position:absolute;z-index:5;background:#2b372e;touch-action:none}
+.ws[data-orient="h"] .ws-divider{top:0;bottom:0;width:8px;margin-left:-4px;cursor:col-resize}
+.ws[data-orient="v"] .ws-divider{left:0;right:0;height:10px;margin-top:-5px;cursor:row-resize}
+.ws-divider:hover,.ws-divider:focus-visible{background:#ffd166}
+.ws-handle{position:absolute;z-index:5;right:0;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;font:600 12px/1 var(--font-mono,monospace);letter-spacing:.14em;text-transform:uppercase;color:#f3f7ef;background:#24332a;border:1px solid #3b5142;border-right:0;border-radius:0 8px 8px 0;padding:14px 8px;cursor:pointer}
+.ws[data-orient="v"] .ws-handle{top:auto;bottom:0;right:50%;transform:translateX(50%);writing-mode:horizontal-tb;border-radius:8px 8px 0 0;border-right:1px solid #3b5142;border-bottom:0;padding:8px 18px}
+.cw-root{position:absolute;inset:0;background:linear-gradient(#27402c,#1b2a1f)}
+.cw-placeholder{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:420px;text-align:center;color:#cfe0c8;padding:0 16px}
+.cw-placeholder h2{font:700 20px/1.2 var(--font-mono,monospace);margin:0 0 8px}
+@media (max-width:819px){.ws-controls button{padding:6px 7px}.ws-tab{padding:8px 8px}}

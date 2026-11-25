@@ -69,7 +69,7 @@ const VIEW_FEATURE: Partial<Record<ViewId, FeatureId>> = {
   graph: 'graph', arch: 'archive', time: 'timeline', hub: 'hub', museum: 'museum', minpath: 'minpath',
 };
 
-export function Sandbox({ onLaunchMode, variant = 'main' }: { onLaunchMode?: (mode: ModeId) => void; variant?: GuideVariant } = {}) {
+export function Sandbox({ onLaunchMode, variant = 'main', openHubSignal = 0 }: { onLaunchMode?: (mode: ModeId) => void; variant?: GuideVariant; openHubSignal?: number } = {}) {
   const [panelOpen, setPanelOpen] = useState(false);
   const s = useSandbox();
   const { engine, version, view, setView, open, clearSlots, setEnding, reset } = s;
@@ -182,6 +182,14 @@ export function Sandbox({ onLaunchMode, variant = 'main' }: { onLaunchMode?: (mo
     setPanelOpen(false);
     panelReturn.current = null;
   }, [setView, view, playGate, unlocks]);
+
+  /* The workspace shell's Modes tab asks for the Mode Hub; showView still honours the unlock gate. */
+  const hubSeen = useRef(openHubSignal);
+  useEffect(() => {
+    if (openHubSignal === hubSeen.current) return;
+    hubSeen.current = openHubSignal;
+    showView('hub');
+  }, [openHubSignal, showView]);
 
   /** Inspect. The exhibit is closed until the player asks for it — pressing
    *  Inspect, the "i" on an inventory item, the I key, the context menu or a

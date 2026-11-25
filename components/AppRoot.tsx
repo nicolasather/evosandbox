@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { Sandbox } from './Sandbox';
+import { WorkspaceShell } from './workspace/WorkspaceShell';
 import { CinematicGate } from './cinematic/CinematicGate';
 import { IntroVisitProvider } from './cinematic/IntroVisit';
 import { useModeGate } from './cinematic/useModeGate';
@@ -83,7 +84,8 @@ function AppRootBody() {
   else if (mode === 'alien-archaeology') body = <AlienArchaeologyMode onExit={exitToHub} />;
   else if (mode === 'reverse-evolution') body = <ReverseEvolutionMode onExit={exitToHub} />;
   else if (mode === 'minimum-path') body = <MinimumPathMode onExit={exitToHub} />;
-  else body = <Sandbox onLaunchMode={setMode} />;
+  /* The default mode is the workspace: the Civilization tab plus the permanent Merging tab (the unchanged Sandbox). */
+  else body = <WorkspaceShell onLaunchMode={setMode} />;
 
   return (
     <>
