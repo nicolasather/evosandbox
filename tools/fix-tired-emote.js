@@ -1,0 +1,1 @@
+const fs=require('fs');const {PNG}=require('pngjs');const path='public/civilization/ui/emote_tired.png';const p=PNG.sync.read(fs.readFileSync(path));for(let i=0;i<p.data.length;i+=4){if(p.data[i+2]>150&&p.data[i+1]>150){p.data[i]=118;p.data[i+1]=143;p.data[i+2]=145;}}fs.writeFileSync(path,PNG.sync.write(p));console.log('muted tired emote');
