@@ -1,5 +1,5 @@
 import { HINT_GLOBAL_COOLDOWN } from './data/config';
-import { capacity, doneBuildings, foodDays, hasCapability, isNight, pushEvent, sleepCapacity, stepSim, type CivSim } from './sim';
+import { capacity, doneBuildings, foodDays, hasCapability, isNight, maybeVisitor, pushEvent, seasonOf, sleepCapacity, stepSim, type CivSim } from './sim';
 import type { ActiveHint, CivState } from './types';
 import { TILE } from './world';
 
@@ -115,6 +115,26 @@ export const HINTS: HintDef[] = [
     }),
   },
   {
+    id: 'winter_prep', priority: 55, speakerRole: 'elder', cooldownTicks: 400, repeat: 'cooldown',
+    trigger: ({ s }) => seasonOf(s.tick) === 'Autumn' && foodDays(s) < s.settings.foodReserveDays + 2,
+    resolved: ({ s }) => foodDays(s) >= s.settings.foodReserveDays + 2 || seasonOf(s.tick) === 'Winter',
+    text: () => ({
+      observation: 'We have enough for now, but not for the cold months.',
+      suggestion: 'The berries stop in winter. We should lay by more food while they last.',
+      guidance: 'Raise the Food priority and the food reserve target in Help before winter arrives.',
+    }),
+  },
+  {
+    id: 'missing_tool', priority: 35, speakerRole: 'toolmaker', cooldownTicks: 400, repeat: 'once',
+    trigger: ({ s }) => hasCapability(s, 'stone_tool') && doneBuildings(s, 'workshop').length > 0 && s.stock.tools === 0 && s.priorities.craft === 0,
+    resolved: ({ s }) => s.stock.tools > 0 || s.priorities.craft > 0,
+    text: () => ({
+      observation: 'This work would be easier with a proper tool.',
+      suggestion: 'The workshop stands idle. Someone could be making tools there.',
+      guidance: 'Turn the Tools job on in Jobs; a worker makes one tool from 2 wood and 1 stone.',
+    }),
+  },
+  {
     id: 'idle_crew', priority: 30, speakerRole: 'gatherer', cooldownTicks: 300, repeat: 'cooldown',
     trigger: ({ s }) => s.tick > 120 && s.citizens.filter(c => c.task.kind === 'idle' && c.idleReason).length >= 2,
     resolved: ({ s }) => s.citizens.filter(c => c.task.kind === 'idle' && c.idleReason).length < 2,
@@ -217,5 +237,6 @@ export function stepWorld(sim: CivSim): void {
       pushEvent(s, 'recovery', { food: s.stock.food }, 'The food reserve has recovered.');
     }
   }
+  maybeVisitor(sim);
   if (s.tick % 20 === 0) evaluateHints(sim);
 }

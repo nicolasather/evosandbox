@@ -2,7 +2,7 @@ import { applyDiscoveries } from './bridge';
 import { AUTOSAVE_TICKS, SPEEDS, TICKS_PER_SECOND, type Speed } from './data/config';
 import { askMoreHint, dismissHint, stepWorld } from './hints';
 import { CIV_BACKUP_KEY, CIV_CORRUPT_KEY, CIV_SAVE_KEY, parseSave, serializeSim } from './save';
-import { assignOverride, cancelBuilding, createSim, placeBuilding, setPriority, type CivSim } from './sim';
+import { acceptTrade, assignOverride, cancelBuilding, createSim, declineTrade, placeBuilding, setPriority, type CivSim } from './sim';
 import type { CivState, JobCategory, Settings } from './types';
 
 /* ============================================================================
@@ -104,6 +104,8 @@ export class CivRuntime {
   override(citizenId: string, cat: JobCategory | null) { assignOverride(this.state, citizenId, cat); this.bump(); }
   place(kind: string, x: number, y: number) { const r = placeBuilding(this.sim, kind, x, y); if (r.ok) this.save(); this.bump(); return r; }
   cancel(id: string) { const r = cancelBuilding(this.sim, id); this.bump(); return r; }
+  accept() { const r = acceptTrade(this.sim); this.bump(); return r; }
+  decline() { declineTrade(this.sim); this.bump(); }
   dismissHint() { dismissHint(this.state); this.bump(); }
   moreHint() { askMoreHint(this.sim); this.bump(); }
 

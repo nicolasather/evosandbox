@@ -6,14 +6,17 @@ import { SPEEDS } from '@/lib/civ/data/config';
 import { computeAlerts } from '@/lib/civ/hints';
 import type { CivRuntime } from '@/lib/civ/runtime';
 import { JOB_LABEL, jobStatuses, needWord, timeLabel } from '@/lib/civ/selectors';
-import { capacity, dayOf, foodDays, hasCapability } from '@/lib/civ/sim';
+import { acceptTradeLabel } from './tradeLabel';
+import { DISCOVERY_MAP } from '@/lib/civ/data/discoveryMap';
+import { goalsFor, suggestedGoals } from '@/lib/civ/goals';
+import { capacity, dayOf, doneBuildings, foodDays, hasCapability, seasonOf, tradePreview } from '@/lib/civ/sim';
 import { JOB_CATEGORIES, type CivEvent, type JobCategory } from '@/lib/civ/types';
 import { BUILDING_LABEL, NODE_LABEL, TILE, type Hit } from '@/lib/civ/world';
 
 /* React panels around the settlement canvas. They read simulation state through the
    runtime and issue commands to it; they never contain game rules. */
 
-export type DrawerId = 'build' | 'jobs' | 'log' | 'help';
+export type DrawerId = 'build' | 'jobs' | 'goals' | 'journal' | 'log' | 'help';
 
 const PRIORITY_NAMES = ['Off', 'Low', 'Normal', 'High'];
 
@@ -27,7 +30,7 @@ export function Hud({ rt, onFocus }: { rt: CivRuntime; onFocus: (x: number, y: n
   return (
     <div className="cw-hud">
       <div className="cw-hud-row" role="group" aria-label="Settlement">
-        <span className="cw-chip" title="Day and time of day">Day {dayOf(s.tick)} · {timeLabel(s.tick)}</span>
+        <span className="cw-chip" title="Day, season and time of day">Day {dayOf(s.tick)} · {seasonOf(s.tick)} · {timeLabel(s.tick)}</span>
         <span className="cw-chip" title="People">People {s.citizens.length}</span>
         <span className="cw-chip" title="Food in store / capacity, and days it will last">Food {s.stock.food}/{cap} <small>({days.toFixed(1)}d)</small></span>
         <span className="cw-chip" title="Wood in store / capacity">Wood {s.stock.wood}/{cap}</span>
@@ -57,7 +60,7 @@ export function Toolbar({ drawer, setDrawer, home }: { drawer: DrawerId | null; 
   );
   return (
     <div className="cw-toolbar" role="toolbar" aria-label="Settlement tools">
-      {item('build', 'Build')}{item('jobs', 'Jobs')}{item('log', 'History')}{item('help', 'Help')}
+      {item('build', 'Build')}{item('jobs', 'Jobs')}{item('goals', 'Goals')}{item('journal', 'Journal')}{item('log', 'History')}{item('help', 'Help')}
       <button type="button" onClick={home} title="Recentre on the campfire (Home)">Recentre</button>
     </div>
   );
@@ -115,9 +118,109 @@ export function JobsDrawer({ rt }: { rt: CivRuntime }) {
   );
 }
 
+export function GoalsDrawer({ rt }: { rt: CivRuntime }) {
+  const s = rt.state;
+  const next = suggestedGoals(s, 6);
+  const done = goalsFor(s).filter(g => g.done);
+  return (
+    <div className="cw-drawer-body">
+      <h3>Goals</h3>
+      <p className="cw-note">Suggestions follow what the settlement actually needs. Ignore any of them.</p>
+      {next.length === 0 && <p>Nothing pressing. Choose your own direction.</p>}
+      {next.map(g => <div key={g.id} className="cw-goal"><strong>{g.title}</strong><span>{g.detail}</span><small>{g.kind}</small></div>)}
+      {done.length > 0 && <><h3>Done</h3><ul className="cw-keys">{done.map(g => <li key={g.id}>{g.title}</li>)}</ul></>}
+    </div>
+  );
+}
+
+const GRANT_TEXT: Record<string, string> = {
+  workshop: 'A workshop can now be built.', storage: 'Protected storage can now be built.', farm: 'Farm plots can now be tilled.',
+  cook_food: 'Food goes further when cooked.', make_tools: 'Tools can be made at a workshop.', better_gathering: 'Gathering is a little easier.',
+};
+
+/** Knowledge journal: what the settlement learned, what it changed, and what is still needed to use it (master design section 42). */
+export function JournalDrawer({ rt, names }: { rt: CivRuntime; names: Record<string, string> }) {
+  const s = rt.state;
+  const known = DISCOVERY_MAP.filter(m => s.seenDiscoveries.includes(m.discoveryId));
+  return (
+    <div className="cw-drawer-body">
+      <h3>Journal</h3>
+      {known.length === 0 && <p className="cw-note">Nothing recorded yet. Inventions made in Merging that your people can use appear here.</p>}
+      {known.map(m => {
+        const needs: string[] = [];
+        for (const g of m.grants) {
+          if (g.type === 'unlock_building') {
+            const have = s.buildings.some(b => b.kind === g.buildingId && b.state === 'done');
+            if (!have) needs.push('a suitable site', 'construction materials', 'an available builder');
+          }
+        }
+        const events = s.events.filter(e => e.facts.discovery === m.discoveryId || (e.kind === 'building_done' && m.grants.some(g => g.type === 'unlock_building' && g.buildingId === e.facts.building)));
+        return (
+          <div key={m.discoveryId} className="cw-goal">
+            <strong>{names[m.discoveryId] ?? m.discoveryId}</strong>
+            <span>What changed: {m.grants.map(g => (g.type === 'knowledge' ? g.note : GRANT_TEXT[g.type === 'unlock_building' ? g.buildingId : g.actionId])).join(' ')}</span>
+            {needs.length > 0 && <span>Still needed: {needs.join(', ')}</span>}
+            {events.map(e => <small key={e.id}>Day {dayOf(e.tick)}: {e.text}</small>)}
+          </div>
+        );
+      })}
+      <h3>Buildings</h3>
+      <ul className="cw-keys">
+        {BUILD_ORDER.map(id => {
+          const d = BUILDINGS[id];
+          const n = doneBuildings(s, id).length;
+          const open = !d.requires || s.unlockedBuildings.includes(id) || hasCapability(s, d.requires);
+          return <li key={id}>{d.name}: {n > 0 ? `${n} built` : open ? 'known, not built' : 'not yet known'}</li>;
+        })}
+      </ul>
+      <h3>Glossary</h3>
+      <ul className="cw-keys">
+        <li><b>Reserve</b>: days of food left at the current rate of eating.</li>
+        <li><b>Capacity</b>: how much of each good the settlement can keep. Full means gathering that good stops.</li>
+        <li><b>Priority</b>: how much a kind of work matters when people choose a task.</li>
+      </ul>
+    </div>
+  );
+}
+
+/** A short, skippable note when Merging unlocks something. It never takes keyboard focus. */
+export function DiscoveryToast({ rt }: { rt: CivRuntime }) {
+  const [dismissed, setDismissed] = useState(0);
+  const s = rt.state;
+  const e = [...s.events].reverse().find(x => x.kind === 'discovery');
+  if (!e || e.id === dismissed || s.tick - e.tick > 80) return null;
+  return (
+    <div className="cw-toast" role="status" aria-live="polite">
+      <strong>New capability</strong>
+      <span>{e.text}</span>
+      <button type="button" tabIndex={-1} onClick={() => setDismissed(e.id)}>Skip</button>
+    </div>
+  );
+}
+
+export function TradeCard({ rt }: { rt: CivRuntime }) {
+  const v = rt.state.visitor;
+  const p = tradePreview(rt.state);
+  const [msg, setMsg] = useState('');
+  if (!v || !p) return null;
+  return (
+    <div className="cw-trade" role="region" aria-label="Visiting trader">
+      <strong>A trader has stopped by</strong>
+      <span>{acceptTradeLabel(p)}</span>
+      {p.belowReserve && <span className="cw-blocked">This would leave your food below the reserve target.</span>}
+      {!p.enough && <span className="cw-blocked">You do not have enough to offer.</span>}
+      {msg && <span className="cw-blocked">{msg}</span>}
+      <div className="cw-hint-actions">
+        <button type="button" disabled={!p.enough || !p.room} onClick={() => { const r = rt.accept(); if (!r.ok) setMsg(r.reason); }}>Accept</button>
+        <button type="button" onClick={() => rt.decline()}>Decline</button>
+      </div>
+    </div>
+  );
+}
+
 const LOG_FILTERS: { id: string; label: string; kinds: CivEvent['kind'][] }[] = [
   { id: 'all', label: 'All', kinds: [] },
-  { id: 'people', label: 'People', kinds: ['founded', 'arrival', 'milestone', 'first_harvest'] },
+  { id: 'people', label: 'People', kinds: ['founded', 'arrival', 'milestone', 'first_harvest', 'season', 'trade'] },
   { id: 'inventions', label: 'Inventions', kinds: ['discovery', 'capability', 'first_craft'] },
   { id: 'buildings', label: 'Buildings', kinds: ['building_started', 'building_done'] },
   { id: 'problems', label: 'Problems', kinds: ['shortage', 'recovery', 'hint'] },

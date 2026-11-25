@@ -87,7 +87,7 @@ export interface BuildingState {
 
 export type EventKind =
   | 'founded' | 'discovery' | 'capability' | 'building_started' | 'building_done' | 'first_craft' | 'first_harvest'
-  | 'shortage' | 'recovery' | 'arrival' | 'milestone' | 'hint';
+  | 'shortage' | 'recovery' | 'arrival' | 'milestone' | 'hint' | 'trade' | 'season';
 
 export interface CivEvent {
   id: number;
@@ -102,6 +102,16 @@ export interface Capability { id: string; fromDiscovery: string; tick: number }
 
 export interface HintState { lastShown: number; shownCount: number; resolved: boolean }
 export interface ActiveHint { id: string; level: 'observation' | 'suggestion' | 'guidance'; speaker: string; text: string; tick: number }
+
+export interface Visitor {
+  id: string;
+  kind: 'trader';
+  arrivedTick: number;
+  leavesTick: number;
+  /** What the visitor offers and what they ask for, in whole units. */
+  give: { res: ResourceId; n: number };
+  want: { res: ResourceId; n: number };
+}
 
 export interface Settings {
   pauseWhileCrafting: boolean;
@@ -127,6 +137,7 @@ export interface CivState {
   events: CivEvent[];
   hints: Record<string, HintState>;
   activeHint: ActiveHint | null;
+  visitor: Visitor | null;
   alerts: string[];
   milestones: string[];
   settings: Settings;

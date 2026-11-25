@@ -37,6 +37,11 @@ export const dayOf = (tick: number) => Math.floor(tick / DAY_TICKS) + 1;
 export const timeOfDay = (tick: number) => (tick % DAY_TICKS) / DAY_TICKS;
 export const isNight = (tick: number) => timeOfDay(tick) >= 1 - NIGHT_FRACTION;
 
+/** Gentle seasons: six days each. Winter stops berry regrowth and makes people hungrier; nothing else changes. */
+export const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'] as const;
+export const SEASON_DAYS = 6;
+export const seasonOf = (tick: number): (typeof SEASONS)[number] => SEASONS[Math.floor((dayOf(tick) - 1) / SEASON_DAYS) % 4];
+
 export function pushEvent(s: CivState, kind: EventKind, facts: CivEvent['facts'], text: string) {
   s.events.push({ id: s.events.length ? s.events[s.events.length - 1].id + 1 : 1, kind, tick: s.tick, facts, text });
   if (s.events.length > EVENT_LOG_MAX) s.events.splice(0, s.events.length - EVENT_LOG_MAX);
@@ -61,7 +66,7 @@ export function createSim(seed = 1): CivSim {
     citizens: [],
     nodes: map.nodes.map(n => ({ id: n.id, kind: n.kind, x: n.x, y: n.y, amount: n.amount, max: n.amount, workers: 0 })),
     buildings: [{ id: fire.id, kind: 'campfire', x: fire.x, y: fire.y, w: 1, h: 1, state: 'done', progress: 1, paid: {}, workers: 0 }],
-    seenDiscoveries: [], capabilities: [], unlockedBuildings: ['shelter'], events: [], hints: {}, activeHint: null, alerts: [],
+    seenDiscoveries: [], capabilities: [], unlockedBuildings: ['shelter'], events: [], hints: {}, activeHint: null, visitor: null, alerts: [],
     milestones: [], settings: { pauseWhileCrafting: false, workIntensity: 'normal', foodReserveDays: 3 },
     counters: { gathered: emptyStock(), consumed: emptyStock(), crafted: 0, deaths: 0 },
   };
@@ -333,7 +338,7 @@ export function stepSim(sim: CivSim): void {
   const intensity = s.settings.workIntensity === 'intense' ? 1.25 : s.settings.workIntensity === 'relaxed' ? 0.8 : 1;
   for (const c of s.citizens) {
     c.px = c.x; c.py = c.y;
-    c.hunger = Math.min(100, c.hunger + CITIZEN.hungerPerTick * (c.task.kind === 'rest' ? 0.6 : 1));
+    c.hunger = Math.min(100, c.hunger + CITIZEN.hungerPerTick * (c.task.kind === 'rest' ? 0.6 : 1) * (seasonOf(s.tick) === 'Winter' ? 1.15 : 1));
     if (c.task.kind !== 'rest') c.energy = Math.max(0, c.energy - CITIZEN.energyPerTick * (s.settings.workIntensity === 'intense' ? 1.4 : s.settings.workIntensity === 'relaxed' ? 0.7 : 1));
     if (c.override && c.override.until <= s.tick) c.override = null;
     runTask(sim, g, c, intensity, workers, occupancy);
@@ -341,7 +346,7 @@ export function stepSim(sim: CivSim): void {
 
   // world regrowth
   for (const n of s.nodes) {
-    if (n.kind === 'bush' && n.amount < n.max && s.tick % BUSH_REGROW_TICKS === 0 && (workers.get(n.id) ?? 0) === 0) n.amount++;
+    if (n.kind === 'bush' && n.amount < n.max && seasonOf(s.tick) !== 'Winter' && s.tick % BUSH_REGROW_TICKS === 0 && (workers.get(n.id) ?? 0) === 0) n.amount++;
   }
   for (const b of s.buildings) {
     if (b.kind === 'farm' && b.state === 'done' && (b.amount ?? 0) < (b.max ?? 0) && s.tick % FARM_REGROW_TICKS === 0) b.amount = (b.amount ?? 0) + 1;
@@ -350,6 +355,10 @@ export function stepSim(sim: CivSim): void {
 
   maybeArrival(sim);
   updateMilestones(sim);
+  if (s.tick % DAY_TICKS === 0 && s.tick > 0) {
+    const season = seasonOf(s.tick);
+    if (seasonOf(s.tick - 1) !== season) pushEvent(s, 'season', { season }, season === 'Winter' ? 'Winter begins. Berries stop growing and everyone eats a little more.' : `${season} begins.`);
+  }
 }
 
 function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: Map<string, number>, occupancy: Map<string, number>) {
@@ -515,3 +524,56 @@ function updateMilestones(sim: CivSim) {
 }
 
 export function totalStock(s: CivState): number { return RESOURCES.reduce((a, r) => a + s.stock[r], 0); }
+
+/* ---------- visiting trader (master design section 40) ---------- */
+
+const TRADE_RES: ResourceId[] = ['food', 'wood', 'stone'];
+
+/** A trader arrives only when there is a real surplus to offer and a real shortage to fill. Never silently changes stock. */
+export function maybeVisitor(sim: CivSim) {
+  const { s } = sim;
+  if (s.visitor) {
+    if (s.tick >= s.visitor.leavesTick) { pushEvent(s, 'trade', { outcome: 'left' }, 'The trader moves on.'); s.visitor = null; }
+    return;
+  }
+  if (s.tick % DAY_TICKS !== Math.floor(DAY_TICKS / 2) || dayOf(s.tick) < 4) return;
+  const last = [...s.events].reverse().find(e => e.kind === 'trade');
+  if (last && s.tick - last.tick < DAY_TICKS * 3) return;
+  const surplus = [...TRADE_RES].sort((a, b) => s.stock[b] - s.stock[a])[0];
+  const scarce = [...TRADE_RES].sort((a, b) => s.stock[a] - s.stock[b])[0];
+  if (surplus === scarce || s.stock[surplus] < 14 || s.stock[scarce] > 12) return;
+  const n = 4 + Math.floor(nextRand(s) * 3);
+  s.visitor = { id: newId(s, 'v'), kind: 'trader', arrivedTick: s.tick, leavesTick: s.tick + DAY_TICKS / 2, give: { res: scarce, n }, want: { res: surplus, n: n + 2 } };
+  pushEvent(s, 'trade', { outcome: 'arrived', give: scarce, want: surplus }, 'A traveller arrives with goods we may need.');
+}
+
+export type TradeResult = { ok: true } | { ok: false; reason: string };
+
+/** What accepting would leave behind, shown before confirmation. */
+export function tradePreview(s: CivState) {
+  const v = s.visitor;
+  if (!v) return null;
+  const after = s.stock[v.want.res] - v.want.n;
+  const belowReserve = v.want.res === 'food' && after / foodPerDay(s) < s.settings.foodReserveDays;
+  return { give: v.give, want: v.want, enough: s.stock[v.want.res] >= v.want.n, room: capacity(s) - s.stock[v.give.res] >= v.give.n, belowReserve };
+}
+
+export function acceptTrade(sim: CivSim): TradeResult {
+  const { s } = sim;
+  const p = tradePreview(s);
+  if (!p || !s.visitor) return { ok: false, reason: 'Nobody is trading right now' };
+  if (!p.enough) return { ok: false, reason: `Not enough ${s.visitor.want.res}` };
+  if (!p.room) return { ok: false, reason: `No room to keep ${s.visitor.give.res}` };
+  s.stock[s.visitor.want.res] -= s.visitor.want.n;
+  s.stock[s.visitor.give.res] += s.visitor.give.n;
+  pushEvent(s, 'trade', { outcome: 'accepted', gave: s.visitor.want.res, got: s.visitor.give.res, n: s.visitor.give.n }, `Traded ${s.visitor.want.n} ${s.visitor.want.res} for ${s.visitor.give.n} ${s.visitor.give.res}.`);
+  s.visitor = null;
+  return { ok: true };
+}
+
+export function declineTrade(sim: CivSim) {
+  const { s } = sim;
+  if (!s.visitor) return;
+  pushEvent(s, 'trade', { outcome: 'declined' }, 'The trader is turned away and leaves without hard feelings.');
+  s.visitor = null;
+}

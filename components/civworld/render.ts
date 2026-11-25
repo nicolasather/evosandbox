@@ -247,6 +247,20 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   list.sort((a, b) => a.y - b.y);
   for (const d of list) d.draw();
 
+  // ambient life: a few birds cross the map by day (cosmetic only, no resource accounting, still when motion is reduced)
+  if (f.animate) {
+    const tod = (s.tick % DAY_TICKS) / DAY_TICKS;
+    if (tod < 1 - NIGHT_FRACTION) {
+      ctx.strokeStyle = 'rgba(30,30,30,0.7)'; ctx.lineWidth = 1;
+      for (let i = 0; i < 3; i++) {
+        const bx = ((f.now / 55 + i * 430) % (map.w * TILE + 160)) - 80;
+        const by = 60 + i * 150 + Math.sin(f.now / 700 + i) * 10;
+        const flap = Math.floor(f.now / 160 + i) % 2 ? 2 : -2;
+        ctx.beginPath(); ctx.moveTo(bx - 4, by + flap); ctx.lineTo(bx, by); ctx.lineTo(bx + 4, by + flap); ctx.stroke();
+      }
+    }
+  }
+
   if (f.ghost) {
     const def = BUILDINGS[f.ghost.kind];
     const gw = def.footprint.w * TILE;

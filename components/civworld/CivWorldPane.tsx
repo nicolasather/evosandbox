@@ -8,7 +8,8 @@ import { validatePlacement } from '@/lib/civ/sim';
 import { clampCamera, recenter, screenToWorld, zoomAt, type Camera, type Size } from '@/lib/civ/camera';
 import { TILE, hitTest, type Hit, type MapLike } from '@/lib/civ/world';
 import { AssetStore } from './assets';
-import { BuildDrawer, HelpDrawer, Hud, HintCard, Inspector, JobsDrawer, LogDrawer, Notice, Toolbar, type DrawerId } from './panels';
+import db from '@/data/db.json';
+import { BuildDrawer, GoalsDrawer, HelpDrawer, Hud, HintCard, DiscoveryToast, Inspector, JobsDrawer, JournalDrawer, LogDrawer, Notice, Toolbar, TradeCard, type DrawerId } from './panels';
 import { buildTerrainLayer, drawFrame, type Ghost } from './render';
 import { useCivVersion } from './useCiv';
 
@@ -16,6 +17,9 @@ import { useCivVersion } from './useCiv';
    React owns the panels; the canvas draws straight from the runtime's simulation state. */
 
 const START_ZOOM = 2;
+
+/** Discovery display names come from the existing catalogue; the settlement never keeps its own copy. */
+const DISCOVERY_NAMES: Record<string, string> = Object.fromEntries((db as { nodes: { id: string; n: string }[] }).nodes.map(n => [n.id, n.n]));
 const TICK_MS = 1000 / TICKS_PER_SECOND;
 
 export function CivWorldPane({ visible, rt }: { visible: boolean; rt: CivRuntime | null }) {
@@ -201,6 +205,8 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
   const pickBuild = (kind: string) => { setBuildKind(kind); setSelected(null); setGhostMsg('Move over the map to place it. Esc cancels.'); };
   const drawerBody = drawer === 'build' ? <BuildDrawer rt={rt} onPick={pickBuild} active={buildKind} />
     : drawer === 'jobs' ? <JobsDrawer rt={rt} />
+      : drawer === 'goals' ? <GoalsDrawer rt={rt} />
+        : drawer === 'journal' ? <JournalDrawer rt={rt} names={DISCOVERY_NAMES} />
       : drawer === 'log' ? <LogDrawer rt={rt} />
         : drawer === 'help' ? <HelpDrawer rt={rt} /> : null;
 
@@ -223,6 +229,8 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
       )}
       {selected && !buildKind && <Inspector rt={rt} sel={selected} onClose={() => setSelected(null)} onFollow={id => { follow.current = id; }} />}
       <HintCard rt={rt} />
+      <TradeCard rt={rt} />
+      <DiscoveryToast rt={rt} />
       <Notice rt={rt} />
       {drawerBody && <aside className="cw-drawer" aria-label={drawer ?? ''}>{drawerBody}<button type="button" className="cw-drawer-close" onClick={() => setDrawer(null)}>Close</button></aside>}
       <Toolbar drawer={drawer} setDrawer={setDrawer} home={goHome} />

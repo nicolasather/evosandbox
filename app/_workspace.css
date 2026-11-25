@@ -92,3 +92,10 @@
 .cw-notice{position:absolute;left:50%;top:84px;transform:translateX(-50%);width:min(460px,calc(100% - 24px));display:flex;flex-direction:column;gap:8px;padding:10px 12px;background:#3a2a14;border:1px solid #ffc107;border-radius:8px;z-index:4}
 .cw-buildbar{position:absolute;left:56px;bottom:10px;max-width:calc(100% - 200px);padding:8px 10px;background:var(--cw-bg);border:1px solid var(--cw-gold);border-radius:8px}
 @media (prefers-reduced-motion:reduce){.cw-root *{transition:none!important;animation:none!important}}
+
+
+.cw-goal{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--cw-line);padding-top:6px}
+.cw-goal small{opacity:.65}
+.cw-trade{position:absolute;left:10px;top:130px;width:min(260px,calc(100% - 20px));display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:#2c3a2a;border:1px solid var(--cw-gold);border-radius:8px}
+.cw-toast{position:absolute;left:50%;transform:translateX(-50%);top:92px;width:min(420px,calc(100% - 24px));display:flex;flex-direction:column;gap:4px;padding:10px 12px;background:#26402e;border:1px solid var(--cw-gold);border-radius:8px;z-index:3}
+.cw-toast button{align-self:flex-start}
