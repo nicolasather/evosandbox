@@ -43,11 +43,11 @@
 | `char_gatherer_actions_32x48` | `public/civilization/characters/gatherer-actions-32x48.png` | Action sheet | 96x192 (32x48 cells) | 12 | provisional | — | (16,47) | N/S/E/W carry, eat, sleep states |
 | `char_gatherer_actions_preview_4x` | `public/civilization/characters/gatherer-actions-4x-preview.png` | Review preview | 384x768 | 12 | — | — | — | Nearest-neighbor 4x preview |
 
-| `char_hunter_directional_32x48` | `public/civilization/characters/hunter-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |
-| `char_builder_directional_32x48` | `public/civilization/characters/builder-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |
-| `char_toolmaker_directional_32x48` | `public/civilization/characters/toolmaker-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |
-| `char_elder_directional_32x48` | `public/civilization/characters/elder-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |
-| `char_child_directional_32x48` | `public/civilization/characters/child-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |
+| `char_hunter_directional_32x48` | `public/civilization/characters/hunter-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | final | Yes | (16,47) | N/S/E/W; spear/leather overlay |
+| `char_builder_directional_32x48` | `public/civilization/characters/builder-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | final | Yes | (16,47) | N/S/E/W; mallet/plank overlay |
+| `char_toolmaker_directional_32x48` | `public/civilization/characters/toolmaker-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | final | Yes | (16,47) | N/S/E/W; hammer/apron overlay |
+| `char_elder_directional_32x48` | `public/civilization/characters/elder-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | final | Yes | (16,47) | N/S/E/W; staff/grey-hair overlay |
+| `char_child_directional_32x48` | `public/civilization/characters/child-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | final | Yes | (16,47) | N/S/E/W; smaller body/larger head overlay |
 
 ### Buildings (`IMAGE3` follow-up)
 
@@ -110,20 +110,20 @@ The loader (`components/civworld/assets.ts`) already requests every file below a
 | id | path | size (cell) | frames | anchor | status |
 |---|---|---|---|---|---|
 | `terrain_grass` `terrain_dirt` `terrain_path` `terrain_shore_water` | `terrain/{grass,dirt,path,shore_water}.png` | 32x32 | 1 | top-left | DONE |
-| `terrain_sand` | `terrain/sand.png` | 32x32 | 1 | top-left | TODO |
-| `terrain_water_deep` (animated, 4-8f, seamless) | `water/water_deep_sheet.png` | 32x32 cells | 4-8 | top-left | TODO (placeholder shimmer drawn) |
+| `terrain_sand` | `terrain/sand.png` | 32x32 | 1 | top-left | DONE |
+| `terrain_water_deep` (animated, 4-8f, seamless) | `water/water_deep_sheet.png` | 32x32 cells | 4-8 | top-left | DONE |
 | `prop_tree` `prop_rock` | `terrain/{tree,rock}.png` | 48x64 / 32x32 | 1 | bottom-centre | DONE |
 | `res_berry_states` `res_woodpile_states` `res_stonepile_states` (full, partial, depleted) | `resources/*-states.png` | 48x48 cells | 3 | (24,43) | DONE (berry + stonepile drawn on bush/rock nodes; woodpile not yet used) |
 | `fx_campfire_sheet` `fx_campfire_static` | `effects/campfire-{sheet,static}.png` | 32x32 | 6 @ 8fps | bottom-centre | DONE |
 | `char_gatherer_directional` | `characters/gatherer-directions-32x48.png` | 32x48 | 10 cols x 4 rows (S,N,E,W); idle 0-1, walk 2-5, work 6-9 | (16,47) | DONE |
 | `bld_shelter` `bld_storage` `bld_workshop` | `buildings/*-stages.png` | 64x64 cells, 3 stages | foundation, frame, finished | (32,57) at footprint bottom-centre | DONE |
-| `bld_farm` | `buildings/farm.png` | 96x64 (3x2 tiles) | 1 | bottom-left | TODO |
-| `bld_farm` (+ stages) | `buildings/farm.png` | 96x64 | 1 | bottom-left | TODO (procedural farm drawn) |
-| `portrait_villager_{a,b,c,d}` | `portraits/villager_{a..d}.png` | 48x48 | 1 | n/a | TODO (initial letter drawn) |
+| `bld_farm` | `buildings/farm.png` | 96x64 (3x2 tiles) | 1 | bottom-left | DONE |
+| `bld_farm` (+ stages) | `buildings/farm.png` | 96x64 | 1 | bottom-left | DONE |
+| `portrait_villager_{a,b,c,d}` | `portraits/villager_{a..d}.png` | 48x48 | 1 | n/a | DONE |
 | `char_<role>_directional` builder, toolmaker, elder, hunter, child | `characters/<role>-directions-32x48.png` | 32x48, same layout as gatherer | 10x4 | (16,47) | DONE (builder, toolmaker, elder used by job and age; hunter, child not yet used) |
 | `char_gatherer_actions` carry, eat, sleep | `characters/gatherer-actions-32x48.png` | 32x48 | 3 cols x 4 dirs | (16,47) | DONE |
-| `fx_smoke_loop` `fx_build_dust` `fx_sleep_z` | `effects/*.png` | 32x32 | 4-6 | bottom-centre | TODO (not drawn yet) |
-| `ui_icon_{food,wood,stone,tools}` | `ui/icon_*.png` | 16x16 | 1 | n/a | TODO (text labels used) |
-| `ui_emote_{hungry,tired,idea,alert}` | `ui/emote_*.png` | 16x16 | 1 | n/a | TODO |
+| `fx_smoke_loop` `fx_build_dust` `fx_sleep_z` | `effects/*.png` | 32x32 | 4-6 | bottom-centre | DONE |
+| `ui_icon_{food,wood,stone,tools}` | `ui/icon_*.png` | 16x16 | 1 | n/a | DONE |
+| `ui_emote_{hungry,tired,idea,alert}` | `ui/emote_*.png` | 16x16 | 1 | n/a | DONE |
 
 Review rules still apply: nearest-neighbour, transparent background, top-left light, same palette as ART_DIRECTION.md, no labels inside cells, static fallback for every animation.
