@@ -14,8 +14,8 @@ Warm, readable 2D pixel art for a living early settlement. Use a consistent 3/4 
 
 ## Pixel and animation rules
 
-- Character frame contract starts at 32×32 px, transparent background, 2-direction sample first.
-- Keep feet anchored at y=31; do not move the pivot between frames.
+- Terrain tiles remain 32×32 px; character frame contract is 32×48 px, transparent background, with 4-direction rows.
+- Keep character feet anchored at y=47; the extra 16 px above the tile height provides readable head/prop silhouette while preserving a 32 px world-footprint grid.
 - Use 1–2 px clusters for facial features and tool highlights; avoid noisy single-pixel dithering.
 - Idle: 2 frames; walk: 4 frames; work: 4 frames. Loops must preserve silhouette and avoid foot sliding.
 - Sprite sheets must ship with JSON metadata naming rows, frames, directions, anchor, palette, and license.
