@@ -1,0 +1,11 @@
+# Decisions
+
+| ID | Date | Question | Options | Recommendation / decision | Affects |
+|---|---|---|---|---|---|
+| D-001 | 2026-11-25 | Git flow | Feature branch vs main | OWNER OVERRIDE: commit straight to `main`, push after each slice, `git pull --rebase` first, no force-push, no manual deploy. Art bots (IMAGE, IMAGE3) also push to `public/civilization/` and `docs/civilization-overhaul/`. | all |
+| D-002 | 2026-11-25 | Where does the new Civilization live? | Replace mode `civilization` / new mode id / shell around existing modes | Workspace shell mounts on the default mode (`main-evolution`): tabs **Civilization** (new live world) + **Merging** (existing Sandbox kept mounted). Mode id `civilization` (legacy bench + Lifelines) is unchanged and still launchable. New code in `lib/civ/`, `components/civworld/`, `components/workspace/`. | AppRoot, registry untouched |
+| D-003 | 2026-11-25 | Default tab and the landing film | Civilization first vs Merging first for brand-new players | Civilization is the default tab for everyone. The Sandbox is mounted (hidden) from the start so its save loads; its landing film plays the first time the Merging tab is opened. | WorkspaceShell |
+| D-004 | 2026-11-25 | Provisional art contract (renderer prototype) | 16px vs 32px tile | **Tile 32x32 px**, 3/4 top-down, light from top-left. Character cell **32x48** (feet anchored at bottom-centre, 16,46); building sprites sized in whole tiles (footprint w*32 by h*32 plus up to 1 tile of height overhang). Render scale integer (2x default), `image-rendering: pixelated`. PROVISIONAL until IMAGE/IMAGE3 object with evidence. | ASSET_MANIFEST, renderer |
+| D-005 | 2026-11-25 | Renderer | Canvas 2D / WebGL / DOM | Canvas 2D, static terrain cached to an offscreen canvas per chunk, dynamic layer redrawn with rAF; sim on a fixed 4 Hz tick independent of rendering. | components/civworld |
+| D-006 | 2026-11-25 | Simulation save | Extend `evo.civilization.v1` vs new key | New versioned key `evo.civworld.v1`; layout prefs in `evo.workspace.v1`. Legacy keys never touched. | lib/civ/save |
+| D-007 | 2026-11-25 | Discovery bridge trigger | Modify Engine vs observe it | Observe: subscribe to `engine.subscribe`, diff the discovered set against the bridge's own recorded set. Engine stays authoritative and unmodified. | lib/civ/bridge |
