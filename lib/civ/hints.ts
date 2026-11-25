@@ -155,7 +155,7 @@ function show(sim: CivSim, def: HintDef, level: HintLevel) {
   const { s } = sim;
   const st = hintState(s, def.id);
   const speaker = s.citizens.find(c => c.task.kind !== 'rest')?.name ?? 'Someone';
-  const h: ActiveHint = { id: def.id, level, speaker, text: def.text(sim)[level], tick: s.tick };
+  const h: ActiveHint = { id: def.id, role: def.speakerRole, level, speaker, text: def.text(sim)[level], tick: s.tick };
   s.activeHint = h;
   st.lastShown = s.tick;
   st.shownCount++;

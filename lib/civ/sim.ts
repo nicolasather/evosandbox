@@ -332,6 +332,9 @@ export function stepSim(sim: CivSim): void {
     if (p === 'rest') occupancy.set(t.targetId, (occupancy.get(t.targetId) ?? 0) + 1);
   }
 
+  // site worker counts are exposed on the buildings so the renderer can show dust and the inspector can explain
+  for (const b of s.buildings) b.workers = workers.get(b.id) ?? 0;
+
   // tools in hand: the first N workers (stable id order) carry one tool each
   s.citizens.forEach((c, i) => { c.usingTool = i < s.stock.tools; });
 

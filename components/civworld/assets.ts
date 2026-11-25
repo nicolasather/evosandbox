@@ -44,6 +44,13 @@ export const ASSET_SPECS: Record<string, AssetSpec> = {
   char_child_directional: { url: `${BASE}/characters/child-directions-32x48.png`, w: 32, h: 48, frames: 10 },
   char_gatherer_actions: { url: `${BASE}/characters/gatherer-actions-32x48.png`, w: 32, h: 48, frames: 3 },
   // still to be delivered: conventional paths, procedural placeholders are drawn until the files exist
+  terrain_water_deep: { url: `${BASE}/water/water_deep_sheet.png`, w: 32, h: 32, frames: 6, fps: 6 },
+  fx_build_dust: { url: `${BASE}/effects/fx_build_dust.png`, w: 32, h: 32, frames: 6, fps: 10 },
+  fx_sleep_z: { url: `${BASE}/effects/fx_sleep_z.png`, w: 32, h: 32, frames: 4, fps: 3 },
+  ui_emote_hungry: { url: `${BASE}/ui/emote_hungry.png`, w: 16, h: 16 },
+  ui_emote_tired: { url: `${BASE}/ui/emote_tired.png`, w: 16, h: 16 },
+  ui_emote_idea: { url: `${BASE}/ui/emote_idea.png`, w: 16, h: 16 },
+  ui_emote_alert: { url: `${BASE}/ui/emote_alert.png`, w: 16, h: 16 },
   terrain_sand: { url: `${BASE}/terrain/sand.png`, w: 32, h: 32 },
   bld_farm: { url: `${BASE}/buildings/farm.png`, w: 96, h: 64 },
   portrait_villager_a: { url: `${BASE}/portraits/villager_a.png`, w: 48, h: 48 },

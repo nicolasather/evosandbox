@@ -101,7 +101,7 @@ export interface CivEvent {
 export interface Capability { id: string; fromDiscovery: string; tick: number }
 
 export interface HintState { lastShown: number; shownCount: number; resolved: boolean }
-export interface ActiveHint { id: string; level: 'observation' | 'suggestion' | 'guidance'; speaker: string; text: string; tick: number }
+export interface ActiveHint { id: string; role: 'gatherer' | 'builder' | 'elder' | 'toolmaker'; level: 'observation' | 'suggestion' | 'guidance'; speaker: string; text: string; tick: number }
 
 export interface Visitor {
   id: string;

@@ -32,10 +32,10 @@ export function Hud({ rt, onFocus }: { rt: CivRuntime; onFocus: (x: number, y: n
       <div className="cw-hud-row" role="group" aria-label="Settlement">
         <span className="cw-chip" title="Day, season and time of day">Day {dayOf(s.tick)} · {seasonOf(s.tick)} · {timeLabel(s.tick)}</span>
         <span className="cw-chip" title="People">People {s.citizens.length}</span>
-        <span className="cw-chip" title="Food in store / capacity, and days it will last">Food {s.stock.food}/{cap} <small>({days.toFixed(1)}d)</small></span>
-        <span className="cw-chip" title="Wood in store / capacity">Wood {s.stock.wood}/{cap}</span>
-        <span className="cw-chip" title="Stone in store / capacity">Stone {s.stock.stone}/{cap}</span>
-        {hasCapability(s, 'stone_tool') && <span className="cw-chip" title="Tools made">Tools {s.stock.tools}</span>}
+        <span className="cw-chip" title="Food in store / capacity, and days it will last"><i className="cw-ico" data-i="food" aria-hidden="true" />Food {s.stock.food}/{cap} <small>({days.toFixed(1)}d)</small></span>
+        <span className="cw-chip" title="Wood in store / capacity"><i className="cw-ico" data-i="wood" aria-hidden="true" />Wood {s.stock.wood}/{cap}</span>
+        <span className="cw-chip" title="Stone in store / capacity"><i className="cw-ico" data-i="stone" aria-hidden="true" />Stone {s.stock.stone}/{cap}</span>
+        {hasCapability(s, 'stone_tool') && <span className="cw-chip" title="Tools made"><i className="cw-ico" data-i="tools" aria-hidden="true" />Tools {s.stock.tools}</span>}
         <span className="cw-spacer" />
         <div className="cw-clock" role="group" aria-label="Simulation speed">
           <button type="button" aria-pressed={rt.paused} onClick={() => rt.togglePause()} title="Pause or resume (Space)">{rt.userPaused ? 'Play' : rt.paused ? 'Paused' : 'Pause'}</button>
@@ -291,6 +291,7 @@ export function Inspector({ rt, sel, onClose, onFollow }: { rt: CivRuntime; sel:
     const home = c.home ? 'a shelter' : 'the campfire (sleeping rough)';
     body = (
       <>
+        <span className="cw-villager" data-v={c.id.length % 4} aria-hidden="true" />
         <strong>{c.name}</strong>
         <span>{c.age === 'elder' ? 'Elder' : 'Adult'} · {c.trait}</span>
         <span>Now: {c.task.kind === 'idle' ? (c.idleReason || 'Waiting') : c.task.reason}</span>
@@ -359,7 +360,7 @@ export function HintCard({ rt }: { rt: CivRuntime }) {
   if (!h) return null;
   return (
     <div className="cw-hint" role="status" aria-live="polite">
-      <span className="cw-portrait" aria-hidden="true">{h.speaker[0]}</span>
+      <span className="cw-portrait" data-role={h.role} aria-hidden="true" />
       <div>
         <strong>{h.speaker}</strong>
         <p>{h.text}</p>

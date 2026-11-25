@@ -170,7 +170,17 @@ function drawCitizen(ctx: CanvasRenderingContext2D, assets: AssetStore, c: Citiz
     ctx.fillStyle = c.carrying.res === 'food' ? '#c2413b' : c.carrying.res === 'wood' ? '#8a5a2a' : '#9a9a94';
     ctx.fillRect(fx - 3, fy - 54, 6, 6);
   }
-  if (sleeping) { ctx.fillStyle = '#cfe0ff'; ctx.font = '9px monospace'; ctx.fillText('z', fx + 8, fy - 40 - (Math.floor(now / 500) % 2) * 2); }
+  const zz = assets.get('fx_sleep_z');
+  if (sleeping) {
+    if (zz && animate) ctx.drawImage(zz, (Math.floor(now / 330) % 4) * 32, 0, 32, 32, fx - 4, fy - 72, 32, 32);
+    else if (zz) ctx.drawImage(zz, 0, 0, 32, 32, fx - 4, fy - 72, 32, 32);
+    else { ctx.fillStyle = '#cfe0ff'; ctx.font = '9px monospace'; ctx.fillText('z', fx + 8, fy - 40 - (Math.floor(now / 500) % 2) * 2); }
+  } else {
+    // a small thought mark when a need is pressing: world-first information, with exact numbers in the inspector
+    const em = c.hunger >= 55 ? 'ui_emote_hungry' : c.energy <= 30 ? 'ui_emote_tired' : c.task.kind === 'idle' && c.idleReason ? 'ui_emote_alert' : null;
+    const img = em ? assets.get(em) : null;
+    if (img) ctx.drawImage(img, fx + 4, fy - 62, 16, 16);
+  }
 }
 
 export interface Ghost { kind: string; x: number; y: number; valid: boolean; far: boolean }
@@ -245,8 +255,15 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
     }
   }
 
-  // water shimmer on deep tiles (cheap line glints; static when reduced motion is on)
-  if (f.animate) {
+  // deep water: the delivered loop when available (frame 0 under reduced motion), else cheap line glints
+  const deep = assets.get('terrain_water_deep');
+  if (deep) {
+    const fr = f.animate ? Math.floor(f.now / 160) % 6 : 0;
+    for (let y = Math.max(0, y0); y < Math.min(map.h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(map.w, x1); x++) {
+      if (tileAt(map, x, y) === 'water' && isWater(tileAt(map, x, y - 1)) && isWater(tileAt(map, x, y + 1))) ctx.drawImage(deep, fr * 32, 0, 32, 32, x * TILE, y * TILE, TILE, TILE);
+    }
+  }
+  if (f.animate && !deep) {
     ctx.fillStyle = 'rgba(255,255,255,0.10)';
     for (let y = Math.max(0, y0); y < Math.min(map.h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(map.w, x1); x++) {
       if (tileAt(map, x, y) === 'water' && isWater(tileAt(map, x, y - 1))) {
@@ -273,6 +290,14 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   for (const c of s.citizens) {
     const iy = c.py + (c.y - c.py) * f.alpha;
     list.push({ y: iy + 1, draw: () => drawCitizen(ctx, assets, c, f.alpha, f.now, f.animate) });
+  }
+  const dust = assets.get('fx_build_dust');
+  if (dust && f.animate) {
+    for (const b of s.buildings) {
+      if (b.state === 'site' && b.workers > 0 && b.x + b.w >= x0 && b.x <= x1 && b.y >= y0 && b.y <= y1) {
+        list.push({ y: b.y + b.h + 0.5, draw: () => ctx.drawImage(dust, (Math.floor(f.now / 100) % 6) * 32, 0, 32, 32, b.x * TILE + b.w * TILE / 2 - 16, (b.y + b.h) * TILE - 30, 32, 32) });
+      }
+    }
   }
   const smoke = assets.get('fx_smoke');
   if (smoke && f.animate) {
