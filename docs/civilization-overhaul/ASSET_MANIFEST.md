@@ -40,6 +40,8 @@
 |---|---|---|---|---|---|---|---|---|
 | `char_gatherer_directional_32x48` | `public/civilization/characters/gatherer-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W rows; idle 2, walk 4, work 4 |
 | `char_gatherer_directional_preview_4x` | `public/civilization/characters/gatherer-directions-4x-preview.png` | Review preview | 1280x768 | 40 | — | — | — | Nearest-neighbor 4x preview |
+| `char_gatherer_actions_32x48` | `public/civilization/characters/gatherer-actions-32x48.png` | Action sheet | 96x192 (32x48 cells) | 12 | provisional | — | (16,47) | N/S/E/W carry, eat, sleep states |
+| `char_gatherer_actions_preview_4x` | `public/civilization/characters/gatherer-actions-4x-preview.png` | Review preview | 384x768 | 12 | — | — | — | Nearest-neighbor 4x preview |
 
 | `char_hunter_directional_32x48` | `public/civilization/characters/hunter-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |
 | `char_builder_directional_32x48` | `public/civilization/characters/builder-directions-32x48.png` | Spritesheet | 320x192 (32x48 cells) | 40 | provisional | Yes | (16,47) | N/S/E/W; shared detailed base pending role overlay |

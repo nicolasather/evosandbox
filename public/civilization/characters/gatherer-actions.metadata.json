@@ -1,0 +1,30 @@
+{
+  "assetId": "char_gatherer_actions_32x48",
+  "frameWidth": 32,
+  "frameHeight": 48,
+  "columns": 3,
+  "rows": 4,
+  "directions": [
+    "south",
+    "north",
+    "east",
+    "west"
+  ],
+  "states": {
+    "carry": [
+      0
+    ],
+    "eat": [
+      1
+    ],
+    "sleep": [
+      2
+    ]
+  },
+  "anchor": {
+    "x": 16,
+    "y": 47
+  },
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
