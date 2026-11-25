@@ -24,3 +24,10 @@ Warm, readable 2D pixel art for a living early settlement. Use a consistent 3/4 
 
 IMAGE3 owns citizen/character assets and gameplay content. IMAGE owns environments/buildings/effects. Any asset that departs from this guide gets reviewed before integration.
 
+## Character production notes (IMAGE3)
+
+- First six silhouettes: gatherer (satchel/berry sprig), hunter (short spear), builder (mallet/plank), toolmaker (stone hammer), elder (staff), child (smaller body and quicker idle).
+- Keep role props outside the torso silhouette where possible so the same base can be recolored and animated without changing the feet anchor.
+- The current detailed sample uses `#271f2c` outline, moss-green clothing, ochre/gold accents, bark-brown boots, and muted skin tones to match the terrain batch.
+- Character sheets ship with adjacent metadata for stable asset ID, frame size, rows, directions, anchor, loop names, palette, and license.
+

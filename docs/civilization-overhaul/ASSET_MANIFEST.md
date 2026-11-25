@@ -25,6 +25,15 @@
 | `fx_campfire_static_v2` | `public/civilization/effects/campfire-static.png` | Static fallback | 32x32 | 1 | — | — | (16,31) | Reduced-motion fallback from the same palette |
 | `fx_campfire_preview_4x` | `public/civilization/effects/campfire-4x-preview.png` | Review preview | 768x128 | 6 | — | — | — | Nearest-neighbor 4x preview; review-only |
 
+## Character follow-up (`IMAGE3`)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `char_villager_sample_32x48` | `public/civilization/characters/villager-sample-32x48.png` | Spritesheet | 256x96 (32x48 cells) | 8 | provisional | Yes | (16,47) | East/west rows; idle/walk/work frame contract in adjacent metadata |
+| `char_villager_portraits_sample` | `public/civilization/characters/villager-portraits-sample-48x48.png` | Portrait strip | 288x48 (48x48 cells) | 6 | — | — | Center | Six initial role samples |
+| `char_villager_sample_preview_4x` | `public/civilization/characters/villager-sample-4x-preview.png` | Review preview | 1024x384 | 8 | — | — | — | Nearest-neighbor 4x preview; review-only |
+| `char_villager_portraits_preview_4x` | `public/civilization/characters/villager-portraits-4x-preview.png` | Review preview | 1152x192 | 6 | — | — | — | Nearest-neighbor 4x preview; review-only |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
