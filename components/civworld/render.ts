@@ -46,7 +46,12 @@ function drawNode(ctx: CanvasRenderingContext2D, assets: AssetStore, n: NodeStat
   const s = NODE_SPRITE[n.kind];
   const bx = n.x * TILE + TILE / 2;
   const by = (n.y + 1) * TILE;
-  const img = n.kind === 'tree' ? assets.get('prop_tree') : n.kind === 'rock' ? assets.get('prop_rock') : assets.get('prop_berry_bush');
+  const ratio = n.max > 0 ? n.amount / n.max : 0;
+  const state = ratio > 0.5 ? 0 : ratio > 0 ? 1 : 2; // full, partial, depleted
+  const sheetId = n.kind === 'bush' ? 'res_berry_states' : n.kind === 'rock' ? 'res_stonepile_states' : null;
+  const sheet = sheetId ? assets.get(sheetId) : null;
+  if (sheet) { ctx.drawImage(sheet, state * 48, 0, 48, 48, bx - 24, by - 43 - 1, 48, 48); return; }
+  const img = n.kind === 'tree' ? assets.get('prop_tree') : n.kind === 'rock' ? assets.get('prop_rock') : null;
   if (img) { ctx.drawImage(img, bx - s.w / 2, by - s.h, s.w, s.h); return; }
   if (n.kind === 'bush') {
     ctx.fillStyle = '#2f6b34'; ctx.beginPath(); ctx.ellipse(bx, by - 9, 12, 9, 0, 0, Math.PI * 2); ctx.fill();
@@ -87,12 +92,15 @@ function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: Buil
   }
   const def = BUILDINGS[b.kind];
   const site = b.state === 'site';
-  // construction stages (blueprint -> foundation -> frame -> finished): stage art is optional, finished art is the fallback
-  const stage = site ? (b.progress < 0.34 ? 1 : 2) : 0;
-  const img = (stage ? assets.get(`${def.visualAssetId}_stage${stage}`) : null) ?? assets.get(def.visualAssetId);
+  // construction stages from the sheet: frame 0 foundation, 1 frame, 2 finished; anchor (32,57) sits at the footprint's bottom centre
+  const sheet = assets.get(def.visualAssetId);
+  const frame = site ? (b.progress < 0.5 ? 0 : 1) : 2;
+  const img = sheet && sheet.width >= 192 ? null : sheet;
   ctx.save();
   if (site) ctx.globalAlpha = 0.45 + 0.5 * b.progress;
-  if (img) {
+  if (sheet && sheet.width >= 192) {
+    ctx.drawImage(sheet, frame * 64, 0, 64, 64, px + w / 2 - 32, py + h - 6 - 57, 64, 64);
+  } else if (img) {
     ctx.drawImage(img, px, py + h - img.height);
   } else {
     const [base, accent] = PLACEHOLDER_COLOR[b.kind] ?? ['#777', '#999'];
@@ -134,9 +142,15 @@ function drawCitizen(ctx: CanvasRenderingContext2D, assets: AssetStore, c: Citiz
   const working = kind === 'gather' || kind === 'build' || kind === 'craft';
   const sleeping = kind === 'rest';
   ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(fx, fy, 9, 3.5, 0, 0, Math.PI * 2); ctx.fill();
-  const sheet = assets.get('char_gatherer_directional');
-  const spec = assets.spec('char_gatherer_directional');
-  if (sheet && spec) {
+  const role = c.age === 'elder' ? 'elder' : kind === 'build' || (kind === 'walk' && c.task.purpose === 'build') ? 'builder'
+    : kind === 'craft' || (kind === 'walk' && c.task.purpose === 'craft') ? 'toolmaker' : 'gatherer';
+  const sheet = assets.get(`char_${role}_directional`) ?? assets.get('char_gatherer_directional');
+  const spec = assets.spec(`char_${role}_directional`) ?? assets.spec('char_gatherer_directional');
+  const poses = assets.get('char_gatherer_actions');
+  const pose = sleeping ? 2 : kind === 'eat' ? 1 : c.carrying && kind === 'walk' ? 0 : -1;
+  if (poses && pose >= 0) {
+    ctx.drawImage(poses, pose * 32, ROW[c.facing] * 48, 32, 48, fx - 16, fy - 47, 32, 48);
+  } else if (sheet && spec) {
     let col = 0;
     if (kind === 'walk') col = 2 + (Math.floor(c.dist * 2) % 4); // frame follows distance walked: no foot sliding
     else if (working) col = animate ? 6 + (Math.floor(now / 170) % 4) : 6;

@@ -202,7 +202,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     e.preventDefault();
   };
 
-  const pickBuild = (kind: string) => { setBuildKind(kind); setSelected(null); setGhostMsg('Move over the map to place it. Esc cancels.'); };
+  const pickBuild = (kind: string) => { setDrawer(null); setBuildKind(kind); setSelected(null); setGhostMsg('Move over the map to place it. Esc cancels.'); };
   const drawerBody = drawer === 'build' ? <BuildDrawer rt={rt} onPick={pickBuild} active={buildKind} />
     : drawer === 'jobs' ? <JobsDrawer rt={rt} />
       : drawer === 'goals' ? <GoalsDrawer rt={rt} />

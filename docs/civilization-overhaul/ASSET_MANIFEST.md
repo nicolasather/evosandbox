@@ -101,14 +101,15 @@ The loader (`components/civworld/assets.ts`) already requests every file below a
 | `terrain_sand` | `terrain/sand.png` | 32x32 | 1 | top-left | TODO |
 | `terrain_water_deep` (animated, 4-8f, seamless) | `water/water_deep_sheet.png` | 32x32 cells | 4-8 | top-left | TODO (placeholder shimmer drawn) |
 | `prop_tree` `prop_rock` | `terrain/{tree,rock}.png` | 48x64 / 32x32 | 1 | bottom-centre | DONE |
-| `prop_berry_bush` (+ empty variant `prop_berry_bush_empty`) | `vegetation/berry_bush.png` | 32x32 | 1 | bottom-centre | TODO |
+| `res_berry_states` `res_woodpile_states` `res_stonepile_states` (full, partial, depleted) | `resources/*-states.png` | 48x48 cells | 3 | (24,43) | DONE (berry + stonepile drawn on bush/rock nodes; woodpile not yet used) |
 | `fx_campfire_sheet` `fx_campfire_static` | `effects/campfire-{sheet,static}.png` | 32x32 | 6 @ 8fps | bottom-centre | DONE |
 | `char_gatherer_directional` | `characters/gatherer-directions-32x48.png` | 32x48 | 10 cols x 4 rows (S,N,E,W); idle 0-1, walk 2-5, work 6-9 | (16,47) | DONE |
-| `bld_shelter` `bld_storage` `bld_workshop` | `buildings/{shelter,storage,workshop}.png` | 64x96 (2x2 tiles + 32 overhang) | 1 | bottom-left of footprint | TODO |
+| `bld_shelter` `bld_storage` `bld_workshop` | `buildings/*-stages.png` | 64x64 cells, 3 stages | foundation, frame, finished | (32,57) at footprint bottom-centre | DONE |
 | `bld_farm` | `buildings/farm.png` | 96x64 (3x2 tiles) | 1 | bottom-left | TODO |
-| `bld_<x>_stage1` `bld_<x>_stage2` (foundation, frame) for shelter, storage, workshop, farm | `buildings/<x>_stage{1,2}.png` | same as finished | 1 | bottom-left | TODO (finished art is the fallback) |
+| `bld_farm` (+ stages) | `buildings/farm.png` | 96x64 | 1 | bottom-left | TODO (procedural farm drawn) |
 | `portrait_villager_{a,b,c,d}` | `portraits/villager_{a..d}.png` | 48x48 | 1 | n/a | TODO (initial letter drawn) |
-| `char_<role>_directional` builder, toolmaker, elder, child | `characters/<role>-directions-32x48.png` | 32x48, same layout as gatherer | 10x4 | (16,47) | TODO (gatherer sheet is shared) |
+| `char_<role>_directional` builder, toolmaker, elder, hunter, child | `characters/<role>-directions-32x48.png` | 32x48, same layout as gatherer | 10x4 | (16,47) | DONE (builder, toolmaker, elder used by job and age; hunter, child not yet used) |
+| `char_gatherer_actions` carry, eat, sleep | `characters/gatherer-actions-32x48.png` | 32x48 | 3 cols x 4 dirs | (16,47) | DONE |
 | `fx_smoke_loop` `fx_build_dust` `fx_sleep_z` | `effects/*.png` | 32x32 | 4-6 | bottom-centre | TODO (not drawn yet) |
 | `ui_icon_{food,wood,stone,tools}` | `ui/icon_*.png` | 16x16 | 1 | n/a | TODO (text labels used) |
 | `ui_emote_{hungry,tired,idea,alert}` | `ui/emote_*.png` | 16x16 | 1 | n/a | TODO |
