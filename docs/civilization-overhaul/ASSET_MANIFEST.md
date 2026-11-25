@@ -7,7 +7,9 @@
 | Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
 |---|---|---|---|---|---|---|---|---|
 | `terrain_grass` | `public/civilization/terrain/grass.png` | Static tile | 32×32 | 1 | — | — | Top-left | Seamless grass base |
+| `terrain_grass_soft_variants` | `public/civilization/terrain/grass-soft-{a,b}.png` | Static tile variants | 32x32 | 2 | — | — | Top-left | Lower-noise grass alternatives for chunk scatter |
 | `terrain_dirt` | `public/civilization/terrain/dirt.png` | Static tile | 32×32 | 1 | — | — | Top-left | Seamless dirt base |
+| `terrain_dirt_edge_masks` | `public/civilization/terrain/dirt-grass-edge-{north,east,south,west}.png` | Edge mask set | 32x32 | 4 | — | — | Top-left | Transition overlays to soften clearing edges |
 | `terrain_shore_water` | `public/civilization/terrain/shore_water.png` | Static tile | 32×32 | 1 | — | — | Top-left | Grass-to-water shore transition |
 | `terrain_path` | `public/civilization/terrain/path.png` | Static tile | 32×32 | 1 | — | — | Top-left | Packed dirt path on grass |
 | `prop_rock` | `public/civilization/terrain/rock.png` | Static sprite | 32×32 | 1 | — | — | Bottom-center | Transparent bg, warm outline |
@@ -54,6 +56,7 @@
 | Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
 |---|---|---|---|---|---|---|---|---|
 | `bld_shelter_stages` | `public/civilization/buildings/shelter-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed hut |
+| `bld_shelter_large` | `public/civilization/buildings/shelter-96.png` | Completed building | 96x96 | 1 | — | — | (48,89) | Screenshot-review scale variant; use on 3x2 footprint |
 | `bld_storage_stages` | `public/civilization/buildings/storage-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed storage |
 | `bld_workshop_stages` | `public/civilization/buildings/workshop-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed workshop |
 | `bld_granary_era2_stages` | `public/civilization/buildings/granary-era2-stages.png` | Era-2 construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,60) | Foundation, frame, completed granary |
