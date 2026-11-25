@@ -1,0 +1,17 @@
+{
+  "assetId": "ui_hint_icons_24",
+  "frameWidth": 24,
+  "frameHeight": 24,
+  "icons": [
+    "thought",
+    "warning",
+    "food",
+    "storage",
+    "water",
+    "build",
+    "discovery",
+    "danger"
+  ],
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
