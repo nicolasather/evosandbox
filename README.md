@@ -321,3 +321,7 @@ See `CHANGELOG.md` for what changed in 1.1.0.
 Code is yours, except `components/vengeance/`, which is MIT-licensed by its
 author (see the LICENSE file there). The cited sources belong to the
 institutions that hold them and are linked, not reproduced.
+
+---
+
+Secrets: never commit real keys. Copy `.env.example` to `.env.local` and set values there (`.env*` is gitignored).
