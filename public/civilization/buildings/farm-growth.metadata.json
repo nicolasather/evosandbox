@@ -1,0 +1,17 @@
+{
+  "assetId": "bld_farm_growth_stages",
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "stages": [
+    "seed",
+    "growing",
+    "ripe",
+    "harvested"
+  ],
+  "anchor": {
+    "x": 32,
+    "y": 57
+  },
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
