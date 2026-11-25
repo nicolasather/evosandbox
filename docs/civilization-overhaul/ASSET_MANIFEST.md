@@ -57,6 +57,14 @@
 | `bld_storage_stages` | `public/civilization/buildings/storage-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed storage |
 | `bld_workshop_stages` | `public/civilization/buildings/workshop-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed workshop |
 
+### Resource nodes (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `resource_berry_states` | `public/civilization/resources/berry-states.png` | State sheet | 144x48 (48x48 cells) | 3 | — | — | (24,43) | Full, partial, depleted |
+| `resource_woodpile_states` | `public/civilization/resources/woodpile-states.png` | State sheet | 144x48 (48x48 cells) | 3 | — | — | (24,43) | Full, partial, depleted |
+| `resource_stonepile_states` | `public/civilization/resources/stonepile-states.png` | State sheet | 144x48 (48x48 cells) | 3 | — | — | (24,43) | Full, partial, depleted |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
