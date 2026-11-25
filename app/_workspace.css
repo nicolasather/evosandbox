@@ -20,7 +20,16 @@
 .ws-divider:hover,.ws-divider:focus-visible{background:#ffd166}
 .ws-handle{position:absolute;z-index:5;right:0;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;font:600 12px/1 var(--font-mono,monospace);letter-spacing:.14em;text-transform:uppercase;color:#f3f7ef;background:#24332a;border:1px solid #3b5142;border-right:0;border-radius:0 8px 8px 0;padding:14px 8px;cursor:pointer}
 .ws[data-orient="v"] .ws-handle{top:auto;bottom:0;right:50%;transform:translateX(50%);writing-mode:horizontal-tb;border-radius:8px 8px 0 0;border-right:1px solid #3b5142;border-bottom:0;padding:8px 18px}
-.cw-root{position:absolute;inset:0;background:linear-gradient(#27402c,#1b2a1f)}
-.cw-placeholder{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:420px;text-align:center;color:#cfe0c8;padding:0 16px}
-.cw-placeholder h2{font:700 20px/1.2 var(--font-mono,monospace);margin:0 0 8px}
+.cw-root{position:absolute;inset:0;background:#10150f}
+.cw-canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;cursor:grab;touch-action:none;outline:none}
+.cw-canvas:active{cursor:grabbing}
+.cw-canvas:focus-visible{box-shadow:inset 0 0 0 2px #ffd166}
+.cw-tools{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;gap:4px;align-items:stretch}
+.cw-tools button,.cw-info button{font:600 12px/1 var(--font-mono,monospace);color:#f3f7ef;background:rgba(22,29,24,.92);border:1px solid #3b5142;border-radius:6px;padding:7px 9px;cursor:pointer}
+.cw-tools button:hover,.cw-info button:hover{background:#24332a}
+.cw-tools button:focus-visible,.cw-info button:focus-visible{outline:2px solid #ffd166;outline-offset:2px}
+.cw-zoom{font:600 11px/1 var(--font-mono,monospace);color:#cfe0c8;text-align:center}
+.cw-info{position:absolute;left:10px;bottom:10px;display:flex;flex-direction:column;gap:4px;min-width:180px;max-width:260px;padding:10px 12px;background:rgba(22,29,24,.94);border:1px solid #3b5142;border-radius:8px;color:#e9efe6;font:13px/1.35 var(--font-sans,system-ui,sans-serif)}
+.cw-info strong{font:700 13px/1.2 var(--font-mono,monospace);color:#ffd166}
+.cw-info button{align-self:flex-start;margin-top:4px}
 @media (max-width:819px){.ws-controls button{padding:6px 7px}.ws-tab{padding:8px 8px}}
