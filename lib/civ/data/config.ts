@@ -24,7 +24,7 @@ export const CITIZEN = {
   rested: 92,
   eatRelief: 55,
   carryCap: 3,
-  gatherTicks: 6,
+  gatherTicks: 40,
   buildStepTicks: 4,
   craftTicks: 10,
   /** Min ticks a citizen sticks with a job unless a need becomes urgent (prevents oscillation). */
@@ -45,7 +45,6 @@ export const FARM_REGROW_TICKS = 30;
 export const COOKED_FOOD_MULT = 1.5;
 export const TOOL_GATHER_MULT = 1.5;
 export const SHELTER_SLEEPERS = 3;
-export const CAMPFIRE_SLEEPERS = 2;
 export const REFUND_FRACTION = 0.75;
 export const MAX_CITIZENS = 12;
 export const ARRIVAL_MIN_TICKS = DAY_TICKS * 2;

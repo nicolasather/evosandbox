@@ -109,7 +109,8 @@ export function createWorld(seed = 1): WorldMap {
 
 /* ---------- hit testing ---------- */
 
-export type Pick =
+export type Hit =
+  | { type: 'citizen'; id: string }
   | { type: 'node'; node: ResourceNode }
   | { type: 'building'; building: Building }
   | { type: 'tile'; x: number; y: number; terrain: Terrain };
@@ -125,9 +126,22 @@ const nodeRect = (nd: ResourceNode) => {
 };
 const buildingRect = (b: Building) => ({ l: b.x * TILE - HIT_PAD, r: (b.x + b.w) * TILE + HIT_PAD, t: (b.y - 1) * TILE - HIT_PAD, b: (b.y + b.h) * TILE + HIT_PAD });
 
+/** Anything with a grid, terrain and entities: the static map, or the map with live state swapped in. */
+export type MapLike = Pick<WorldMap, 'w' | 'h' | 'terrain' | 'nodes' | 'buildings'>;
+
 /** Topmost thing under a world-pixel point: buildings, then nodes (nearest to the viewer first), then the tile. */
-export function hitTest(m: WorldMap, wx: number, wy: number): Pick | null {
+export interface PickCitizen { id: string; x: number; y: number }
+
+export function hitTest(m: MapLike, wx: number, wy: number, citizens: readonly PickCitizen[] = []): Hit | null {
   if (wx < 0 || wy < 0 || wx >= m.w * TILE || wy >= m.h * TILE) return null;
+  // people first: nearest to the viewer (largest y) wins; the box is generous around a 32x48 sprite
+  let who: PickCitizen | null = null;
+  for (const c of citizens) {
+    const cx = c.x * TILE + TILE / 2;
+    const feet = (c.y + 1) * TILE;
+    if (wx >= cx - 14 && wx <= cx + 14 && wy >= feet - 46 && wy <= feet + 4 && (!who || c.y > who.y)) who = c;
+  }
+  if (who) return { type: 'citizen', id: who.id };
   for (const b of m.buildings) {
     const r = buildingRect(b);
     if (wx >= r.l && wx <= r.r && wy >= r.t && wy <= r.b) return { type: 'building', building: b };

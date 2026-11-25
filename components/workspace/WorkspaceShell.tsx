@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from 'react';
 import { Sandbox } from '../Sandbox';
 import { CivWorldPane } from '../civworld/CivWorldPane';
+import { getCivRuntime } from '../civworld/useCiv';
+import type { CivRuntime } from '@/lib/civ/runtime';
 import type { ModeId } from '@/lib/modes/types';
 import {
   DEFAULT_PREFS, SPLIT_MAX, SPLIT_MIN, WORKSPACE_KEY, clampSplit, paneRects, parsePrefs, serializePrefs, tabOf,
@@ -34,6 +36,7 @@ function readPrefs(): WorkspacePrefs {
 export function WorkspaceShell({ onLaunchMode }: { onLaunchMode: (mode: ModeId) => void }) {
   const [prefs, setPrefs] = useState<WorkspacePrefs>(DEFAULT_PREFS);
   const [ready, setReady] = useState(false);
+  const [rt, setRt] = useState<CivRuntime | null>(null);
   const [hubSignal, setHubSignal] = useState(0);
   const narrow = useNarrow();
   const stageRef = useRef<HTMLDivElement>(null);
@@ -42,6 +45,9 @@ export function WorkspaceShell({ onLaunchMode }: { onLaunchMode: (mode: ModeId) 
   // Saved layout is read after mount so server and first client render agree.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setPrefs(readPrefs()); setReady(true); }, []);
+  // The settlement runtime is created on the client only and ticks in every layout, Merging open or not.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { const r = getCivRuntime(); r.start(); setRt(r); return () => r.stop(); }, []);
   useEffect(() => {
     if (!ready) return;
     try { window.localStorage.setItem(WORKSPACE_KEY, serializePrefs(prefs)); } catch { /* storage blocked: the layout is simply not remembered */ }
@@ -56,6 +62,10 @@ export function WorkspaceShell({ onLaunchMode }: { onLaunchMode: (mode: ModeId) 
 
   const tab = tabOf(prefs.layout);
   const rects = paneRects(prefs);
+  // Merging being on screen is what "pause while crafting" means
+  const mergeOn = rects.merge.visible;
+  useEffect(() => { rt?.setMerging(mergeOn); }, [rt, mergeOn]);
+  const onDiscoveries = useCallback((found: ReadonlySet<string>) => { rt?.syncDiscoveries(found); }, [rt]);
   const vertical = narrow; // on a narrow screen Merging is a bottom drawer instead of a side column
   const axis = (r: { start: number; size: number }) => (vertical
     ? { top: `${r.start}%`, height: `${r.size}%`, left: 0, width: '100%' }
@@ -107,13 +117,13 @@ export function WorkspaceShell({ onLaunchMode }: { onLaunchMode: (mode: ModeId) 
       <div className="ws-stage" ref={stageRef}>
         <section id="ws-pane-civ" role="tabpanel" aria-labelledby="ws-tab-civ" className="ws-pane ws-pane-civ"
           style={axis(rects.civ)} data-visible={rects.civ.visible ? '1' : '0'}>
-          <CivWorldPane visible={rects.civ.visible} />
+          <CivWorldPane visible={rects.civ.visible} rt={rt} />
         </section>
 
         <section id="ws-pane-merge" role="tabpanel" aria-labelledby="ws-tab-merge" className="ws-pane ws-pane-merge"
           style={axis(rects.merge)} data-visible={rects.merge.visible ? '1' : '0'} aria-hidden={!rects.merge.visible}
           inert={!rects.merge.visible}>
-          <Sandbox onLaunchMode={onLaunchMode} openHubSignal={hubSignal} />
+          <Sandbox onLaunchMode={onLaunchMode} openHubSignal={hubSignal} onDiscoveries={onDiscoveries} />
         </section>
 
         {prefs.layout === 'split' && (

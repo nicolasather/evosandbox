@@ -43,7 +43,9 @@ export interface Citizen {
   y: number;
   px: number;
   py: number;
-  facing: 'e' | 'w';
+  facing: 'e' | 'w' | 'n' | 's';
+  /** Total tiles walked: drives the walk cycle so feet never slide. */
+  dist: number;
   hunger: number; // 0 fed .. 100 starving
   energy: number; // 100 rested .. 0 exhausted
   carrying: { res: ResourceId; n: number } | null;

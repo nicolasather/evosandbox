@@ -1,6 +1,6 @@
 import { BUILDINGS } from './data/buildings';
 import {
-  BUSH_REGROW_TICKS, CAMPFIRE_SLEEPERS, CITIZEN, COOKED_FOOD_MULT, DAY_TICKS, EVENT_LOG_MAX, FARM_REGROW_TICKS, MAX_CITIZENS,
+  BUSH_REGROW_TICKS, CITIZEN, COOKED_FOOD_MULT, DAY_TICKS, EVENT_LOG_MAX, FARM_REGROW_TICKS, MAX_CITIZENS,
   ARRIVAL_MIN_TICKS, NIGHT_FRACTION, REFUND_FRACTION, SHELTER_SLEEPERS, STOCK, TOOL_GATHER_MULT,
 } from './data/config';
 import { nearestOf, pathTo, reachFrom, ringAround, type Grid, type Reach } from './path';
@@ -46,7 +46,7 @@ function makeCitizen(s: CivState, x: number, y: number): Citizen {
   const name = NAMES[(s.nextId + Math.floor(nextRand(s) * NAMES.length)) % NAMES.length];
   return {
     id: newId(s, 'c'), name, age: 'adult', trait: TRAITS[Math.floor(nextRand(s) * TRAITS.length)],
-    x, y, px: x, py: y, facing: 'e', hunger: 10 + Math.floor(nextRand(s) * 20), energy: 85 + Math.floor(nextRand(s) * 15),
+    x, y, px: x, py: y, facing: 's', dist: 0, hunger: 10 + Math.floor(nextRand(s) * 20), energy: 85 + Math.floor(nextRand(s) * 15),
     carrying: null, task: { kind: 'idle', reason: 'Just arrived' }, path: [], commitUntil: 0, home: null,
     skill: { gather: 1, build: 1, craft: 1 }, override: null, idleReason: '', usingTool: false,
   };
@@ -78,7 +78,8 @@ export function createSim(seed = 1): CivSim {
 export const doneBuildings = (s: CivState, kind: string) => s.buildings.filter(b => b.kind === kind && b.state === 'done');
 export const capacity = (s: CivState) => STOCK.baseCapacity + STOCK.perStorage * doneBuildings(s, 'storage').length;
 export const hasCapability = (s: CivState, id: string) => s.capabilities.some(c => c.id === id);
-export const sleepCapacity = (s: CivState) => CAMPFIRE_SLEEPERS + SHELTER_SLEEPERS * doneBuildings(s, 'shelter').length;
+/** Beds in finished shelters. Without one, people sleep rough by the fire and recover slowly. */
+export const sleepCapacity = (s: CivState) => SHELTER_SLEEPERS * doneBuildings(s, 'shelter').length;
 export const foodPerDay = (s: CivState) => Math.max(1, s.citizens.length) * ((CITIZEN.hungerPerTick * DAY_TICKS) / CITIZEN.eatRelief);
 export const foodDays = (s: CivState) => s.stock.food / foodPerDay(s);
 
@@ -377,8 +378,9 @@ function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: M
       const dx = nx - c.x;
       const dy = ny - c.y;
       const dist = Math.hypot(dx, dy);
-      if (dist <= budget + 1e-6) { c.x = nx; c.y = ny; c.path.shift(); budget -= dist; } else { c.x += (dx / dist) * budget; c.y += (dy / dist) * budget; budget = 0; }
-      if (Math.abs(dx) > 0.01) c.facing = dx > 0 ? 'e' : 'w';
+      if (Math.abs(dx) >= Math.abs(dy) && Math.abs(dx) > 0.01) c.facing = dx > 0 ? 'e' : 'w';
+      else if (Math.abs(dy) > 0.01) c.facing = dy > 0 ? 's' : 'n';
+      if (dist <= budget + 1e-6) { c.x = nx; c.y = ny; c.path.shift(); c.dist += dist; budget -= dist; } else { c.x += (dx / dist) * budget; c.y += (dy / dist) * budget; c.dist += budget; budget = 0; }
     }
     if (c.path.length === 0) startWork(c);
     return;
@@ -433,8 +435,7 @@ function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: M
   if (t.kind === 'rest') {
     const home = s.buildings.find(b => b.id === t.targetId);
     const sheltered = !!home && home.kind === 'shelter';
-    const crowd = sleepCapacity(s) < s.citizens.length;
-    c.energy = Math.min(100, c.energy + (sheltered && !crowd ? CITIZEN.sleepRecoverPerTick : CITIZEN.roughSleepRecoverPerTick));
+    c.energy = Math.min(100, c.energy + (sheltered ? CITIZEN.sleepRecoverPerTick : CITIZEN.roughSleepRecoverPerTick));
     if (sheltered && !c.home) c.home = home!.id;
     if (c.energy >= CITIZEN.rested && !(isNight(s.tick) && c.energy < 100)) interrupt(c, 'Rested');
     else if (c.hunger >= CITIZEN.urgentHunger && s.stock.food > 0) interrupt(c, 'Woken by hunger');

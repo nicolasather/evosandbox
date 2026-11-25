@@ -64,3 +64,29 @@ Placeholder ids the renderer already asks for (rows above are used as soon as th
 | `bld_campfire` `bld_shelter` `bld_storage` `bld_workshop` | coloured box + roof | IMAGE |
 | `char_villager_{idle,walk,work}_{s,n,e,w}_{N}f` | two-colour figure | IMAGE3 |
 | `fx_campfire_sheet` / `fx_campfire_static` | flame glyph | IMAGE (delivered) |
+
+---
+
+## Required-asset checklist (maintained by `CODE`)
+
+The loader (`components/civworld/assets.ts`) already requests every file below at its conventional path. Drop the PNG at that path and it is used on the next load, with no code change; a missing file falls back to a procedural placeholder. Anchors: buildings and props are drawn **bottom-left of the footprint** (buildings) or **bottom-centre of the tile** (props/characters). Sizes are in px at 1x (tile = 32). Status: DONE = delivered and wired, TODO = placeholder drawn.
+
+| id | path | size (cell) | frames | anchor | status |
+|---|---|---|---|---|---|
+| `terrain_grass` `terrain_dirt` `terrain_path` `terrain_shore_water` | `terrain/{grass,dirt,path,shore_water}.png` | 32x32 | 1 | top-left | DONE |
+| `terrain_sand` | `terrain/sand.png` | 32x32 | 1 | top-left | TODO |
+| `terrain_water_deep` (animated, 4-8f, seamless) | `water/water_deep_sheet.png` | 32x32 cells | 4-8 | top-left | TODO (placeholder shimmer drawn) |
+| `prop_tree` `prop_rock` | `terrain/{tree,rock}.png` | 48x64 / 32x32 | 1 | bottom-centre | DONE |
+| `prop_berry_bush` (+ empty variant `prop_berry_bush_empty`) | `vegetation/berry_bush.png` | 32x32 | 1 | bottom-centre | TODO |
+| `fx_campfire_sheet` `fx_campfire_static` | `effects/campfire-{sheet,static}.png` | 32x32 | 6 @ 8fps | bottom-centre | DONE |
+| `char_gatherer_directional` | `characters/gatherer-directions-32x48.png` | 32x48 | 10 cols x 4 rows (S,N,E,W); idle 0-1, walk 2-5, work 6-9 | (16,47) | DONE |
+| `bld_shelter` `bld_storage` `bld_workshop` | `buildings/{shelter,storage,workshop}.png` | 64x96 (2x2 tiles + 32 overhang) | 1 | bottom-left of footprint | TODO |
+| `bld_farm` | `buildings/farm.png` | 96x64 (3x2 tiles) | 1 | bottom-left | TODO |
+| `bld_<x>_stage1` `bld_<x>_stage2` (foundation, frame) for shelter, storage, workshop, farm | `buildings/<x>_stage{1,2}.png` | same as finished | 1 | bottom-left | TODO (finished art is the fallback) |
+| `portrait_villager_{a,b,c,d}` | `portraits/villager_{a..d}.png` | 48x48 | 1 | n/a | TODO (initial letter drawn) |
+| `char_<role>_directional` builder, toolmaker, elder, child | `characters/<role>-directions-32x48.png` | 32x48, same layout as gatherer | 10x4 | (16,47) | TODO (gatherer sheet is shared) |
+| `fx_smoke_loop` `fx_build_dust` `fx_sleep_z` | `effects/*.png` | 32x32 | 4-6 | bottom-centre | TODO (not drawn yet) |
+| `ui_icon_{food,wood,stone,tools}` | `ui/icon_*.png` | 16x16 | 1 | n/a | TODO (text labels used) |
+| `ui_emote_{hungry,tired,idea,alert}` | `ui/emote_*.png` | 16x16 | 1 | n/a | TODO |
+
+Review rules still apply: nearest-neighbour, transparent background, top-left light, same palette as ART_DIRECTION.md, no labels inside cells, static fallback for every animation.
