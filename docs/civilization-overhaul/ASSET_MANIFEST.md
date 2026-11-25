@@ -56,6 +56,8 @@
 | `bld_shelter_stages` | `public/civilization/buildings/shelter-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed hut |
 | `bld_storage_stages` | `public/civilization/buildings/storage-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed storage |
 | `bld_workshop_stages` | `public/civilization/buildings/workshop-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed workshop |
+| `bld_granary_era2_stages` | `public/civilization/buildings/granary-era2-stages.png` | Era-2 construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,60) | Foundation, frame, completed granary |
+| `bld_forge_era2_stages` | `public/civilization/buildings/forge-era2-stages.png` | Era-2 construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,60) | Foundation, frame, completed forge |
 
 ### Resource nodes (`IMAGE3` follow-up)
 
