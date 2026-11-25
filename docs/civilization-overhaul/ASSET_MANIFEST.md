@@ -65,6 +65,14 @@
 | `resource_woodpile_states` | `public/civilization/resources/woodpile-states.png` | State sheet | 144x48 (48x48 cells) | 3 | — | — | (24,43) | Full, partial, depleted |
 | `resource_stonepile_states` | `public/civilization/resources/stonepile-states.png` | State sheet | 144x48 (48x48 cells) | 3 | — | — | (24,43) | Full, partial, depleted |
 
+### Environment loops (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `fx_shore_water` | `public/civilization/effects/shore-water-sheet.png` | Animation sheet | 192x32 | 6 | 8 FPS | Yes | (16,31) | Shore ripple/foam loop |
+| `fx_grass_wind` | `public/civilization/effects/grass-wind-sheet.png` | Animation sheet | 128x32 | 4 | 8 FPS | Yes | (16,31) | Wind sway loop |
+| `fx_smoke` | `public/civilization/effects/smoke-sheet.png` | Animation sheet | 192x32 | 6 | 8 FPS | Yes | (16,31) | Campfire smoke loop |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
