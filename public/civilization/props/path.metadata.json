@@ -1,0 +1,16 @@
+{
+  "assetId": "prop_path_variants",
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "variants": [
+    "a",
+    "b",
+    "c"
+  ],
+  "anchor": {
+    "x": 32,
+    "y": 59
+  },
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
