@@ -1,0 +1,16 @@
+{
+  "assetId": "resource_woodpile_states",
+  "frameWidth": 48,
+  "frameHeight": 48,
+  "states": [
+    "full",
+    "partial",
+    "depleted"
+  ],
+  "anchor": {
+    "x": 24,
+    "y": 43
+  },
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
