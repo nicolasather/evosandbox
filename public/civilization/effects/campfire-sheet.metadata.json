@@ -1,0 +1,27 @@
+{
+  "assetId": "fx_campfire_sheet",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "columns": 6,
+  "frames": 6,
+  "fps": 8,
+  "loop": true,
+  "anchor": {
+    "x": 16,
+    "y": 31
+  },
+  "background": "transparent",
+  "palette": [
+    "#271f2c",
+    "#674f3d",
+    "#747068",
+    "#ab9c7e",
+    "#673726",
+    "#a75730",
+    "#d65126",
+    "#f48527",
+    "#ffca3b",
+    "#ffe881"
+  ],
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

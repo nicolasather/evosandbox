@@ -17,6 +17,14 @@
 
 ---
 
+### Environment follow-up (`IMAGE3`)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `fx_campfire_sheet_v2` | `public/civilization/effects/campfire-sheet.png` | Spritesheet | 192x32 (32x32 cells) | 6 | 8 FPS (125ms) | Yes | (16,31) | Detailed shaded flame, logs, embers, and smoke; metadata adjacent |
+| `fx_campfire_static_v2` | `public/civilization/effects/campfire-static.png` | Static fallback | 32x32 | 1 | — | — | (16,31) | Reduced-motion fallback from the same palette |
+| `fx_campfire_preview_4x` | `public/civilization/effects/campfire-4x-preview.png` | Review preview | 768x128 | 6 | — | — | — | Nearest-neighbor 4x preview; review-only |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
