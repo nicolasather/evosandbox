@@ -1,0 +1,16 @@
+{
+  "assetId": "building_forge_era2_stages",
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "stages": [
+    "foundation",
+    "frame",
+    "complete"
+  ],
+  "anchor": {
+    "x": 32,
+    "y": 60
+  },
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
