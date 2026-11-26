@@ -22,6 +22,9 @@ import {
    ========================================================================== */
 
 const MIN_MERGE_PX = 560;
+const DOCK_W = 380; // real width of the compact dock
+const DOCK_VIRTUAL = 760; // Merging lays itself out at this width, then is scaled to fit the dock
+const DOCK_SCALE = DOCK_W / DOCK_VIRTUAL;
 const NARROW_QUERY = '(max-width: 819px)';
 const subscribeNarrow = (cb: () => void) => {
   const mq = window.matchMedia(NARROW_QUERY);
@@ -108,20 +111,39 @@ export function WorkspaceShell({ onLaunchMode }: { onLaunchMode: (mode: ModeId) 
     e.preventDefault();
   };
 
+  // The expanded overlay is temporary: Escape (or the backdrop) returns to the layout it covered.
+  useEffect(() => {
+    if (prefs.layout !== 'overlay') return;
+    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') setLayout(previous.current === 'overlay' ? 'civ' : previous.current); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [prefs.layout, setLayout]);
+
+  const mergeStyle = prefs.layout === 'dock' && !vertical
+    ? { right: 0, top: 0, bottom: 0, width: DOCK_W }
+    : prefs.layout === 'overlay'
+      ? { left: '4%', width: '92%', top: '3%', height: '94%', boxShadow: '0 12px 48px rgba(0,0,0,.6)', border: '1px solid #3b5142', borderRadius: 10, zIndex: 8 }
+      : axis(rects.merge);
+  const dockInner = prefs.layout === 'dock' && !vertical
+    ? { width: DOCK_VIRTUAL, height: `${100 / DOCK_SCALE}%`, transform: `scale(${DOCK_SCALE})`, transformOrigin: '0 0' }
+    : { width: '100%', height: '100%' };
+
   const openModes = () => { setLayout('merge'); setHubSignal(n => n + 1); };
 
   return (
     <div id="workspace" className="ws" data-layout={prefs.layout} data-orient={vertical ? 'v' : 'h'} data-ready={ready ? '1' : '0'}>
       <div className="ws-tabs" role="tablist" aria-label="Workspace">
         <button type="button" role="tab" id="ws-tab-civ" aria-selected={tab === 'civilization'} aria-controls="ws-pane-civ"
-          className="ws-tab" onClick={() => setLayout(prefs.layout === 'split' ? 'split' : 'civ')}>Civilization</button>
+          className="ws-tab" onClick={() => setLayout(prefs.layout === "split" || prefs.layout === "dock" ? prefs.layout : "civ")}>Civilization</button>
         <button type="button" role="tab" id="ws-tab-merge" aria-selected={tab === 'merging'} aria-controls="ws-pane-merge"
           className="ws-tab" onClick={() => setLayout('merge')}>Merging</button>
         <button type="button" className="ws-tab ws-tab-modes" onClick={openModes} title="Open the Mode Hub">Modes</button>
         <span className="ws-spacer" />
         <div className="ws-controls" role="group" aria-label="Merging panel">
           <button type="button" aria-pressed={prefs.layout === 'civ'} onClick={() => setLayout('civ')} title="Collapse Merging, settlement fills the screen">Collapse</button>
+          <button type="button" aria-pressed={prefs.layout === 'dock'} onClick={() => setLayout('dock')} title="Compact dock: a narrow Merging strip beside the settlement">Dock</button>
           <button type="button" aria-pressed={prefs.layout === 'split'} onClick={() => setLayout('split')} title="Settlement and Merging side by side">Split</button>
+          <button type="button" aria-pressed={prefs.layout === 'overlay'} onClick={() => setLayout('overlay')} title="Larger Merging overlay above the settlement (Escape returns)">Overlay</button>
           <button type="button" aria-pressed={prefs.layout === 'merge'} onClick={() => setLayout('merge')} title="Merging fills the workspace">Maximize</button>
         </div>
       </div>
@@ -133,11 +155,14 @@ export function WorkspaceShell({ onLaunchMode }: { onLaunchMode: (mode: ModeId) 
         </section>
 
         <section id="ws-pane-merge" role="tabpanel" aria-labelledby="ws-tab-merge" className="ws-pane ws-pane-merge"
-          style={axis(rects.merge)} data-visible={rects.merge.visible ? '1' : '0'} aria-hidden={!rects.merge.visible}
+          style={mergeStyle} data-visible={rects.merge.visible ? '1' : '0'} aria-hidden={!rects.merge.visible}
           inert={!rects.merge.visible}>
-          <Sandbox inputActive={rects.merge.visible} onLaunchMode={onLaunchMode} openHubSignal={hubSignal} onDiscoveries={onDiscoveries} />
+          <div className="ws-dock-inner" style={dockInner}>
+            <Sandbox inputActive={rects.merge.visible} onLaunchMode={onLaunchMode} openHubSignal={hubSignal} onDiscoveries={onDiscoveries} />
+          </div>
         </section>
 
+        {prefs.layout === 'overlay' && <div className="ws-backdrop" onClick={() => setLayout(previous.current === 'overlay' ? 'civ' : previous.current)} />}
         {prefs.layout === 'split' && (
           <div className="ws-divider" role="separator" tabIndex={0} aria-orientation={vertical ? 'horizontal' : 'vertical'}
             aria-label="Resize Merging panel" aria-valuemin={SPLIT_MIN} aria-valuemax={SPLIT_MAX} aria-valuenow={Math.round(prefs.splitPct)}

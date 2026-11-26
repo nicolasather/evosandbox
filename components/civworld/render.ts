@@ -83,6 +83,7 @@ function drawNode(ctx: CanvasRenderingContext2D, assets: AssetStore, n: NodeStat
 }
 
 const PLACEHOLDER_COLOR: Record<string, [string, string]> = {
+  house: ['#9a7a52', '#b46a3a'], pottery_kiln: ['#8a5a48', '#c0704a'], drying_rack: ['#7a5a3a', '#b8a060'], well: ['#7d7d78', '#4a7aa0'], market: ['#8a6a3c', '#c0503a'], assembly: ['#8a7a60', '#6a8a5a'],
   granary: ['#8a7a4c', '#c9a85a'], forge: ['#5a5550', '#c0562a'], shelter: ['#8a6a3c', '#b8863c'], storage: ['#7a5a3a', '#9c7a4a'], workshop: ['#6d6a62', '#a05a32'], farm: ['#6b4a2c', '#3f7a35'],
 };
 
@@ -103,6 +104,13 @@ function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: Buil
     } else {
       ctx.fillStyle = '#e8943a'; ctx.beginPath(); ctx.arc(px + 16, py + 20, 8, 0, Math.PI * 2); ctx.fill();
     }
+    return;
+  }
+  if (b.kind === 'road') {
+    ctx.globalAlpha = b.state === 'site' ? 0.5 : 1;
+    ctx.fillStyle = '#8d7b5a'; ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = '#a89572'; for (let i = 0; i < 5; i++) ctx.fillRect(px + 3 + ((i * 9) % 22), py + 4 + ((i * 13) % 22), 5, 3);
+    ctx.globalAlpha = 1;
     return;
   }
   const def = BUILDINGS[b.kind];
@@ -233,6 +241,13 @@ export interface FrameState {
   ghost: Ghost | null;
   /** Planning aid: show the comfortable gathering reach around the camp. */
   overlays: boolean;
+  /** low: no ambient loops, medium: water and smoke, high: everything including wind and wildlife. */
+  quality: 'low' | 'medium' | 'high';
+}
+
+function nearWaterTile(map: WorldMap, x: number, y: number): boolean {
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (tileAt(map, x + dx, y + dy) === 'water') return true;
+  return false;
 }
 
 const sameTarget = (a: Hit | null, b: Hit | null) =>
@@ -275,8 +290,10 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   const y1 = Math.ceil((cam.cy + view.h / cam.zoom / 2) / TILE) + 3;
 
   // looping environment sheets (shore foam, wind in the grass). Reduced motion draws frame 0 only, so nothing flickers.
-  const shore = assets.get('fx_shore_water');
-  const wind = assets.get('fx_grass_wind');
+  const mid = f.quality !== 'low';
+  const hi = f.quality === 'high';
+  const shore = mid ? assets.get('fx_shore_water') : null;
+  const wind = hi ? assets.get('fx_grass_wind') : null;
   if (shore || wind) {
     for (let y = Math.max(0, y0); y < Math.min(map.h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(map.w, x1); x++) {
       const t = tileAt(map, x, y);
@@ -291,14 +308,14 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   }
 
   // deep water: the delivered loop when available (frame 0 under reduced motion), else cheap line glints
-  const deep = assets.get('terrain_water_deep');
+  const deep = mid ? assets.get('terrain_water_deep') : null;
   if (deep) {
     const fr = f.animate ? Math.floor(f.now / 160) % 6 : 0;
     for (let y = Math.max(0, y0); y < Math.min(map.h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(map.w, x1); x++) {
       if (tileAt(map, x, y) === 'water' && isWater(tileAt(map, x, y - 1)) && isWater(tileAt(map, x, y + 1))) ctx.drawImage(deep, fr * 32, 0, 32, 32, x * TILE, y * TILE, TILE, TILE);
     }
   }
-  if (f.animate && !deep) {
+  if (f.animate && !deep && mid) {
     ctx.fillStyle = 'rgba(255,255,255,0.10)';
     for (let y = Math.max(0, y0); y < Math.min(map.h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(map.w, x1); x++) {
       if (tileAt(map, x, y) === 'water' && isWater(tileAt(map, x, y - 1))) {
@@ -316,18 +333,31 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
 
   type Drawable = { y: number; draw: () => void };
   const list: Drawable[] = [];
-  for (const n of s.nodes) if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1) list.push({ y: n.y + 1, draw: () => drawNode(ctx, assets, n) });
+  for (const n of s.nodes) if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && s.revealed[n.y * map.w + n.x] === '1') list.push({ y: n.y + 1, draw: () => drawNode(ctx, assets, n) });
   for (const b of s.buildings) {
     if (b.x + b.w >= x0 && b.x <= x1 && b.y >= y0 && b.y <= y1) {
       list.push({ y: b.kind === 'farm' && b.state === 'done' ? b.y - 1 : b.y + b.h, draw: () => drawBuilding(ctx, assets, b, f.now, f.animate) });
     }
+  }
+  // ambient wildlife (cosmetic, no resource accounting): a goat and a sheep wander the eastern meadow in high quality
+  if (hi && f.animate) {
+    const spots: [string, number, number][] = [['animal_goat_walk', 31, 9], ['animal_sheep_walk', 33, 12]];
+    spots.forEach(([id, bx, by], i) => {
+      const sheet = assets.get(id);
+      if (!sheet || s.revealed[by * map.w + bx] !== '1') return;
+      const ph = f.now / 5000 + i * 2;
+      const wx = bx * TILE + Math.sin(ph) * 40;
+      const moving = Math.cos(ph) > -0.3;
+      const fr = moving ? 2 + (Math.floor(f.now / 166) % 2) : Math.floor(f.now / 600) % 2;
+      list.push({ y: by + 1, draw: () => ctx.drawImage(sheet, fr * 32, 0, 32, 48, Math.round(wx), by * TILE - 20, 32, 48) });
+    });
   }
   for (const c of s.citizens) {
     const iy = c.py + (c.y - c.py) * f.alpha;
     list.push({ y: iy + 1, draw: () => drawCitizen(ctx, assets, c, f.alpha, f.now, f.animate) });
   }
   const dust = assets.get('fx_build_dust');
-  if (dust && f.animate) {
+  if (dust && f.animate && mid) {
     for (const b of s.buildings) {
       if (b.state === 'site' && b.workers > 0 && b.x + b.w >= x0 && b.x <= x1 && b.y >= y0 && b.y <= y1) {
         list.push({ y: b.y + b.h + 0.5, draw: () => ctx.drawImage(dust, (Math.floor(f.now / 100) % 6) * 32, 0, 32, 32, b.x * TILE + b.w * TILE / 2 - 16, (b.y + b.h) * TILE - 30, 32, 32) });
@@ -335,7 +365,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
     }
   }
   const smoke = assets.get('fx_smoke');
-  if (smoke && f.animate) {
+  if (smoke && f.animate && mid) {
     const fire = s.buildings[0];
     list.push({ y: fire.y + 2, draw: () => ctx.drawImage(smoke, (Math.floor(f.now / 125) % 6) * 32, 0, 32, 32, fire.x * TILE, fire.y * TILE - 26, TILE, TILE) });
   }
@@ -343,7 +373,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   for (const d of list) d.draw();
 
   // ambient life: a few birds cross the map by day (cosmetic only, no resource accounting, still when motion is reduced)
-  if (f.animate) {
+  if (f.animate && hi) {
     const tod = (s.tick % DAY_TICKS) / DAY_TICKS;
     if (tod < 1 - NIGHT_FRACTION) {
       ctx.strokeStyle = 'rgba(30,30,30,0.7)'; ctx.lineWidth = 1;
@@ -354,6 +384,27 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
         ctx.beginPath(); ctx.moveTo(bx - 4, by + flap); ctx.lineTo(bx, by); ctx.lineTo(bx + 4, by + flap); ctx.stroke();
       }
     }
+  }
+
+  // flood: low ground by the river is tinted while the water is up, and outlined during the warning
+  if (s.hazard && (s.hazard.phase === 'active' || s.hazard.phase === 'warned')) {
+    for (let y = Math.max(0, y0); y < Math.min(map.h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(map.w, x1); x++) {
+      if (tileAt(map, x, y) !== 'water' && tileAt(map, x, y) !== null && nearWaterTile(map, x, y)) {
+        if (s.hazard.phase === 'active') { ctx.fillStyle = 'rgba(40,110,170,0.38)'; ctx.fillRect(x * TILE, y * TILE, TILE, TILE); }
+        else { ctx.strokeStyle = 'rgba(255,193,7,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(x * TILE + 0.5, y * TILE + 0.5, TILE - 1, TILE - 1); }
+      }
+    }
+  }
+  // map notes the player (or an expedition) left
+  for (const n of s.notes) {
+    if (n.x < x0 || n.x > x1 || n.y < y0 || n.y > y1) continue;
+    ctx.fillStyle = '#ffd166'; ctx.fillRect(n.x * TILE + 14, n.y * TILE + 4, 2, 22);
+    ctx.fillStyle = '#e07a5f'; ctx.fillRect(n.x * TILE + 16, n.y * TILE + 4, 10, 7);
+  }
+  // fog of war: ground nobody has seen is dark and hides what is on it
+  ctx.fillStyle = 'rgba(8,10,8,0.86)';
+  for (let y = Math.max(0, y0); y < Math.min(map.h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(map.w, x1); x++) {
+    if (s.revealed[y * map.w + x] !== '1') ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
   }
 
   if (f.ghost) {
@@ -373,5 +424,13 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   const t = (s.tick % DAY_TICKS) / DAY_TICKS;
   const start = 1 - NIGHT_FRACTION;
   const night = t >= start ? Math.min(1, (t - start) / 0.06, (1 - t) / 0.04) : 0;
+  if (s.hazard && s.hazard.phase !== 'scheduled' && f.animate && f.quality !== 'low') {
+    ctx.strokeStyle = 'rgba(190,210,235,0.45)'; ctx.lineWidth = 1;
+    for (let i = 0; i < 70; i++) {
+      const rx = (i * 97 + Math.floor(f.now / 12)) % Math.max(1, Math.floor(view.w));
+      const ry = (i * 53 + Math.floor(f.now / 5)) % Math.max(1, Math.floor(view.h));
+      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 3, ry + 9); ctx.stroke();
+    }
+  }
   if (night > 0) { ctx.fillStyle = `rgba(12,20,52,${(0.28 * night).toFixed(3)})`; ctx.fillRect(0, 0, view.w, view.h); }
 }

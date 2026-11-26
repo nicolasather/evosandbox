@@ -115,3 +115,13 @@
 .cw-ico[data-i="tools"]{background-image:url(/civilization/ui/icon_tools.png)}
 
 
+.ws-dock-inner{position:relative;overflow:hidden}
+.ws-backdrop{position:absolute;inset:0;z-index:7;background:rgba(0,0,0,.45)}
+.cw-root{--cw-scale:1}
+.cw-hud,.cw-toolbar,.cw-drawer,.cw-info,.cw-hint,.cw-trade,.cw-tip,.cw-notice,.cw-toast,.cw-buildbar{zoom:var(--cw-scale)}
+.cw-root[data-compact="1"] .cw-chip{padding:4px 6px;font-size:11px}
+.cw-root[data-compact="1"] .cw-note,.cw-root[data-compact="1"] .cw-goal span{display:none}
+.cw-tip{position:absolute;left:50%;transform:translateX(-50%);bottom:56px;width:min(420px,calc(100% - 24px));display:flex;flex-direction:column;gap:4px;padding:8px 12px;background:#26402e;border:1px solid var(--cw-gold);border-radius:8px}
+.cw-tip button{align-self:flex-start}
+.cw-hint-compact{position:absolute;left:10px;bottom:56px;max-width:calc(100% - 20px)}
+.cw-root input[type="text"],.cw-root input:not([type]){font:13px var(--font-sans,system-ui);color:#f3f7ef;background:#0c120e;border:1px solid var(--cw-line);border-radius:6px;padding:6px 8px}

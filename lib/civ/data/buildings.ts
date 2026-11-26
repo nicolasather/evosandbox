@@ -4,7 +4,7 @@ import type { ResourceId } from '../types';
    docs/civilization-overhaul/ASSET_MANIFEST.md. */
 
 export interface BuildingDef {
-  id: 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly';
+  id: 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly' | 'house' | 'pottery_kiln' | 'drying_rack' | 'well';
   name: string;
   description: string;
   footprint: { w: number; h: number };
@@ -79,6 +79,30 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover the Public Assembly Plaza in Merging.', visualAssetId: 'bld_assembly',
     purpose: 'A community project: the settlement can hold 4 more people.',
   },
+  house: {
+    id: 'house', name: 'House', description: 'A permanent dwelling of wattle and daub.',
+    footprint: { w: 2, h: 2 }, cost: { wood: 18, stone: 4 }, buildTicks: 50, workerSlots: 2, requires: 'dwelling',
+    terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover the Wattle-and-Daub Hut in Merging.', visualAssetId: 'bld_house',
+    purpose: 'Sleeps 4 people, in comfort.',
+  },
+  pottery_kiln: {
+    id: 'pottery_kiln', name: 'Pottery kiln', description: 'A small kiln for firing clay vessels.',
+    footprint: { w: 1, h: 1 }, cost: { wood: 6, stone: 8 }, buildTicks: 30, workerSlots: 1, requires: 'pottery',
+    terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover Pottery in Merging.', visualAssetId: 'bld_pottery_kiln',
+    purpose: 'Fired vessels let the settlement keep 20 more of every good.',
+  },
+  drying_rack: {
+    id: 'drying_rack', name: 'Drying rack', description: 'A frame for drying food so it keeps.',
+    footprint: { w: 1, h: 1 }, cost: { wood: 5 }, buildTicks: 14, workerSlots: 1, requires: 'food_processing',
+    terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover Food Processing in Merging.', visualAssetId: 'bld_drying_rack',
+    purpose: 'Preserved food goes 20% further when eaten.',
+  },
+  well: {
+    id: 'well', name: 'Well', description: 'A hand-dug shaft that gives clean water close to camp.',
+    footprint: { w: 1, h: 1 }, cost: { wood: 4, stone: 6 }, buildTicks: 26, workerSlots: 1, requires: 'well',
+    terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover the Hand-Dug Shaft Well in Merging.', visualAssetId: 'bld_well',
+    purpose: 'Reliable water: the settlement can hold 2 more people.',
+  },
 };
 
-export const BUILD_ORDER = ['shelter', 'storage', 'workshop', 'farm', 'road', 'granary', 'forge', 'market', 'assembly'] as const;
+export const BUILD_ORDER = ['shelter', 'house', 'storage', 'workshop', 'farm', 'road', 'well', 'drying_rack', 'pottery_kiln', 'granary', 'forge', 'market', 'assembly'] as const;

@@ -136,6 +136,16 @@ export const HINTS: HintDef[] = [
     }),
   },
   {
+    id: 'flood_warning', priority: 95, speakerRole: 'elder', cooldownTicks: 200, repeat: 'cooldown',
+    trigger: ({ s }) => s.hazard?.phase === 'warned',
+    resolved: ({ s }) => !s.hazard,
+    text: () => ({
+      observation: 'The river is rising. The low ground by the water will be under soon.',
+      suggestion: 'Nobody should be working by the bank until it falls. Nothing will be lost.',
+      guidance: 'Work by the river pauses by itself. Keep gatherers on higher ground and wait it out.',
+    }),
+  },
+  {
     id: 'idle_crew', priority: 30, speakerRole: 'gatherer', cooldownTicks: 300, repeat: 'cooldown',
     trigger: ({ s }) => s.tick > 120 && s.citizens.filter(c => c.task.kind === 'idle' && c.idleReason).length >= 2,
     resolved: ({ s }) => s.citizens.filter(c => c.task.kind === 'idle' && c.idleReason).length < 2,
@@ -218,6 +228,8 @@ export function computeAlerts(s: CivState): Alert[] {
   else if (days < s.settings.foodReserveDays) out.push({ id: 'food_low', severity: 'warning', text: `Food reserve is ${days.toFixed(1)} days`, focus: { x: fire.x * TILE, y: fire.y * TILE } });
   if (pctFull(s) >= 0.95) out.push({ id: 'storage_full', severity: 'warning', text: 'Storage is full: gathering of that good has stopped' });
   if (sleepCapacity(s) > 0 && s.citizens.length > sleepCapacity(s)) out.push({ id: 'housing_full', severity: 'warning', text: `Only ${sleepCapacity(s)} places to sleep for ${s.citizens.length} people` });
+  if (s.hazard?.phase === 'warned') out.push({ id: 'flood_warning', severity: 'warning', text: 'Flood expected: work on low ground by the river will pause' });
+  if (s.hazard?.phase === 'active') out.push({ id: 'flood_active', severity: 'warning', text: 'The river is over its banks: low ground is closed until it falls' });
   const starving = s.citizens.filter(c => c.hunger >= 100).length;
   if (starving) out.push({ id: 'starving', severity: 'critical', text: `${starving} ${starving === 1 ? 'person is' : 'people are'} too hungry to work well` });
   return out;

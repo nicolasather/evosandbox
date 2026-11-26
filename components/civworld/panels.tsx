@@ -7,6 +7,7 @@ import { computeAlerts } from '@/lib/civ/hints';
 import type { CivRuntime } from '@/lib/civ/runtime';
 import { JOB_LABEL, jobStatuses, needWord, timeLabel } from '@/lib/civ/selectors';
 import { acceptTradeLabel } from './tradeLabel';
+import { PhaseChip } from './panels2';
 import { DISCOVERY_MAP } from '@/lib/civ/data/discoveryMap';
 import { goalsFor, suggestedGoals } from '@/lib/civ/goals';
 import { capacity, dayOf, doneBuildings, foodDays, hasCapability, seasonOf, tradePreview } from '@/lib/civ/sim';
@@ -31,7 +32,8 @@ export function Hud({ rt, onFocus }: { rt: CivRuntime; onFocus: (x: number, y: n
     <div className="cw-hud">
       <div className="cw-hud-row" role="group" aria-label="Settlement">
         <span className="cw-chip" title="Day, season and time of day">Day {dayOf(s.tick)} · {seasonOf(s.tick)} · {timeLabel(s.tick)}</span>
-        <span className="cw-chip" title="People">People {s.citizens.length}</span>
+        <span className="cw-chip" title="People, and children still growing up">People {s.citizens.length}{s.children.length > 0 ? ` +${s.children.length}` : ''}</span>
+        <PhaseChip rt={rt} />
         <span className="cw-chip" title="Food in store / capacity, and days it will last"><i className="cw-ico" data-i="food" aria-hidden="true" />Food {s.stock.food}/{cap} <small>({days.toFixed(1)}d)</small></span>
         <span className="cw-chip" title="Wood in store / capacity"><i className="cw-ico" data-i="wood" aria-hidden="true" />Wood {s.stock.wood}/{cap}</span>
         <span className="cw-chip" title="Stone in store / capacity"><i className="cw-ico" data-i="stone" aria-hidden="true" />Stone {s.stock.stone}/{cap}</span>
@@ -54,13 +56,17 @@ export function Hud({ rt, onFocus }: { rt: CivRuntime; onFocus: (x: number, y: n
 
 /* ---------- bottom toolbar ---------- */
 
-export function Toolbar({ drawer, setDrawer, home }: { drawer: DrawerId | null; setDrawer: (d: DrawerId | null) => void; home: () => void }) {
+export type Tool = 'none' | 'explore' | 'note';
+
+export function Toolbar({ drawer, setDrawer, home, tool, setTool }: { drawer: DrawerId | null; setDrawer: (d: DrawerId | null) => void; home: () => void; tool: Tool; setTool: (t: Tool) => void }) {
   const item = (id: DrawerId, label: string) => (
     <button type="button" aria-pressed={drawer === id} onClick={() => setDrawer(drawer === id ? null : id)}>{label}</button>
   );
   return (
     <div className="cw-toolbar" role="toolbar" aria-label="Settlement tools">
       {item('build', 'Build')}{item('jobs', 'Jobs')}{item('goals', 'Goals')}{item('journal', 'Journal')}{item('log', 'History')}{item('help', 'Help')}
+      <button type="button" aria-pressed={tool === 'explore'} onClick={() => setTool(tool === 'explore' ? 'none' : 'explore')} title="Pick unexplored ground to send an expedition">Explore</button>
+      <button type="button" aria-pressed={tool === 'note'} onClick={() => setTool(tool === 'note' ? 'none' : 'note')} title="Flag a place on the map">Note</button>
       <button type="button" onClick={home} title="Recentre on the campfire (Home)">Recentre</button>
     </div>
   );
@@ -355,9 +361,10 @@ export function Inspector({ rt, sel, onClose, onFollow }: { rt: CivRuntime; sel:
 
 /* ---------- hints and notices ---------- */
 
-export function HintCard({ rt }: { rt: CivRuntime }) {
+export function HintCard({ rt, mode = 'bubbles' }: { rt: CivRuntime; mode?: 'bubbles' | 'compact' | 'off' }) {
   const h = rt.state.activeHint;
-  if (!h) return null;
+  if (!h || mode === 'off') return null;
+  if (mode === 'compact') return <button type="button" className="cw-alert cw-hint-compact" onClick={() => rt.dismissHint()}>{h.speaker}: {h.text} (dismiss)</button>;
   return (
     <div className="cw-hint" role="status" aria-live="polite">
       <span className="cw-portrait" data-role={h.role} aria-hidden="true" />

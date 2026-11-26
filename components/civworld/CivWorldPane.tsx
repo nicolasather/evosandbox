@@ -9,7 +9,10 @@ import { clampCamera, recenter, screenToWorld, zoomAt, type Camera, type Size } 
 import { TILE, hitTest, type Hit, type MapLike } from '@/lib/civ/world';
 import { AssetStore } from './assets';
 import db from '@/data/db.json';
-import { BuildDrawer, GoalsDrawer, HelpDrawer, Hud, HintCard, DiscoveryToast, Inspector, JobsDrawer, JournalDrawer, LogDrawer, Notice, Toolbar, TradeCard, type DrawerId } from './panels';
+import { CivAudio, soundForEvent } from '@/lib/civ/audio';
+import { UI_PREFS_KEY, animationOn, parseUiPrefs, qualityFlags, serializeUiPrefs, type UiPrefs } from '@/lib/civ/uiPrefs';
+import { ExplorePanel, NotesSection, PinsSection, PoliciesSection, SettingsSection, TutorialTip } from './panels2';
+import { BuildDrawer, GoalsDrawer, HelpDrawer, Hud, HintCard, DiscoveryToast, Inspector, JobsDrawer, JournalDrawer, LogDrawer, Notice, Toolbar, TradeCard, type DrawerId, type Tool } from './panels';
 import { buildTerrainLayer, drawFrame, type Ghost } from './render';
 import { useCivVersion } from './useCiv';
 
@@ -28,7 +31,25 @@ export function CivWorldPane({ visible, rt }: { visible: boolean; rt: CivRuntime
 }
 
 function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
-  useCivVersion(rt);
+  const version = useCivVersion(rt);
+  // display and sound preferences live on this device only (never in the simulation save)
+  const [ui, setUiState] = useState<UiPrefs>(() => { try { return parseUiPrefs(window.localStorage.getItem(UI_PREFS_KEY)); } catch { return parseUiPrefs(null); } });
+  const uiRef = useRef(ui);
+  const audio = useMemo(() => new CivAudio(ui.audio), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const setUi = useCallback((p: UiPrefs) => {
+    setUiState(p); uiRef.current = p; audio.setPrefs(p.audio);
+    try { window.localStorage.setItem(UI_PREFS_KEY, serializeUiPrefs(p)); } catch { /* not remembered */ }
+  }, [audio]);
+  const [tool, setTool] = useState<Tool>('none');
+  const [target, setTarget] = useState<{ tx: number; ty: number } | null>(null);
+  const [noteText, setNoteText] = useState('');
+  const lastEvent = useRef(rt.state.events.length ? rt.state.events[rt.state.events.length - 1].id : 0);
+  // a quiet sound for story events only, each once
+  useEffect(() => {
+    const evs = rt.state.events;
+    for (const e of evs) if (e.id > lastEvent.current) { const snd = soundForEvent(e.kind); if (snd) audio.play(snd); }
+    if (evs.length) lastEvent.current = Math.max(lastEvent.current, evs[evs.length - 1].id);
+  }, [version, rt, audio]);
   const map = rt.sim.map;
   const mapSize: Size = useMemo(() => ({ w: map.w * TILE, h: map.h * TILE }), [map]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -85,10 +106,13 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
     let raf = 0;
+    let lastDraw = 0;
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
       const lv = live.current;
       if (!lv.visible || document.hidden) return;
+      if (now - lastDraw < 1000 / qualityFlags(uiRef.current.quality).maxFps - 1) return; // low quality caps the frame rate
+      lastDraw = now;
       if (!ground.current || groundVersion.current !== assets.version) {
         ground.current = buildTerrainLayer(rt.sim.map, assets);
         groundVersion.current = assets.version;
@@ -100,7 +124,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
       }
       const alpha = rt.paused ? 1 : Math.max(0, Math.min(1, (now - rt.lastTickAt) / (TICK_MS / rt.speed)));
       drawFrame(ctx, rt.sim.map, rt.state, assets, ground.current, {
-        cam: cam.current, view: view.current, dpr: dpr.current, now, alpha, animate: !reduced.current,
+        cam: cam.current, view: view.current, dpr: dpr.current, now, alpha, animate: animationOn(reduced.current, uiRef.current), quality: uiRef.current.quality,
         hover: hover.current, selected: lv.selected, ghost: ghost.current, overlays: lv.drawer === 'build',
       });
     };
@@ -159,11 +183,20 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
       const g = ghost.current;
       if (g) {
         const r = rt.place(buildKind, g.x, g.y);
+        if (r.ok && buildKind === 'shelter') rt.tutorial('shelter');
         if (r.ok) { if (!e.shiftKey) { setBuildKind(null); ghost.current = null; setGhostMsg(''); } } else setGhostMsg(r.reason);
       }
       return;
     }
-    setSelected(hitAt(sx, sy));
+    if (tool === 'explore') { const w = screenToWorld(cam.current, view.current, sx, sy); setTarget({ tx: Math.floor(w.x / TILE), ty: Math.floor(w.y / TILE) }); return; }
+    if (tool === 'note') {
+      const w = screenToWorld(cam.current, view.current, sx, sy);
+      if (rt.note(Math.floor(w.x / TILE), Math.floor(w.y / TILE), noteText || 'Note')) { setTool('none'); setNoteText(''); }
+      return;
+    }
+    const picked = hitAt(sx, sy);
+    if (picked?.type === 'citizen') rt.tutorial('select');
+    setSelected(picked);
   };
   const onWheel = (e: WheelEvent<HTMLCanvasElement>) => {
     const { sx, sy } = posOf(e);
@@ -203,15 +236,16 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
   };
 
   const pickBuild = (kind: string) => { setDrawer(null); setBuildKind(kind); setSelected(null); setGhostMsg('Move over the map to place it. Esc cancels.'); };
+  const openDrawer = (d: DrawerId | null) => { if (d === 'jobs') rt.tutorial('jobs'); setDrawer(d); };
   const drawerBody = drawer === 'build' ? <BuildDrawer rt={rt} onPick={pickBuild} active={buildKind} />
     : drawer === 'jobs' ? <JobsDrawer rt={rt} />
-      : drawer === 'goals' ? <GoalsDrawer rt={rt} />
-        : drawer === 'journal' ? <JournalDrawer rt={rt} names={DISCOVERY_NAMES} />
+      : drawer === 'goals' ? <><GoalsDrawer rt={rt} /><PinsSection rt={rt} /></>
+        : drawer === 'journal' ? <><JournalDrawer rt={rt} names={DISCOVERY_NAMES} /><NotesSection rt={rt} onFocus={focusOn} /></>
       : drawer === 'log' ? <LogDrawer rt={rt} />
-        : drawer === 'help' ? <HelpDrawer rt={rt} /> : null;
+        : drawer === 'help' ? <><HelpDrawer rt={rt} /><PoliciesSection rt={rt} /><SettingsSection ui={ui} setUi={setUi} /></> : null;
 
   return (
-    <div className="cw-root" data-visible={visible ? '1' : '0'} ref={hostRef} onKeyDown={onKey}>
+    <div className="cw-root" data-visible={visible ? '1' : '0'} data-compact={ui.compact ? '1' : '0'} style={{ ['--cw-scale' as string]: ui.uiScale }} ref={hostRef} onKeyDown={onKey}>
       <canvas ref={canvasRef} className="cw-canvas" tabIndex={0} role="application" data-build={buildKind ? '1' : '0'}
         aria-label="Settlement map. Arrow keys pan, plus and minus zoom, Home recentres, Space pauses."
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
@@ -228,12 +262,16 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
         </div>
       )}
       {selected && !buildKind && <Inspector rt={rt} sel={selected} onClose={() => setSelected(null)} onFollow={id => { follow.current = id; }} />}
-      <HintCard rt={rt} />
+      <HintCard rt={rt} mode={ui.hints} />
+      <TutorialTip rt={rt} />
+      {tool === 'note' && <div className="cw-buildbar" role="status"><label>Note text <input aria-label="Note text" maxLength={60} value={noteText} onChange={e => setNoteText(e.target.value)} /></label> Click the map to place it. <button type="button" onClick={() => setTool('none')}>Cancel</button></div>}
+      {tool === 'explore' && !target && <div className="cw-buildbar" role="status">Click unexplored (dark) ground to plan an expedition. <button type="button" onClick={() => setTool('none')}>Cancel</button></div>}
+      {target && <ExplorePanel rt={rt} target={target} onClose={() => { setTarget(null); setTool('none'); }} />}
       <TradeCard rt={rt} />
       <DiscoveryToast rt={rt} />
       <Notice rt={rt} />
       {drawerBody && <aside className="cw-drawer" aria-label={drawer ?? ''}>{drawerBody}<button type="button" className="cw-drawer-close" onClick={() => setDrawer(null)}>Close</button></aside>}
-      <Toolbar drawer={drawer} setDrawer={setDrawer} home={goHome} />
+      <Toolbar drawer={drawer} setDrawer={openDrawer} home={goHome} tool={tool} setTool={setTool} />
     </div>
   );
 }

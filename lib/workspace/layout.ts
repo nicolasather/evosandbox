@@ -5,7 +5,7 @@
    ========================================================================== */
 
 /** civ: world only, Merging parked; split: both visible; merge: Merging fills the workspace. */
-export type LayoutMode = 'civ' | 'split' | 'merge';
+export type LayoutMode = 'civ' | 'dock' | 'split' | 'overlay' | 'merge';
 
 export interface WorkspacePrefs {
   layout: LayoutMode;
@@ -18,7 +18,7 @@ export const SPLIT_MIN = 34;
 export const SPLIT_MAX = 72;
 export const DEFAULT_PREFS: WorkspacePrefs = { layout: 'civ', splitPct: 45 };
 
-const LAYOUTS: readonly LayoutMode[] = ['civ', 'split', 'merge'];
+const LAYOUTS: readonly LayoutMode[] = ['civ', 'dock', 'split', 'overlay', 'merge'];
 
 export const clampSplit = (pct: number): number =>
   Number.isFinite(pct) ? Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, Math.round(pct * 10) / 10)) : DEFAULT_PREFS.splitPct;
@@ -54,6 +54,11 @@ export function paneRects(p: WorkspacePrefs): PaneRects {
       const m = clampSplit(p.splitPct);
       return { civ: { start: 0, size: 100 - m, visible: true }, merge: { start: 100 - m, size: m, visible: true } };
     }
+    case 'dock':
+      // a narrow strip: Merging is drawn at a readable virtual width and scaled down (see the shell)
+      return { civ: { start: 0, size: 100, visible: true }, merge: { start: 70, size: 30, visible: true } };
+    case 'overlay':
+      return { civ: { start: 0, size: 100, visible: true }, merge: { start: 4, size: 92, visible: true } };
     case 'merge':
       return { civ: { start: 0, size: 100, visible: false }, merge: { start: 0, size: 100, visible: true } };
     default:

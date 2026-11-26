@@ -24,6 +24,10 @@ describe('workspace layout prefs', () => {
     expect(s.civ.size + s.merge.size).toBe(100);
     expect(s.merge.start).toBe(60);
     expect(paneRects({ layout: 'civ', splitPct: 40 }).merge.visible).toBe(false);
+    expect(paneRects({ layout: 'dock', splitPct: 40 }).civ.visible).toBe(true);
+    expect(paneRects({ layout: 'dock', splitPct: 40 }).merge.visible).toBe(true);
+    expect(paneRects({ layout: 'overlay', splitPct: 40 }).civ.visible).toBe(true);
+    expect(parsePrefs(JSON.stringify({ layout: 'overlay', splitPct: 40 })).layout).toBe('overlay');
     expect(paneRects({ layout: 'merge', splitPct: 40 }).civ.visible).toBe(false);
   });
 });

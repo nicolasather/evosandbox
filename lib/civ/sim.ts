@@ -115,10 +115,10 @@ export function nearWater(map: WorldMap, x: number, y: number): boolean {
 }
 
 export const doneBuildings = (s: CivState, kind: string) => s.buildings.filter(b => b.kind === kind && b.state === 'done');
-export const capacity = (s: CivState) => STOCK.baseCapacity + STOCK.perStorage * doneBuildings(s, 'storage').length + 60 * doneBuildings(s, 'granary').length + (hasCapability(s, 'pottery') ? 10 : 0);
+export const capacity = (s: CivState) => STOCK.baseCapacity + STOCK.perStorage * doneBuildings(s, 'storage').length + 60 * doneBuildings(s, 'granary').length + 20 * doneBuildings(s, 'pottery_kiln').length;
 export const hasCapability = (s: CivState, id: string) => s.capabilities.some(c => c.id === id);
 /** Beds in finished shelters. Without one, people sleep rough by the fire and recover slowly. */
-export const sleepCapacity = (s: CivState) => SHELTER_SLEEPERS * doneBuildings(s, 'shelter').length;
+export const sleepCapacity = (s: CivState) => SHELTER_SLEEPERS * doneBuildings(s, 'shelter').length + 4 * doneBuildings(s, 'house').length;
 export const foodPerDay = (s: CivState) => Math.max(1, s.citizens.length + childPressure(s)) * ((CITIZEN.hungerPerTick * DAY_TICKS) / CITIZEN.eatRelief);
 export const foodDays = (s: CivState) => s.stock.food / foodPerDay(s);
 
@@ -238,7 +238,7 @@ function sleepSpot(sim: CivSim, c: Citizen, occupancy: Map<string, number>): Bui
   const { s } = sim;
   const home = c.home ? s.buildings.find(b => b.id === c.home && b.state === 'done') : null;
   if (home) return home;
-  for (const b of doneBuildings(s, 'shelter')) if ((occupancy.get(b.id) ?? 0) < SHELTER_SLEEPERS) return b;
+  for (const b of [...doneBuildings(s, 'shelter'), ...doneBuildings(s, 'house')]) if ((occupancy.get(b.id) ?? 0) < (b.kind === 'house' ? 4 : SHELTER_SLEEPERS)) return b;
   return s.buildings[0];
 }
 
@@ -480,7 +480,7 @@ function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: M
     if (s.stock.food > 0) {
       s.stock.food -= 1;
       s.counters.consumed.food += 1;
-      c.hunger = Math.max(0, c.hunger - CITIZEN.eatRelief * (hasCapability(s, 'controlled_fire') ? COOKED_FOOD_MULT : 1));
+      c.hunger = Math.max(0, c.hunger - CITIZEN.eatRelief * (hasCapability(s, 'controlled_fire') ? COOKED_FOOD_MULT : 1) * (doneBuildings(s, 'drying_rack').length ? 1.2 : 1));
     }
     interrupt(c, 'Finished eating');
     return;
@@ -488,7 +488,7 @@ function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: M
 
   if (t.kind === 'rest') {
     const home = s.buildings.find(b => b.id === t.targetId);
-    const sheltered = !!home && home.kind === 'shelter';
+    const sheltered = !!home && (home.kind === 'shelter' || home.kind === 'house');
     c.energy = Math.min(100, c.energy + (sheltered ? CITIZEN.sleepRecoverPerTick : CITIZEN.roughSleepRecoverPerTick));
     if (sheltered && !c.home) c.home = home!.id;
     if (c.energy >= CITIZEN.rested && !(isNight(s.tick) && c.energy < 100)) interrupt(c, 'Rested');
@@ -547,7 +547,7 @@ function completeBuilding(sim: CivSim, b: BuildingState, by: Citizen) {
 
 function maybeArrival(sim: CivSim) {
   const { s } = sim;
-  if (s.tick % DAY_TICKS !== 0 || s.tick < ARRIVAL_MIN_TICKS || s.citizens.length >= MAX_CITIZENS + 4 * doneBuildings(s, 'assembly').length) return;
+  if (s.tick % DAY_TICKS !== 0 || s.tick < ARRIVAL_MIN_TICKS || s.citizens.length >= MAX_CITIZENS + 4 * doneBuildings(s, 'assembly').length + 2 * doneBuildings(s, 'well').length) return;
   const last = [...s.events].reverse().find(e => e.kind === 'arrival');
   if (last && s.tick - last.tick < ARRIVAL_MIN_TICKS) return;
   const free = sleepCapacity(s) - s.citizens.length - s.children.length;
