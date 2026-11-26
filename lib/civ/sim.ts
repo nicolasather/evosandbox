@@ -32,6 +32,9 @@ export function nextRand(s: CivState): number {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
+/** Extra urgency for a nearly empty store, so a low-priority good never stays at zero while a high-priority one piles up. */
+const scarcity = (stock: number) => (stock < 12 ? Math.round(16 * (1 - stock / 12)) : 0);
+
 const FOG_RADIUS = 9;
 export const isRevealed = (s: CivState, w: number, x: number, y: number) => s.revealed[y * w + x] === '1';
 
@@ -290,17 +293,21 @@ function decide(sim: CivSim, g: Grid, c: Citizen, occupancy: Map<string, number>
     const base = prio * 10 + boost;
     if (cat === 'food') {
       if (s.stock.food >= stockLimit(s, cap)) return;
+      // once the reserve is comfortable, at most half the people work on food: the rest are free for wood, stone and building
+      const isFood = (id?: string) => !!id && (s.nodes.some(n => n.id === id && (n.kind === 'bush' || n.kind === 'game')) || s.buildings.some(b => b.id === id && isYieldBuilding(b.kind)));
+      const onFood = s.citizens.filter(o => o !== c && (o.task.kind === 'gather' || (o.task.kind === 'walk' && o.task.purpose === 'gather')) && isFood(o.task.targetId)).length;
+      if (foodDays(s) >= s.settings.foodReserveDays + 2 && onFood >= Math.ceil(s.citizens.length / 2)) return;
       const need = foodDays(s) < s.settings.foodReserveDays ? 14 : 0;
       for (const n of s.nodes) if (n.kind === 'bush' && n.amount > 0 && (workers.get(n.id) ?? 0) < 2) pushNode(n, base + need, 'food');
       if (moduleOn(s, 'hunting') && hasCapability(s, 'hunting')) for (const n of s.nodes) if (n.kind === 'game' && n.amount > 0 && (workers.get(n.id) ?? 0) < 1) pushNode(n, base - 2, 'food');
       for (const b of [...doneBuildings(s, 'farm'), ...doneBuildings(s, 'animal_pen')]) if (!b.paused && (b.amount ?? 0) > 0 && (workers.get(b.id) ?? 0) < BUILDINGS[b.kind].workerSlots) pushBuilding(b, base + 6 + (foodDays(s) < s.settings.foodReserveDays ? 14 : 0), 'gather', 'food', 'Harvesting the farm plot');
     } else if (cat === 'wood') {
       if (s.stock.wood >= stockLimit(s, cap)) return;
-      const need = s.stock.wood < 12 ? 8 : 0;
+      const need = scarcity(s.stock.wood);
       for (const n of s.nodes) if (n.kind === 'tree' && n.amount > 0 && (workers.get(n.id) ?? 0) < 2) pushNode(n, base + need, 'wood');
     } else if (cat === 'stone') {
       if (s.stock.stone >= stockLimit(s, cap)) return;
-      const need = s.stock.stone < 6 ? 5 : 0;
+      const need = scarcity(s.stock.stone);
       for (const n of s.nodes) if (n.kind === 'rock' && n.amount > 0 && (workers.get(n.id) ?? 0) < 2) pushNode(n, base + need, 'stone');
     } else if (cat === 'build') {
       for (const b of s.buildings) if (b.state === 'site' && (workers.get(b.id) ?? 0) < BUILDINGS[b.kind].workerSlots) pushBuilding(b, base + 6, 'build', undefined, `Building a ${BUILDINGS[b.kind].name.toLowerCase()}`);

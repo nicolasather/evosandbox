@@ -42,6 +42,35 @@ export function MapSection({ rt }: { rt: CivRuntime }) {
   );
 }
 
+export function SaveSection({ rt }: { rt: CivRuntime }) {
+  const [msg, setMsg] = useState('');
+  const download = () => {
+    const blob = new Blob([rt.exportFile()], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `evosandbox-settlement-day-${Math.floor(rt.state.tick / 240) + 1}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setMsg('Exported. Keep the file somewhere safe.');
+  };
+  const pick = async (f: File | undefined) => {
+    if (!f) return;
+    const r = rt.importFile(await f.text());
+    setMsg(r.ok ? 'Imported. The previous settlement was kept as a backup copy.' : `Not imported: ${r.reason}`);
+  };
+  return (
+    <div className="cw-drawer-body">
+      <h3>Save file</h3>
+      <p className="cw-note">Your settlement saves in this browser. Export it to keep a copy or move it to another device.</p>
+      <button type="button" onClick={download}>Export settlement</button>
+      <label className="cw-field">Import settlement
+        <input type="file" accept="application/json,.json" aria-label="Import settlement file" onChange={e => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
+      </label>
+      {msg && <span className="cw-note" role="status">{msg}</span>}
+    </div>
+  );
+}
+
 export function TradeDrawer({ rt }: { rt: CivRuntime }) {
   const s = rt.state;
   const [msg, setMsg] = useState('');

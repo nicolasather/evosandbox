@@ -292,8 +292,9 @@ export function stepWater(sim: CivSim) {
   const wells = doneBuildings(s, 'well').length;
   const people = s.citizens.reduce((a) => a + 1, 0) + s.children.length * 0.5;
   const farms = doneBuildings(s, 'farm').length;
-  s.water = Math.min(waterCapacity(s), s.water + 3 + 8 * wells);
   const need = people + 2 * farms;
+  // people carry water from the river (up to ten a day); wells add much more and are needed once the settlement outgrows the carrying
+  s.water = Math.min(waterCapacity(s), s.water + Math.min(need, 10) + 8 * wells);
   s.water = Math.max(0, s.water - need);
   if (s.water === 0 && !s.milestones.includes('dry')) { s.milestones.push('dry'); pushEvent(s, 'shortage', { water: 0 }, 'The water has run out. People are thirsty and the fields are dry. Dig a well or build fewer fields.'); }
   if (s.water > 5 && s.milestones.includes('dry')) { s.milestones = s.milestones.filter(m => m !== 'dry'); pushEvent(s, 'recovery', { water: s.water }, 'There is water again.'); }

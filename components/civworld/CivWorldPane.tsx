@@ -11,7 +11,7 @@ import { AssetStore } from './assets';
 import db from '@/data/db.json';
 import { CivAudio, soundForEvent } from '@/lib/civ/audio';
 import { UI_PREFS_KEY, animationOn, parseUiPrefs, qualityFlags, serializeUiPrefs, type UiPrefs } from '@/lib/civ/uiPrefs';
-import { FamilySection, GovernanceSection, MapSection, ModulesSection, TradeDrawer } from './panels3';
+import { SaveSection, FamilySection, GovernanceSection, MapSection, ModulesSection, TradeDrawer } from './panels3';
 import { ExplorePanel, NotesSection, PinsSection, PoliciesSection, SettingsSection, TutorialTip } from './panels2';
 import { BuildDrawer, GoalsDrawer, HelpDrawer, Hud, HintCard, DiscoveryToast, Inspector, JobsDrawer, JournalDrawer, LogDrawer, Notice, MigrantCard, Toolbar, TradeCard, type DrawerId, type Tool } from './panels';
 import { buildTerrainLayer, drawFrame, type Ghost } from './render';
@@ -263,7 +263,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
       : drawer === 'goals' ? <><GoalsDrawer rt={rt} /><PinsSection rt={rt} /></>
         : drawer === 'journal' ? <><JournalDrawer rt={rt} names={DISCOVERY_NAMES} /><NotesSection rt={rt} onFocus={focusOn} /><FamilySection rt={rt} /></>
       : drawer === 'log' ? <LogDrawer rt={rt} onFocus={focusOn} />
-        : drawer === 'help' ? <><HelpDrawer rt={rt} /><PoliciesSection rt={rt} /><GovernanceSection rt={rt} /><ModulesSection rt={rt} /><MapSection rt={rt} /><SettingsSection ui={ui} setUi={setUi} /></> : null;
+        : drawer === 'help' ? <><HelpDrawer rt={rt} /><PoliciesSection rt={rt} /><GovernanceSection rt={rt} /><ModulesSection rt={rt} /><MapSection rt={rt} /><SaveSection rt={rt} /><SettingsSection ui={ui} setUi={setUi} /></> : null;
 
   return (
     <div className="cw-root" data-visible={visible ? '1' : '0'} data-compact={ui.compact ? '1' : '0'} style={{ ['--cw-scale' as string]: ui.uiScale }} ref={hostRef} onKeyDown={onKey}>

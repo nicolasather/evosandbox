@@ -125,6 +125,8 @@ export function createWorld(seed = 1, kind: MapKind = 'classic'): WorldMap {
   }
   scatter('bush', 7, Math.max(1, cx - 7), Math.max(1, cy - 4), Math.min(w - 2, cx + 8), Math.min(h - 2, cy + 5), 12);
   if (!proc) scatter('rock', 6, 28, 2, 37, 8, 30);
+  // a small grove inside the starting view, so wood does not depend on exploring at once
+  for (const [dx, dy] of [[-7, -3], [-8, -1], [-6, -6], [7, -2], [8, 1], [-3, -7], [4, -7], [-8, 4]]) place('tree', cx + dx, cy + dy, 40);
   // a couple of outcrops inside the starting view so stone is never out of reach at the start
   place('rock', cx + 6, cy - 5, 30);
   place('rock', cx - 6, cy + 5, 30);

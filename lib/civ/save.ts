@@ -56,3 +56,25 @@ export function parseSave(text: string | null): LoadResult | null {
   if (!m.ok) return m;
   return { ok: true, sim: { map: createWorld(m.state.seed, m.state.mapKind === 'procedural' ? 'procedural' : 'classic'), s: m.state }, migrated: m.migrated };
 }
+
+/* ---------- export and import (a file the player keeps) ---------- */
+
+export const EXPORT_KIND = 'evosandbox-civworld';
+
+/** A self-describing file: kind, version, when, and the same save payload the game keeps. */
+export function exportText(sim: CivSim, now = new Date()): string {
+  return JSON.stringify({ kind: EXPORT_KIND, exportedAt: now.toISOString(), file: JSON.parse(serializeSim(sim)) }, null, 1);
+}
+
+export type ImportResult = { ok: true; sim: CivSim } | { ok: false; reason: string };
+
+/** Validates before anything is replaced: wrong file, wrong version or damaged data is refused with a reason and nothing changes. */
+export function parseImport(text: string): ImportResult {
+  let o: unknown;
+  try { o = JSON.parse(text); } catch { return { ok: false, reason: 'That file is not valid JSON' }; }
+  if (!isObj(o) || o.kind !== EXPORT_KIND) return { ok: false, reason: 'That file is not an Evolution Sandbox settlement export' };
+  const r = parseSave(JSON.stringify(o.file));
+  if (!r) return { ok: false, reason: 'The file holds no settlement' };
+  if (!r.ok) return { ok: false, reason: r.reason };
+  return { ok: true, sim: r.sim };
+}

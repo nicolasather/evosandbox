@@ -1,7 +1,7 @@
 import { applyDiscoveries } from './bridge';
 import { AUTOSAVE_TICKS, SPEEDS, TICKS_PER_SECOND, type Speed } from './data/config';
 import { askMoreHint, dismissHint, stepWorld } from './hints';
-import { CIV_BACKUP_KEY, CIV_CORRUPT_KEY, CIV_SAVE_KEY, parseSave, serializeSim } from './save';
+import { CIV_BACKUP_KEY, CIV_CORRUPT_KEY, CIV_SAVE_KEY, exportText, parseImport, parseSave, serializeSim } from './save';
 import { LAWS as _LAWS, acceptVisitor, adoptLaw, cancelRoute, establishRoute, repealLaw, type LawId, type ModuleId } from './modules';
 import { addNote, addPin, previewExpedition, removeNote, removePin, sendExpedition, setPolicy, skipTutorial, togglePin, tutorialEvent } from './extras';
 import { acceptMigrant, declineMigrant, toggleBuildingPause, acceptTrade, assignOverride, cancelBuilding, createSim, declineTrade, placeBuilding, setPriority, type CivSim } from './sim';
@@ -222,6 +222,19 @@ export class CivRuntime {
     this.notice = null;
     this.save();
     this.bump();
+  }
+  exportFile(): string { return exportText(this.sim); }
+  /** Replace the settlement with an exported one. The current one is kept as a backup copy first; a bad file changes nothing. */
+  importFile(text: string): { ok: true } | { ok: false; reason: string } {
+    const r = parseImport(text);
+    if (!r.ok) return r;
+    try { this.storage?.setItem(CIV_BACKUP_KEY, serializeSim(this.sim)); } catch { /* backup not possible */ }
+    this.sim = r.sim;
+    this.notice = null;
+    this.claimWriter(true);
+    this.save();
+    this.bump();
+    return { ok: true };
   }
   dismissNotice() { this.notice = null; this.bump(); }
 }
