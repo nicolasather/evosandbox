@@ -73,6 +73,12 @@ function AppRootBody() {
     return () => devBridge.setLaunchHandler(null);
   }, [setMode]);
 
+  // development and test builds only: lets the end-to-end script open any mode and come back
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    (window as unknown as { __evoLaunch?: (m: ModeId) => void }).__evoLaunch = (m: ModeId) => setMode(m);
+  }, [setMode]);
+
   let body: ReactNode;
   if (mode === 'survival') body = <SurvivalMode onExit={exitToHub} />;
   /* Civilization is the main merging workbench with its own guide. The keyed element remounts cleanly

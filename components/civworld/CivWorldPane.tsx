@@ -78,6 +78,9 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
   const follow = useRef<string | null>(null);
   const reduced = useRef(false);
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean } | null>(null);
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') (window as unknown as { __civcam?: unknown }).__civcam = { cam, view };
+  }, []);
   const [selected, setSelected] = useState<Hit | null>(null);
   const [drawer, setDrawer] = useState<DrawerId | null>(null);
   const [buildKind, setBuildKind] = useState<string | null>(null);

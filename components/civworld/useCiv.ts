@@ -13,6 +13,8 @@ export function getCivRuntime(): CivRuntime {
     let storage: Storage | null = null;
     try { storage = window.localStorage; } catch { storage = null; }
     runtime = new CivRuntime(storage);
+    // development and test builds expose the runtime so the end-to-end script can read and drive it
+    if (process.env.NODE_ENV !== 'production') (window as unknown as { __civworld?: CivRuntime }).__civworld = runtime;
   }
   return runtime;
 }

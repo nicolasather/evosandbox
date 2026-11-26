@@ -39,6 +39,11 @@ export class CivRuntime {
   private acc = 0;
   private storage: Storage | null;
   private lastSavedTick = 0;
+  private lastBeat = 0;
+  /** Only one tab may write the save at a time, or two tabs would overwrite each other's progress. */
+  readonly tabId = `t${Math.random().toString(36).slice(2, 10)}`;
+  private static WRITER_KEY = 'evo.civworld.v1.writer';
+  private static WRITER_TTL = 8000;
 
   constructor(storage: Storage | null = null, seed = 1) {
     this.storage = storage;
@@ -59,6 +64,8 @@ export class CivRuntime {
     if (this.timer || typeof window === 'undefined') return;
     this.last = performance.now();
     this.timer = setInterval(() => this.pump(performance.now()), 50);
+    // a page the player is looking at is the one that plays: it takes the writer claim (other tabs become read-only)
+    if (!document.hidden) this.claimWriter(true);
     window.addEventListener('pagehide', this.onHide);
     document.addEventListener('visibilitychange', this.onVisibility);
   }
@@ -71,14 +78,56 @@ export class CivRuntime {
     }
     this.save();
   }
-  private onHide = () => this.save();
-  private onVisibility = () => { if (document.hidden) this.save(); else { this.last = performance.now(); this.acc = 0; } };
+  private onHide = () => { this.save(); this.releaseWriter(); };
+
+  /** Give the writer claim back so the next page load (a reload, a new tab) can save straight away. */
+  private releaseWriter() {
+    try {
+      const raw = this.storage?.getItem(CivRuntime.WRITER_KEY);
+      if (raw && (JSON.parse(raw) as { id: string }).id === this.tabId) this.storage?.removeItem(CivRuntime.WRITER_KEY);
+    } catch { /* nothing to release */ }
+  }
+  private onVisibility = () => {
+    if (document.hidden) { this.save(); return; }
+    // coming back to this tab: take over writing, after reading whatever the other tab saved meanwhile
+    this.last = performance.now(); this.acc = 0;
+    this.reloadIfNewer();
+    this.claimWriter(true);
+    this.bump();
+  };
+
+  /** True when this tab holds (or can take) the right to write the save. */
+  canWrite(): boolean { return this.claimWriter(false); }
+  get readOnly(): boolean { return !!this.storage && !this.claimWriter(false); }
+
+  private claimWriter(force: boolean): boolean {
+    if (!this.storage) return true;
+    try {
+      const raw = this.storage.getItem(CivRuntime.WRITER_KEY);
+      const cur = raw ? (JSON.parse(raw) as { id: string; at: number }) : null;
+      const now = Date.now();
+      if (force || !cur || cur.id === this.tabId || now - cur.at > CivRuntime.WRITER_TTL) {
+        this.storage.setItem(CivRuntime.WRITER_KEY, JSON.stringify({ id: this.tabId, at: now }));
+        return true;
+      }
+      return false;
+    } catch { return true; }
+  }
+
+  private reloadIfNewer() {
+    if (!this.storage) return;
+    try {
+      const r = parseSave(this.storage.getItem(CIV_SAVE_KEY));
+      if (r && r.ok && r.sim.s.tick > this.sim.s.tick) { this.sim = r.sim; this.lastSavedTick = r.sim.s.tick; }
+    } catch { /* keep the current state */ }
+  }
 
   /** Advance by wall-clock time. Exposed so tests can drive it deterministically. */
   pump(now: number) {
     const dt = now - this.last;
     this.last = now;
     if (typeof document !== 'undefined' && document.hidden) return;
+    if (now - this.lastBeat > 2000) { this.lastBeat = now; this.claimWriter(false); } // keep the writer claim alive while this tab is playing
     if (this.paused) { this.acc = 0; return; }
     this.acc += dt * this.speed;
     let n = 0;
@@ -140,6 +189,7 @@ export class CivRuntime {
   /* ----- save / load ----- */
   save() {
     if (!this.storage) return;
+    if (!this.claimWriter(false)) return; // another tab is playing: this one never overwrites its progress
     try {
       this.storage.setItem(CIV_SAVE_KEY, serializeSim(this.sim));
       this.lastSavedTick = this.state.tick;
