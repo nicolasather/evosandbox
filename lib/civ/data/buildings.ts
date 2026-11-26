@@ -4,7 +4,7 @@ import type { ResourceId } from '../types';
    docs/civilization-overhaul/ASSET_MANIFEST.md. */
 
 export interface BuildingDef {
-  id: 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge';
+  id: 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly';
   name: string;
   description: string;
   footprint: { w: number; h: number };
@@ -61,6 +61,24 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover Smelting in Merging.', visualAssetId: 'bld_forge', anchorY: 60,
     purpose: 'Like a workshop, but a worker makes 2 tools per cycle.',
   },
+  road: {
+    id: 'road', name: 'Road', description: 'Packed stone and gravel that people walk faster on.',
+    footprint: { w: 1, h: 1 }, cost: { stone: 1 }, buildTicks: 6, workerSlots: 1, requires: 'stone_tool',
+    terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover Stone Tool in Merging.', visualAssetId: 'bld_road',
+    purpose: 'Walkers move 50% faster on it. Shift-click to lay several.',
+  },
+  market: {
+    id: 'market', name: 'Market', description: 'A place where traders stop more often.',
+    footprint: { w: 2, h: 2 }, cost: { wood: 18, stone: 6 }, buildTicks: 48, workerSlots: 2, requires: 'trade',
+    terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover Trade in Merging.', visualAssetId: 'bld_market',
+    purpose: 'Visiting traders come twice as often.',
+  },
+  assembly: {
+    id: 'assembly', name: 'Assembly', description: 'A shared gathering place where the community decides things together.',
+    footprint: { w: 3, h: 2 }, cost: { wood: 24, stone: 14 }, buildTicks: 70, workerSlots: 2, requires: 'assembly',
+    terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover the Public Assembly Plaza in Merging.', visualAssetId: 'bld_assembly',
+    purpose: 'A community project: the settlement can hold 4 more people.',
+  },
 };
 
-export const BUILD_ORDER = ['shelter', 'storage', 'workshop', 'farm', 'granary', 'forge'] as const;
+export const BUILD_ORDER = ['shelter', 'storage', 'workshop', 'farm', 'road', 'granary', 'forge', 'market', 'assembly'] as const;

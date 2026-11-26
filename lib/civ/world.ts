@@ -8,7 +8,7 @@ export const TILE = 32;
 
 export type Terrain = 'grass' | 'dirt' | 'water' | 'path' | 'sand';
 export type NodeKind = 'tree' | 'bush' | 'rock';
-export type BuildingKind = 'campfire' | 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge';
+export type BuildingKind = 'campfire' | 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly';
 
 export interface ResourceNode { id: string; kind: NodeKind; x: number; y: number; amount: number }
 export interface Building { id: string; kind: BuildingKind; x: number; y: number; w: number; h: number }
@@ -29,7 +29,7 @@ export const NODE_SPRITE: Record<NodeKind, { w: number; h: number }> = {
   rock: { w: 32, h: 32 },
 };
 export const NODE_LABEL: Record<NodeKind, string> = { tree: 'Tree', bush: 'Berry bush', rock: 'Stone outcrop' };
-export const BUILDING_LABEL: Record<BuildingKind, string> = { campfire: 'Campfire', shelter: 'Shelter', storage: 'Storage', workshop: 'Workshop', farm: 'Farm plot', granary: 'Granary', forge: 'Forge' };
+export const BUILDING_LABEL: Record<BuildingKind, string> = { campfire: 'Campfire', shelter: 'Shelter', storage: 'Storage', workshop: 'Workshop', farm: 'Farm plot', granary: 'Granary', forge: 'Forge', road: 'Road', market: 'Market', assembly: 'Assembly' };
 
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
@@ -105,6 +105,9 @@ export function createWorld(seed = 1): WorldMap {
   scatter('tree', 6, 14, 1, 26, 3, 40);
   scatter('bush', 7, 12, 8, 27, 17, 12);
   scatter('rock', 6, 28, 2, 37, 8, 30);
+  // a couple of outcrops inside the starting view so stone is never out of reach at the start
+  place('rock', cx + 6, cy - 5, 30);
+  place('rock', cx - 6, cy + 5, 30);
 
   const buildings: Building[] = [{ id: 'campfire-0', kind: 'campfire', x: cx, y: cy, w: 1, h: 1 }];
   taken.add(cy * w + cx);

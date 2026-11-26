@@ -2,8 +2,9 @@ import { applyDiscoveries } from './bridge';
 import { AUTOSAVE_TICKS, SPEEDS, TICKS_PER_SECOND, type Speed } from './data/config';
 import { askMoreHint, dismissHint, stepWorld } from './hints';
 import { CIV_BACKUP_KEY, CIV_CORRUPT_KEY, CIV_SAVE_KEY, parseSave, serializeSim } from './save';
+import { addNote, addPin, previewExpedition, removeNote, removePin, sendExpedition, setPolicy, skipTutorial, togglePin, tutorialEvent } from './extras';
 import { acceptTrade, assignOverride, cancelBuilding, createSim, declineTrade, placeBuilding, setPriority, type CivSim } from './sim';
-import type { CivState, JobCategory, Settings } from './types';
+import type { CivState, JobCategory, Policies, Settings } from './types';
 
 /* ============================================================================
    CIV RUNTIME — the clock and the single owner of the live settlement. It lives
@@ -98,12 +99,22 @@ export class CivRuntime {
   /* ----- player commands (each bumps the version so panels refresh) ----- */
   setSpeed(v: Speed) { if (SPEEDS.includes(v)) { this.speed = v; this.bump(); } }
   togglePause() { this.userPaused = !this.userPaused; this.bump(); }
-  setMerging(on: boolean) { if (this.merging !== on) { this.merging = on; this.bump(); } }
+  setMerging(on: boolean) { if (this.merging !== on) { this.merging = on; if (on) tutorialEvent(this.state, 'merging'); this.bump(); } }
   setSetting<K extends keyof Settings>(k: K, v: Settings[K]) { this.state.settings[k] = v; this.save(); this.bump(); }
   setPriority(cat: JobCategory, level: number) { setPriority(this.state, cat, level); this.bump(); }
   override(citizenId: string, cat: JobCategory | null) { assignOverride(this.state, citizenId, cat); this.bump(); }
   place(kind: string, x: number, y: number) { const r = placeBuilding(this.sim, kind, x, y); if (r.ok) this.save(); this.bump(); return r; }
   cancel(id: string) { const r = cancelBuilding(this.sim, id); this.bump(); return r; }
+  preview(tx: number, ty: number, party: string[]) { return previewExpedition(this.sim, tx, ty, party); }
+  explore(tx: number, ty: number, party: string[]) { const r = sendExpedition(this.sim, tx, ty, party); this.bump(); return r; }
+  policy<K extends keyof Policies>(k: K, v: Policies[K]) { setPolicy(this.state, k, v); this.save(); this.bump(); }
+  pin(text: string) { const p = addPin(this.state, text); this.bump(); return p; }
+  togglePin(id: string) { togglePin(this.state, id); this.bump(); }
+  removePin(id: string) { removePin(this.state, id); this.bump(); }
+  note(x: number, y: number, text: string) { const n = addNote(this.state, x, y, text); this.bump(); return n; }
+  removeNote(id: string) { removeNote(this.state, id); this.bump(); }
+  tutorial(id: string) { const before = this.state.tutorial.step; tutorialEvent(this.state, id); if (this.state.tutorial.step !== before) this.bump(); }
+  skipTutorial() { skipTutorial(this.state); this.bump(); }
   accept() { const r = acceptTrade(this.sim); this.bump(); return r; }
   decline() { declineTrade(this.sim); this.bump(); }
   dismissHint() { dismissHint(this.state); this.bump(); }

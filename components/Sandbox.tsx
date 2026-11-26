@@ -69,7 +69,7 @@ const VIEW_FEATURE: Partial<Record<ViewId, FeatureId>> = {
   graph: 'graph', arch: 'archive', time: 'timeline', hub: 'hub', museum: 'museum', minpath: 'minpath',
 };
 
-export function Sandbox({ onLaunchMode, variant = 'main', openHubSignal = 0, onDiscoveries }: { onLaunchMode?: (mode: ModeId) => void; variant?: GuideVariant; openHubSignal?: number; onDiscoveries?: (found: ReadonlySet<string>) => void } = {}) {
+export function Sandbox({ onLaunchMode, variant = 'main', openHubSignal = 0, onDiscoveries, inputActive = true }: { onLaunchMode?: (mode: ModeId) => void; variant?: GuideVariant; openHubSignal?: number; onDiscoveries?: (found: ReadonlySet<string>) => void; inputActive?: boolean } = {}) {
   const [panelOpen, setPanelOpen] = useState(false);
   const s = useSandbox();
   const { engine, version, view, setView, open, clearSlots, setEnding, reset } = s;
@@ -259,12 +259,15 @@ export function Sandbox({ onLaunchMode, variant = 'main', openHubSignal = 0, onD
 
   // one keyboard listener for the page; it reads the latest state through a ref
   const canMilestones = unlocks.has('archive');
+  const activeRef = useRef(inputActive);
+  useEffect(() => { activeRef.current = inputActive; }, [inputActive]);
   const keys = useRef({ showView, confirmOpen, closePanel, clearSlots, setEnding, shortcutsOpen, result: s.result, place: s.place, replay: replayJourney, entered: s.entered, openWorld, canMilestones });
   useEffect(() => {
     keys.current = { showView, confirmOpen, closePanel, clearSlots, setEnding, shortcutsOpen, result: s.result, place: s.place, replay: replayJourney, entered: s.entered, openWorld, canMilestones };
   });
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
+      if (!activeRef.current) return; // hidden inside the workspace: the settlement owns the keyboard
       const k = keys.current;
       if (k.confirmOpen) return;                    // the dialog handles its own keys
       if (k.shortcutsOpen) {                         // the overlay owns the keyboard while it's up

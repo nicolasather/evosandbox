@@ -21,6 +21,7 @@ import {
    Sandbox stay within the pane. See docs/civilization-overhaul/WORKSPACE_UX.md.
    ========================================================================== */
 
+const MIN_MERGE_PX = 560;
 const NARROW_QUERY = '(max-width: 819px)';
 const subscribeNarrow = (cb: () => void) => {
   const mq = window.matchMedia(NARROW_QUERY);
@@ -61,7 +62,18 @@ export function WorkspaceShell({ onLaunchMode }: { onLaunchMode: (mode: ModeId) 
   }, []);
 
   const tab = tabOf(prefs.layout);
-  const rects = paneRects(prefs);
+  // Sandbox lays itself out from the viewport, not its pane, so Merging never gets narrower than MIN_MERGE_PX:
+  // a split that would squeeze it is widened (the divider can still be dragged wider, never thinner than this).
+  const [stageW, setStageW] = useState(0);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setStageW(el.getBoundingClientRect().width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const effPct = stageW > 0 && !narrow ? Math.min(SPLIT_MAX + 8, Math.max(prefs.splitPct, (MIN_MERGE_PX / stageW) * 100)) : prefs.splitPct;
+  const rects = paneRects({ ...prefs, splitPct: Math.min(80, effPct) });
   // Merging being on screen is what "pause while crafting" means
   const mergeOn = rects.merge.visible;
   useEffect(() => { rt?.setMerging(mergeOn); }, [rt, mergeOn]);
@@ -123,13 +135,13 @@ export function WorkspaceShell({ onLaunchMode }: { onLaunchMode: (mode: ModeId) 
         <section id="ws-pane-merge" role="tabpanel" aria-labelledby="ws-tab-merge" className="ws-pane ws-pane-merge"
           style={axis(rects.merge)} data-visible={rects.merge.visible ? '1' : '0'} aria-hidden={!rects.merge.visible}
           inert={!rects.merge.visible}>
-          <Sandbox onLaunchMode={onLaunchMode} openHubSignal={hubSignal} onDiscoveries={onDiscoveries} />
+          <Sandbox inputActive={rects.merge.visible} onLaunchMode={onLaunchMode} openHubSignal={hubSignal} onDiscoveries={onDiscoveries} />
         </section>
 
         {prefs.layout === 'split' && (
           <div className="ws-divider" role="separator" tabIndex={0} aria-orientation={vertical ? 'horizontal' : 'vertical'}
             aria-label="Resize Merging panel" aria-valuemin={SPLIT_MIN} aria-valuemax={SPLIT_MAX} aria-valuenow={Math.round(prefs.splitPct)}
-            style={vertical ? { top: `${100 - prefs.splitPct}%` } : { left: `${100 - prefs.splitPct}%` }}
+            style={vertical ? { top: `${100 - rects.merge.size}%` } : { left: `${100 - rects.merge.size}%` }}
             onPointerDown={onDividerDown} onPointerMove={onDividerMove} onPointerUp={onDividerUp} onPointerCancel={onDividerUp}
             onKeyDown={onDividerKey} />
         )}

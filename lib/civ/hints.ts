@@ -1,4 +1,5 @@
 import { HINT_GLOBAL_COOLDOWN } from './data/config';
+import { stepExtras } from './extras';
 import { capacity, doneBuildings, foodDays, hasCapability, isNight, maybeVisitor, pushEvent, seasonOf, sleepCapacity, stepSim, type CivSim } from './sim';
 import type { ActiveHint, CivState } from './types';
 import { TILE } from './world';
@@ -237,6 +238,7 @@ export function stepWorld(sim: CivSim): void {
       pushEvent(s, 'recovery', { food: s.stock.food }, 'The food reserve has recovered.');
     }
   }
+  stepExtras(sim);
   maybeVisitor(sim);
   if (s.tick % 20 === 0) evaluateHints(sim);
 }

@@ -15,7 +15,7 @@ export type JobCategory = 'food' | 'wood' | 'stone' | 'build' | 'craft';
 export const JOB_CATEGORIES: readonly JobCategory[] = ['food', 'wood', 'stone', 'build', 'craft'];
 export type Priorities = Record<JobCategory, number>;
 
-export type TaskKind = 'idle' | 'walk' | 'gather' | 'deposit' | 'eat' | 'rest' | 'build' | 'craft';
+export type TaskKind = 'idle' | 'walk' | 'gather' | 'deposit' | 'eat' | 'rest' | 'build' | 'craft' | 'away';
 
 export interface Task {
   kind: TaskKind;
@@ -87,7 +87,7 @@ export interface BuildingState {
 
 export type EventKind =
   | 'founded' | 'discovery' | 'capability' | 'building_started' | 'building_done' | 'first_craft' | 'first_harvest'
-  | 'shortage' | 'recovery' | 'arrival' | 'milestone' | 'hint' | 'trade' | 'season';
+  | 'shortage' | 'recovery' | 'arrival' | 'milestone' | 'hint' | 'trade' | 'season' | 'explore' | 'hazard' | 'birth';
 
 export interface CivEvent {
   id: number;
@@ -111,6 +111,33 @@ export interface Visitor {
   /** What the visitor offers and what they ask for, in whole units. */
   give: { res: ResourceId; n: number };
   want: { res: ResourceId; n: number };
+}
+
+export interface Expedition {
+  id: string;
+  party: string[];
+  tx: number;
+  ty: number;
+  departTick: number;
+  returnTick: number;
+  stance: 'cautious' | 'balanced' | 'bold';
+  foodTaken: number;
+}
+
+export interface PointOfInterest { id: string; kind: 'clay_deposit' | 'stone_ridge' | 'fertile_meadow' | 'abandoned_camp'; x: number; y: number; found: boolean }
+
+/** A flood is warned about well before it starts, only blocks work on low ground, and destroys nothing. */
+export interface Hazard { kind: 'flood'; warnTick: number; startTick: number; endTick: number; phase: 'scheduled' | 'warned' | 'active' }
+
+export interface Pin { id: string; text: string; done: boolean }
+export interface MapNote { id: string; x: number; y: number; text: string }
+
+export interface Policies {
+  resourceUse: 'conserve' | 'balanced' | 'free';
+  constructionFocus: 'housing' | 'storage' | 'production' | 'infrastructure' | 'none';
+  explorationStance: 'cautious' | 'balanced' | 'bold';
+  gatheringRadius: 'local' | 'extended';
+  knowledgeFocus: 'open' | 'tools' | 'food' | 'shelter';
 }
 
 export interface Settings {
@@ -138,6 +165,17 @@ export interface CivState {
   hints: Record<string, HintState>;
   activeHint: ActiveHint | null;
   visitor: Visitor | null;
+  /** One char per tile, '1' = seen. Unseen ground hides its resources from the workers. */
+  revealed: string;
+  expeditions: Expedition[];
+  poi: PointOfInterest[];
+  hazard: Hazard | null;
+  /** Birth ticks of children (a cohort, not individuals); they grow into named adults. */
+  children: number[];
+  pins: Pin[];
+  notes: MapNote[];
+  policies: Policies;
+  tutorial: { step: number; done: boolean };
   alerts: string[];
   milestones: string[];
   settings: Settings;

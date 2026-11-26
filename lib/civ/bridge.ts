@@ -24,6 +24,7 @@ export function applyDiscoveries(s: CivState, found: ReadonlySet<string> | reado
     }
     pushEvent(s, 'discovery', { discovery: m.discoveryId, capability: m.capability }, m.message);
     applied.push(m);
+    s.tutorial.done = true; // the first invention-to-world loop has happened: stop prompting
   }
   return { applied };
 }

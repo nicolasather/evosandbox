@@ -8,6 +8,7 @@ import {
   JOB_CATEGORIES, RESOURCES, type BuildingState, type CivEvent, type CivState, type Citizen, type EventKind, type JobCategory,
   type NodeState, type ResourceId, type Stock, type Task,
 } from './types';
+import { childPressure, floodActive, focusBonus, reachFor, stockLimit } from './extras';
 import { createWorld, isLand, tileAt, type WorldMap } from './world';
 
 /* ============================================================================
@@ -28,6 +29,28 @@ export function nextRand(s: CivState): number {
   t = Math.imul(t ^ (t >>> 15), t | 1);
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
+const FOG_RADIUS = 9;
+export const isRevealed = (s: CivState, w: number, x: number, y: number) => s.revealed[y * w + x] === '1';
+
+function initialFog(map: WorldMap, fire: { x: number; y: number }): string {
+  let out = '';
+  for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) out += Math.hypot(x - fire.x, y - fire.y) <= FOG_RADIUS ? '1' : '0';
+  return out;
+}
+
+/** Points of interest sit on the unseen edges of the map; the layout is a pure function of the seeded stream. */
+function makePois(map: WorldMap, s: CivState): CivState['poi'] {
+  const kinds: CivState['poi'][number]['kind'][] = ['stone_ridge', 'fertile_meadow', 'clay_deposit', 'abandoned_camp'];
+  const spots: [number, number][] = [[33, 6], [4, 8], [35, 24], [6, 26]];
+  return kinds.map((kind, i) => {
+    const [bx, by] = spots[i];
+    let x = bx; let y = by;
+    for (let k = 0; k < 20 && (map.terrain[y * map.w + x] === 'water'); k++) { y--; }
+    x += Math.floor(nextRand(s) * 3) - 1;
+    return { id: `poi-${i}`, kind, x: Math.max(0, Math.min(map.w - 1, x)), y: Math.max(0, Math.min(map.h - 1, y)), found: false };
+  });
 }
 
 const newId = (s: CivState, p: string) => `${p}-${s.nextId++}`;
@@ -66,7 +89,9 @@ export function createSim(seed = 1): CivSim {
     citizens: [],
     nodes: map.nodes.map(n => ({ id: n.id, kind: n.kind, x: n.x, y: n.y, amount: n.amount, max: n.amount, workers: 0 })),
     buildings: [{ id: fire.id, kind: 'campfire', x: fire.x, y: fire.y, w: 1, h: 1, state: 'done', progress: 1, paid: {}, workers: 0 }],
-    seenDiscoveries: [], capabilities: [], unlockedBuildings: ['shelter'], events: [], hints: {}, activeHint: null, visitor: null, alerts: [],
+    seenDiscoveries: [], capabilities: [], unlockedBuildings: ['shelter'], events: [], hints: {}, activeHint: null, visitor: null, revealed: '', expeditions: [], poi: [], hazard: null, children: [], pins: [], notes: [],
+    policies: { resourceUse: 'balanced', constructionFocus: 'none', explorationStance: 'balanced', gatheringRadius: 'extended', knowledgeFocus: 'open' },
+    tutorial: { step: 0, done: false }, alerts: [],
     milestones: [], settings: { pauseWhileCrafting: false, workIntensity: 'normal', foodReserveDays: 3 },
     counters: { gathered: emptyStock(), consumed: emptyStock(), crafted: 0, deaths: 0 },
   };
@@ -74,27 +99,39 @@ export function createSim(seed = 1): CivSim {
     const a = (i / 5) * Math.PI * 2;
     s.citizens.push(makeCitizen(s, fire.x + Math.round(Math.cos(a) * 2), fire.y + Math.round(Math.sin(a) * 2)));
   }
-  pushEvent(s, 'founded', { people: 5 }, 'Five people gather around a fire by the river and decide to stay.');
+  s.citizens[0].age = 'elder';
+  s.revealed = initialFog(map, fire);
+  s.poi = makePois(map, s);
+  pushEvent(s, 'founded', { people: 5 }, 'Five people, one of them an elder, gather around a fire by the river and decide to stay.');
   return { map, s };
 }
 
 /* ---------- derived values (selectors) ---------- */
 
+/** Low ground: land within two tiles of the river, the only ground a flood can reach. */
+export function nearWater(map: WorldMap, x: number, y: number): boolean {
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (tileAt(map, x + dx, y + dy) === 'water') return true;
+  return false;
+}
+
 export const doneBuildings = (s: CivState, kind: string) => s.buildings.filter(b => b.kind === kind && b.state === 'done');
-export const capacity = (s: CivState) => STOCK.baseCapacity + STOCK.perStorage * doneBuildings(s, 'storage').length + 60 * doneBuildings(s, 'granary').length;
+export const capacity = (s: CivState) => STOCK.baseCapacity + STOCK.perStorage * doneBuildings(s, 'storage').length + 60 * doneBuildings(s, 'granary').length + (hasCapability(s, 'pottery') ? 10 : 0);
 export const hasCapability = (s: CivState, id: string) => s.capabilities.some(c => c.id === id);
 /** Beds in finished shelters. Without one, people sleep rough by the fire and recover slowly. */
 export const sleepCapacity = (s: CivState) => SHELTER_SLEEPERS * doneBuildings(s, 'shelter').length;
-export const foodPerDay = (s: CivState) => Math.max(1, s.citizens.length) * ((CITIZEN.hungerPerTick * DAY_TICKS) / CITIZEN.eatRelief);
+export const foodPerDay = (s: CivState) => Math.max(1, s.citizens.length + childPressure(s)) * ((CITIZEN.hungerPerTick * DAY_TICKS) / CITIZEN.eatRelief);
 export const foodDays = (s: CivState) => s.stock.food / foodPerDay(s);
 
 export function buildGrid(sim: CivSim): Grid {
   const { map, s } = sim;
   const blocked = new Uint8Array(map.w * map.h);
-  for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) if (!isLand(map, x, y)) blocked[y * map.w + x] = 1;
+  const flooding = !!s.hazard && s.tick >= s.hazard.startTick && s.tick < s.hazard.endTick;
+  for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
+    if (!isLand(map, x, y) || (flooding && nearWater(map, x, y))) blocked[y * map.w + x] = 1;
+  }
   for (const n of s.nodes) if (n.amount > 0 || n.kind === 'bush') blocked[n.y * map.w + n.x] = 1;
   for (const b of s.buildings) {
-    if (b.kind === 'farm' && b.state === 'done') continue;
+    if (b.kind === 'road' || (b.kind === 'farm' && b.state === 'done')) continue;
     for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) blocked[(b.y + j) * map.w + b.x + i] = 1;
   }
   return { w: map.w, h: map.h, blocked };
@@ -244,16 +281,16 @@ function decide(sim: CivSim, g: Grid, c: Citizen, occupancy: Map<string, number>
     const boost = c.override?.category === cat ? 30 : 0;
     const base = prio * 10 + boost;
     if (cat === 'food') {
-      if (s.stock.food >= cap) return;
+      if (s.stock.food >= stockLimit(s, cap)) return;
       const need = foodDays(s) < s.settings.foodReserveDays ? 14 : 0;
       for (const n of s.nodes) if (n.kind === 'bush' && n.amount > 0 && (workers.get(n.id) ?? 0) < 2) pushNode(n, base + need, 'food');
       for (const b of doneBuildings(s, 'farm')) if ((b.amount ?? 0) > 0 && (workers.get(b.id) ?? 0) < BUILDINGS.farm.workerSlots) pushBuilding(b, base + 6 + (foodDays(s) < s.settings.foodReserveDays ? 14 : 0), 'gather', 'food', 'Harvesting the farm plot');
     } else if (cat === 'wood') {
-      if (s.stock.wood >= cap) return;
+      if (s.stock.wood >= stockLimit(s, cap)) return;
       const need = s.stock.wood < 12 ? 8 : 0;
       for (const n of s.nodes) if (n.kind === 'tree' && n.amount > 0 && (workers.get(n.id) ?? 0) < 2) pushNode(n, base + need, 'wood');
     } else if (cat === 'stone') {
-      if (s.stock.stone >= cap) return;
+      if (s.stock.stone >= stockLimit(s, cap)) return;
       const need = s.stock.stone < 6 ? 5 : 0;
       for (const n of s.nodes) if (n.kind === 'rock' && n.amount > 0 && (workers.get(n.id) ?? 0) < 2) pushNode(n, base + need, 'stone');
     } else if (cat === 'build') {
@@ -264,13 +301,16 @@ function decide(sim: CivSim, g: Grid, c: Citizen, occupancy: Map<string, number>
     }
     function pushNode(n: NodeState, score: number, res: ResourceId) {
       const near = nearestOf(g, reach, ringAround(g, n.x, n.y, 1, 1));
-      if (!near || near.d > CITIZEN.reach * 2) return;
+      if (!near || near.d > reachFor(s) * 2) return;
+      if (!isRevealed(s, sim.map.w, n.x, n.y)) return; // unexplored ground hides its resources
+      if (floodActive(s) && nearWater(sim.map, n.x, n.y)) return;
       opts.push({ score: score - near.d * 0.6, goal: near, purpose: 'gather', targetId: n.id, left: CITIZEN.gatherTicks, cat,
         reason: `Gathering ${res} (${PRIORITY_WORDS[s.priorities[cat]]})` });
     }
     function pushBuilding(b: BuildingState, score: number, purpose: Task['kind'], _res: ResourceId | undefined, reason: string) {
       const near = nearestOf(g, reach, access(g, b));
       if (!near) return;
+      if (purpose === 'build') score += focusBonus(s, b.kind);
       opts.push({ score: score - near.d * 0.6, goal: near, purpose, targetId: b.id, left: purpose === 'craft' ? CITIZEN.craftTicks : CITIZEN.buildStepTicks, cat, reason });
     }
   };
@@ -367,7 +407,8 @@ export function stepSim(sim: CivSim): void {
 function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: Map<string, number>, occupancy: Map<string, number>) {
   const { s } = sim;
   const t = c.task;
-  const weak = c.hunger >= CITIZEN.starvingAt ? 0.5 : 1;
+  const weak = (c.hunger >= CITIZEN.starvingAt ? 0.5 : 1) * (c.age === 'elder' ? 0.85 : 1);
+  if (t.kind === 'away') return; // on an expedition: the expedition system owns this person
 
   if (t.kind === 'idle') {
     if (s.tick >= c.commitUntil || c.hunger >= CITIZEN.urgentHunger) decide(sim, g, c, occupancy, workers);
@@ -384,7 +425,8 @@ function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: M
 
   if (t.kind === 'walk') {
     const step = CITIZEN.speed * weak;
-    let budget = step;
+    const onRoad = s.buildings.some(b => b.kind === 'road' && b.state === 'done' && b.x === Math.round(c.x) && b.y === Math.round(c.y));
+    let budget = onRoad ? step * 1.5 : step;
     while (budget > 0 && c.path.length) {
       const [nx, ny] = c.path[0];
       const dx = nx - c.x;
@@ -495,7 +537,7 @@ function completeBuilding(sim: CivSim, b: BuildingState, by: Citizen) {
   const { s } = sim;
   b.state = 'done';
   b.progress = 1;
-  if (b.kind === 'farm') { b.max = 6; b.amount = 6; }
+  if (b.kind === 'farm') { b.max = hasCapability(s, 'irrigation') ? 9 : 6; b.amount = b.max; }
   const def = BUILDINGS[b.kind];
   pushEvent(s, 'building_done', { building: b.kind, x: b.x, y: b.y, by: by.name }, `${by.name} and the others finish the ${def.name.toLowerCase()}.`);
   const key = `first_${b.kind}`;
@@ -505,10 +547,10 @@ function completeBuilding(sim: CivSim, b: BuildingState, by: Citizen) {
 
 function maybeArrival(sim: CivSim) {
   const { s } = sim;
-  if (s.tick % DAY_TICKS !== 0 || s.tick < ARRIVAL_MIN_TICKS || s.citizens.length >= MAX_CITIZENS) return;
+  if (s.tick % DAY_TICKS !== 0 || s.tick < ARRIVAL_MIN_TICKS || s.citizens.length >= MAX_CITIZENS + 4 * doneBuildings(s, 'assembly').length) return;
   const last = [...s.events].reverse().find(e => e.kind === 'arrival');
   if (last && s.tick - last.tick < ARRIVAL_MIN_TICKS) return;
-  const free = sleepCapacity(s) - s.citizens.length;
+  const free = sleepCapacity(s) - s.citizens.length - s.children.length;
   if (free <= 0 || foodDays(s) < s.settings.foodReserveDays) return;
   const fire = s.buildings[0];
   const c = makeCitizen(s, fire.x, fire.y + 1);
@@ -542,7 +584,7 @@ export function maybeVisitor(sim: CivSim) {
   }
   if (s.tick % DAY_TICKS !== Math.floor(DAY_TICKS / 2) || dayOf(s.tick) < 4) return;
   const last = [...s.events].reverse().find(e => e.kind === 'trade');
-  if (last && s.tick - last.tick < DAY_TICKS * 3) return;
+  if (last && s.tick - last.tick < DAY_TICKS * (doneBuildings(s, 'market').length ? 1.5 : 3)) return;
   const surplus = [...TRADE_RES].sort((a, b) => s.stock[b] - s.stock[a])[0];
   const scarce = [...TRADE_RES].sort((a, b) => s.stock[a] - s.stock[b])[0];
   if (surplus === scarce || s.stock[surplus] < 14 || s.stock[scarce] > 12) return;
