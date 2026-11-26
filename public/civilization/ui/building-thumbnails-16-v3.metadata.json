@@ -1,0 +1,27 @@
+{
+  "assetId": "ui_building_thumbnails_v3",
+  "frameWidth": 16,
+  "frameHeight": 16,
+  "frames": 16,
+  "order": [
+    "shelter",
+    "house",
+    "storage",
+    "workshop",
+    "farm",
+    "road",
+    "well",
+    "drying",
+    "kiln",
+    "granary",
+    "forge",
+    "market",
+    "assembly",
+    "trading",
+    "records",
+    "town"
+  ],
+  "notes": "Distinct pitched, flat, arched, awning, well and field silhouettes; no floating pixels",
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

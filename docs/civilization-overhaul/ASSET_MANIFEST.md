@@ -215,6 +215,7 @@
 | `event_part2_cards` | `public/civilization/events/part2-event-cards.png` | Event illustration strip | 384x64 (64x64 cells) | 6 | — | — | Center | Harvest festival, disagreement, flood warning, migration, policy change, discovery milestone |
 | `ui_building_thumbnails_refresh` | `public/civilization/ui/building-thumbnails-16.png` | Refreshed thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Highlight pass for clearer silhouettes at game scale |
 | `ui_building_thumbnails_v2` | `public/civilization/ui/building-thumbnails-16-v2.png` | Refreshed thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Stronger highlight clusters; preferred compact UI variant |
+| `ui_building_thumbnails_v3` | `public/civilization/ui/building-thumbnails-16-v3.png` | Refreshed thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Distinct pitched/flat/arched/awning/well/field silhouettes; no floating pixels |
 
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
