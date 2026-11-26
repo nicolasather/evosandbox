@@ -89,6 +89,7 @@ describe('construction', () => {
     run(sim, 500);
     const b = sim.s.buildings.find(q => q.kind === 'shelter');
     expect(b?.state).toBe('done');
+    sim.s.stock.wood = 30;
     // a second site, cancelled straight away, returns 75% of the cost
     const [x2, y2] = nearFire(sim);
     const second = placeBuilding(sim, 'shelter', x2, y2);

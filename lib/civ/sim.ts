@@ -89,11 +89,11 @@ export function createSim(seed = 1): CivSim {
     citizens: [],
     nodes: map.nodes.map(n => ({ id: n.id, kind: n.kind, x: n.x, y: n.y, amount: n.amount, max: n.amount, workers: 0 })),
     buildings: [{ id: fire.id, kind: 'campfire', x: fire.x, y: fire.y, w: 1, h: 1, state: 'done', progress: 1, paid: {}, workers: 0 }],
-    seenDiscoveries: [], capabilities: [], unlockedBuildings: ['shelter'], events: [], hints: {}, activeHint: null, visitor: null, revealed: '', expeditions: [], poi: [], hazard: null, children: [], pins: [], notes: [],
+    seenDiscoveries: [], capabilities: [], unlockedBuildings: ['shelter'], events: [], hints: {}, activeHint: null, visitor: null, revealed: '', expeditions: [], poi: [], hazard: null, children: [], foodLog: [], migrant: null, pins: [], notes: [],
     policies: { resourceUse: 'balanced', constructionFocus: 'none', explorationStance: 'balanced', gatheringRadius: 'extended', knowledgeFocus: 'open' },
     tutorial: { step: 0, done: false }, alerts: [],
     milestones: [], settings: { pauseWhileCrafting: false, workIntensity: 'normal', foodReserveDays: 3 },
-    counters: { gathered: emptyStock(), consumed: emptyStock(), crafted: 0, deaths: 0 },
+    counters: { gathered: emptyStock(), consumed: emptyStock(), crafted: 0, deaths: 0, spoiled: 0 },
   };
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
@@ -246,6 +246,9 @@ function decide(sim: CivSim, g: Grid, c: Citizen, occupancy: Map<string, number>
   const { s } = sim;
   const reach = reachFrom(g, Math.round(c.x), Math.round(c.y));
   const opts: Option[] = [];
+  // people avoid standing on the same tile: free spots are preferred, a shared spot is used only when nothing else is open
+  const occ = new Set(s.citizens.filter(o => o !== c && (o.task.kind === 'gather' || o.task.kind === 'build' || o.task.kind === 'craft')).map(o => Math.round(o.y) * sim.map.w + Math.round(o.x)));
+  const pickNear = (goals: readonly [number, number][]) => nearestOf(g, reach, goals.filter(([x, y]) => !occ.has(y * sim.map.w + x))) ?? nearestOf(g, reach, goals);
   const cap = capacity(s);
   const drops = dropPoints(s);
   const nearestDrop = () => {
@@ -262,7 +265,9 @@ function decide(sim: CivSim, g: Grid, c: Citizen, occupancy: Map<string, number>
     const d = nearestDrop();
     if (d) opts.push({ score: 90, goal: d, purpose: 'deposit', targetId: d.id, reason: `Carrying ${c.carrying.res} to the store`, left: 2 });
   }
-  if (c.hunger >= CITIZEN.eatAt && s.stock.food > 0) {
+  // the reserve is for emergencies: ordinary hunger waits when only the reserve is left, real hunger never does
+  const reserveUnits = Math.floor(foodPerDay(s) * s.settings.foodReserveDays * 0.5);
+  if (c.hunger >= CITIZEN.eatAt && s.stock.food > 0 && (s.stock.food > reserveUnits || c.hunger >= CITIZEN.urgentHunger)) {
     const d = nearestDrop();
     if (d) opts.push({ score: c.hunger >= CITIZEN.urgentHunger ? 140 : 70 + (c.hunger - CITIZEN.eatAt), goal: d, purpose: 'eat', targetId: d.id, left: 3,
       reason: c.hunger >= CITIZEN.urgentHunger ? 'Eating because hunger is critical' : 'Eating because hunger is high' });
@@ -284,7 +289,7 @@ function decide(sim: CivSim, g: Grid, c: Citizen, occupancy: Map<string, number>
       if (s.stock.food >= stockLimit(s, cap)) return;
       const need = foodDays(s) < s.settings.foodReserveDays ? 14 : 0;
       for (const n of s.nodes) if (n.kind === 'bush' && n.amount > 0 && (workers.get(n.id) ?? 0) < 2) pushNode(n, base + need, 'food');
-      for (const b of doneBuildings(s, 'farm')) if ((b.amount ?? 0) > 0 && (workers.get(b.id) ?? 0) < BUILDINGS.farm.workerSlots) pushBuilding(b, base + 6 + (foodDays(s) < s.settings.foodReserveDays ? 14 : 0), 'gather', 'food', 'Harvesting the farm plot');
+      for (const b of doneBuildings(s, 'farm')) if (!b.paused && (b.amount ?? 0) > 0 && (workers.get(b.id) ?? 0) < BUILDINGS.farm.workerSlots) pushBuilding(b, base + 6 + (foodDays(s) < s.settings.foodReserveDays ? 14 : 0), 'gather', 'food', 'Harvesting the farm plot');
     } else if (cat === 'wood') {
       if (s.stock.wood >= stockLimit(s, cap)) return;
       const need = s.stock.wood < 12 ? 8 : 0;
@@ -300,7 +305,7 @@ function decide(sim: CivSim, g: Grid, c: Citizen, occupancy: Map<string, number>
       for (const b of [...doneBuildings(s, 'workshop'), ...doneBuildings(s, 'forge')]) if ((workers.get(b.id) ?? 0) < BUILDINGS[b.kind].workerSlots) pushBuilding(b, base + (b.kind === 'forge' ? 2 : 0), 'craft', undefined, b.kind === 'forge' ? 'Making tools at the forge' : 'Making a tool at the workshop');
     }
     function pushNode(n: NodeState, score: number, res: ResourceId) {
-      const near = nearestOf(g, reach, ringAround(g, n.x, n.y, 1, 1));
+      const near = pickNear(ringAround(g, n.x, n.y, 1, 1));
       if (!near || near.d > reachFor(s) * 2) return;
       if (!isRevealed(s, sim.map.w, n.x, n.y)) return; // unexplored ground hides its resources
       if (floodActive(s) && nearWater(sim.map, n.x, n.y)) return;
@@ -308,7 +313,8 @@ function decide(sim: CivSim, g: Grid, c: Citizen, occupancy: Map<string, number>
         reason: `Gathering ${res} (${PRIORITY_WORDS[s.priorities[cat]]})` });
     }
     function pushBuilding(b: BuildingState, score: number, purpose: Task['kind'], _res: ResourceId | undefined, reason: string) {
-      const near = nearestOf(g, reach, access(g, b));
+      if (b.paused) return; // switched off by the player
+      const near = pickNear(access(g, b));
       if (!near) return;
       if (purpose === 'build') score += focusBonus(s, b.kind);
       opts.push({ score: score - near.d * 0.6, goal: near, purpose, targetId: b.id, left: purpose === 'craft' ? CITIZEN.craftTicks : CITIZEN.buildStepTicks, cat, reason });
@@ -397,6 +403,7 @@ export function stepSim(sim: CivSim): void {
   s.nodes = s.nodes.filter(n => n.kind === 'bush' || n.amount > 0);
 
   maybeArrival(sim);
+  if (s.migrant && s.tick >= s.migrant.leavesTick) declineMigrant(sim);
   updateMilestones(sim);
   if (s.tick % DAY_TICKS === 0 && s.tick > 0) {
     const season = seasonOf(s.tick);
@@ -552,11 +559,35 @@ function maybeArrival(sim: CivSim) {
   if (last && s.tick - last.tick < ARRIVAL_MIN_TICKS) return;
   const free = sleepCapacity(s) - s.citizens.length - s.children.length;
   if (free <= 0 || foodDays(s) < s.settings.foodReserveDays) return;
+  if (s.migrant) return;
+  const name = NAMES[(s.nextId + Math.floor(nextRand(s) * NAMES.length)) % NAMES.length];
+  s.migrant = { id: newId(s, 'm'), name, arrivedTick: s.tick, leavesTick: s.tick + DAY_TICKS };
+  pushEvent(s, 'arrival', { name, offer: true }, `${name} arrives and asks to stay. There is a free bed and food enough. They would eat about one food a day.`);
+}
+
+/** The player accepts a newcomer: only then does the population grow. */
+export function acceptMigrant(sim: CivSim): boolean {
+  const { s } = sim;
+  if (!s.migrant) return false;
+  if (sleepCapacity(s) - s.citizens.length - s.children.length <= 0) return false;
   const fire = s.buildings[0];
   const c = makeCitizen(s, fire.x, fire.y + 1);
+  c.name = s.migrant.name;
   s.citizens.push(c);
-  pushEvent(s, 'arrival', { name: c.name, people: s.citizens.length }, `${c.name} arrives and asks to stay. There is room and food enough.`);
+  pushEvent(s, 'arrival', { name: c.name, people: s.citizens.length }, `${c.name} joins the settlement.`);
+  s.migrant = null;
+  return true;
 }
+
+/** Declining costs nothing: the visitor leaves without hard feelings. */
+export function declineMigrant(sim: CivSim) {
+  const { s } = sim;
+  if (!s.migrant) return;
+  pushEvent(s, 'arrival', { name: s.migrant.name, declined: true }, `${s.migrant.name} moves on, with no hard feelings.`);
+  s.migrant = null;
+}
+
+export function toggleBuildingPause(s: CivState, id: string) { const b = s.buildings.find(x => x.id === id && x.state === 'done'); if (b) b.paused = !b.paused; }
 
 function updateMilestones(sim: CivSim) {
   const { s } = sim;

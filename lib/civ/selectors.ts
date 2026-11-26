@@ -1,5 +1,5 @@
 import { CITIZEN } from './data/config';
-import { capacity, doneBuildings, foodDays, hasCapability } from './sim';
+import { capacity, doneBuildings, foodDays, foodPerDay, hasCapability, sleepCapacity } from './sim';
 import type { Citizen, CivState, JobCategory } from './types';
 import { JOB_CATEGORIES } from './types';
 
@@ -65,4 +65,29 @@ export const needWord = (v: number, invert = false) => {
 
 export function reserveSummary(s: CivState) {
   return { days: foodDays(s), capacity: capacity(s) };
+}
+
+/** One aggregate mood with its contributors, so it can always be explained (master design section 34). */
+export function moodOf(s: CivState): { score: number; label: string; contributors: string[] } {
+  const n = Math.max(1, s.citizens.length);
+  const hunger = s.citizens.reduce((a, c) => a + c.hunger, 0) / n;
+  const energy = s.citizens.reduce((a, c) => a + c.energy, 0) / n;
+  const beds = s.citizens.length <= 0 ? 1 : Math.min(1, (sleepCapacity(s) || 0) / n);
+  const contributors: string[] = [];
+  let score = 70;
+  score -= Math.max(0, hunger - 30) * 0.5; if (hunger > 55) contributors.push('hunger');
+  score -= Math.max(0, 60 - energy) * 0.4; if (energy < 40) contributors.push('tiredness');
+  score += beds * 15; if (beds < 1) contributors.push('not enough beds'); else contributors.push('everyone has a bed');
+  if (s.milestones.includes('festival')) { score += 5; contributors.push('the harvest festival'); }
+  if (s.milestones.includes('workload_unrest')) { score -= 10; contributors.push('heavy workload'); }
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  return { score, label: score >= 70 ? 'Good' : score >= 45 ? 'Fair' : 'Low', contributors };
+}
+
+/** Food at a glance: stock, eating rate, trend over the last days, and what is held in reserve. */
+export function foodSummary(s: CivState) {
+  const perDay = foodPerDay(s);
+  const log = s.foodLog;
+  const trend = log.length >= 2 ? log[log.length - 1] - log[0] : 0;
+  return { stock: s.stock.food, perDay, days: foodDays(s), trend, reserve: Math.floor(perDay * s.settings.foodReserveDays * 0.5), gathered: s.counters.gathered.food, eaten: s.counters.consumed.food, spoiled: s.counters.spoiled };
 }

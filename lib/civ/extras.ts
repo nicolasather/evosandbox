@@ -291,7 +291,47 @@ export function skipTutorial(s: CivState) { s.tutorial.done = true; }
 
 /* ---------- one call per tick ---------- */
 
+/** Once a day: weather and storage, the food log, teaching, the first festival, and the cost of overwork. */
+export function stepDaily(sim: CivSim) {
+  const { s } = sim;
+  if (s.tick === 0 || s.tick % DAY_TICKS !== 0) return;
+  // exposed food spoils a little; protected storage cuts the loss (explained in the event, never silent)
+  const protectedStore = doneBuildings(s, 'storage').length + doneBuildings(s, 'granary').length + doneBuildings(s, 'drying_rack').length > 0;
+  if (s.stock.food > 10) {
+    const lost = Math.floor((s.stock.food - 10) * (protectedStore ? 0.02 : 0.1));
+    if (lost > 0) {
+      s.stock.food -= lost;
+      s.counters.spoiled += lost;
+      if (lost >= 2) pushEvent(s, 'spoilage', { lost, protectedStore }, protectedStore ? `${lost} food spoiled despite the store.` : `Rain and damp spoiled ${lost} food left in the open. Protected storage would cut this.`);
+    }
+  }
+  s.foodLog.push(s.stock.food);
+  if (s.foodLog.length > 6) s.foodLog.shift();
+  // knowledge passes on: an elder teaches the least skilled adult
+  const elder = s.citizens.find(c => c.age === 'elder');
+  const pupil = [...s.citizens].filter(c => c.age === 'adult').sort((a, b) => a.skill.gather + a.skill.build + a.skill.craft - (b.skill.gather + b.skill.build + b.skill.craft))[0];
+  if (elder && pupil) { pupil.skill.gather = Math.min(5, pupil.skill.gather + 0.05); pupil.skill.build = Math.min(5, pupil.skill.build + 0.05); }
+  // the first harvest festival happens only when there is food to spare, and the history says why it was postponed
+  if (doneBuildings(s, 'farm').length > 0 && !s.milestones.includes('festival')) {
+    if (foodDays(s) >= s.settings.foodReserveDays + 1) {
+      s.milestones.push('festival');
+      pushEvent(s, 'milestone', { festival: true }, 'The first harvest. Everyone gathers by the fire to share it. It gives no bonus, it is simply remembered.');
+    } else if (!s.milestones.includes('festival_postponed')) {
+      s.milestones.push('festival_postponed');
+      pushEvent(s, 'milestone', { festival: false }, 'The harvest feast is postponed: there is not enough food to spare yet.');
+    }
+  }
+  // intense work wears people down: a visible trade-off with a way out
+  const avg = s.citizens.reduce((a, c) => a + c.energy, 0) / Math.max(1, s.citizens.length);
+  if (s.settings.workIntensity === 'intense' && avg < 45 && !s.milestones.includes('workload_unrest')) {
+    s.milestones.push('workload_unrest');
+    pushEvent(s, 'milestone', { energy: Math.round(avg) }, 'Some people are unhappy with the workload. Keep it, or set work intensity back to normal in Help.');
+  }
+  if (s.settings.workIntensity !== 'intense') s.milestones = s.milestones.filter(m => m !== 'workload_unrest');
+}
+
 export function stepExtras(sim: CivSim) {
+  stepDaily(sim);
   stepExpeditions(sim);
   stepHazard(sim);
   stepPopulation(sim);

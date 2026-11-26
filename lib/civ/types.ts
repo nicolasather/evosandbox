@@ -79,6 +79,8 @@ export interface BuildingState {
   /** Cost already paid, kept for the cancel refund rule. */
   paid: Partial<Stock>;
   workers: number;
+  /** The player switched this workplace off. */
+  paused?: boolean;
   /** farm plots regrow a harvest; workshops report why they are idle. */
   amount?: number;
   max?: number;
@@ -87,7 +89,7 @@ export interface BuildingState {
 
 export type EventKind =
   | 'founded' | 'discovery' | 'capability' | 'building_started' | 'building_done' | 'first_craft' | 'first_harvest'
-  | 'shortage' | 'recovery' | 'arrival' | 'milestone' | 'hint' | 'trade' | 'season' | 'explore' | 'hazard' | 'birth';
+  | 'shortage' | 'recovery' | 'arrival' | 'milestone' | 'hint' | 'trade' | 'season' | 'explore' | 'hazard' | 'birth' | 'spoilage';
 
 export interface CivEvent {
   id: number;
@@ -140,6 +142,8 @@ export interface Policies {
   knowledgeFocus: 'open' | 'tools' | 'food' | 'shelter';
 }
 
+export interface Migrant { id: string; name: string; arrivedTick: number; leavesTick: number }
+
 export interface Settings {
   pauseWhileCrafting: boolean;
   workIntensity: 'relaxed' | 'normal' | 'intense';
@@ -172,6 +176,10 @@ export interface CivState {
   hazard: Hazard | null;
   /** Birth ticks of children (a cohort, not individuals); they grow into named adults. */
   children: number[];
+  /** Daily food stock, newest last, for the trend shown in the HUD. */
+  foodLog: number[];
+  /** A newcomer who asks to stay: the player sees the extra demand and accepts or declines. */
+  migrant: Migrant | null;
   pins: Pin[];
   notes: MapNote[];
   policies: Policies;
@@ -180,7 +188,7 @@ export interface CivState {
   milestones: string[];
   settings: Settings;
   /** Cumulative counters used by milestones and tests. */
-  counters: { gathered: Stock; consumed: Stock; crafted: number; deaths: number };
+  counters: { gathered: Stock; consumed: Stock; crafted: number; deaths: number; spoiled: number };
 }
 
 /** The runtime view the renderer wants: a WorldMap whose nodes/buildings mirror the state. */

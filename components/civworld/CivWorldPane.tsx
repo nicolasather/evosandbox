@@ -12,7 +12,7 @@ import db from '@/data/db.json';
 import { CivAudio, soundForEvent } from '@/lib/civ/audio';
 import { UI_PREFS_KEY, animationOn, parseUiPrefs, qualityFlags, serializeUiPrefs, type UiPrefs } from '@/lib/civ/uiPrefs';
 import { ExplorePanel, NotesSection, PinsSection, PoliciesSection, SettingsSection, TutorialTip } from './panels2';
-import { BuildDrawer, GoalsDrawer, HelpDrawer, Hud, HintCard, DiscoveryToast, Inspector, JobsDrawer, JournalDrawer, LogDrawer, Notice, Toolbar, TradeCard, type DrawerId, type Tool } from './panels';
+import { BuildDrawer, GoalsDrawer, HelpDrawer, Hud, HintCard, DiscoveryToast, Inspector, JobsDrawer, JournalDrawer, LogDrawer, Notice, MigrantCard, Toolbar, TradeCard, type DrawerId, type Tool } from './panels';
 import { buildTerrainLayer, drawFrame, type Ghost } from './render';
 import { useCivVersion } from './useCiv';
 
@@ -241,7 +241,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     : drawer === 'jobs' ? <JobsDrawer rt={rt} />
       : drawer === 'goals' ? <><GoalsDrawer rt={rt} /><PinsSection rt={rt} /></>
         : drawer === 'journal' ? <><JournalDrawer rt={rt} names={DISCOVERY_NAMES} /><NotesSection rt={rt} onFocus={focusOn} /></>
-      : drawer === 'log' ? <LogDrawer rt={rt} />
+      : drawer === 'log' ? <LogDrawer rt={rt} onFocus={focusOn} />
         : drawer === 'help' ? <><HelpDrawer rt={rt} /><PoliciesSection rt={rt} /><SettingsSection ui={ui} setUi={setUi} /></> : null;
 
   return (
@@ -268,6 +268,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
       {tool === 'explore' && !target && <div className="cw-buildbar" role="status">Click unexplored (dark) ground to plan an expedition. <button type="button" onClick={() => setTool('none')}>Cancel</button></div>}
       {target && <ExplorePanel rt={rt} target={target} onClose={() => { setTarget(null); setTool('none'); }} />}
       <TradeCard rt={rt} />
+      <MigrantCard rt={rt} />
       <DiscoveryToast rt={rt} />
       <Notice rt={rt} />
       {drawerBody && <aside className="cw-drawer" aria-label={drawer ?? ''}>{drawerBody}<button type="button" className="cw-drawer-close" onClick={() => setDrawer(null)}>Close</button></aside>}

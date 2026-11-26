@@ -3,7 +3,7 @@ import { AUTOSAVE_TICKS, SPEEDS, TICKS_PER_SECOND, type Speed } from './data/con
 import { askMoreHint, dismissHint, stepWorld } from './hints';
 import { CIV_BACKUP_KEY, CIV_CORRUPT_KEY, CIV_SAVE_KEY, parseSave, serializeSim } from './save';
 import { addNote, addPin, previewExpedition, removeNote, removePin, sendExpedition, setPolicy, skipTutorial, togglePin, tutorialEvent } from './extras';
-import { acceptTrade, assignOverride, cancelBuilding, createSim, declineTrade, placeBuilding, setPriority, type CivSim } from './sim';
+import { acceptMigrant, declineMigrant, toggleBuildingPause, acceptTrade, assignOverride, cancelBuilding, createSim, declineTrade, placeBuilding, setPriority, type CivSim } from './sim';
 import type { CivState, JobCategory, Policies, Settings } from './types';
 
 /* ============================================================================
@@ -115,6 +115,9 @@ export class CivRuntime {
   removeNote(id: string) { removeNote(this.state, id); this.bump(); }
   tutorial(id: string) { const before = this.state.tutorial.step; tutorialEvent(this.state, id); if (this.state.tutorial.step !== before) this.bump(); }
   skipTutorial() { skipTutorial(this.state); this.bump(); }
+  welcome() { const ok = acceptMigrant(this.sim); this.bump(); return ok; }
+  turnAway() { declineMigrant(this.sim); this.bump(); }
+  pauseBuilding(id: string) { toggleBuildingPause(this.state, id); this.bump(); }
   accept() { const r = acceptTrade(this.sim); this.bump(); return r; }
   decline() { declineTrade(this.sim); this.bump(); }
   dismissHint() { dismissHint(this.state); this.bump(); }

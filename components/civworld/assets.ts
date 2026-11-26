@@ -61,6 +61,10 @@ export const ASSET_SPECS: Record<string, AssetSpec> = {
   terrain_dirt_edge_south: { url: `${BASE}/terrain/dirt-grass-edge-south.png`, w: 32, h: 32 },
   terrain_dirt_edge_west: { url: `${BASE}/terrain/dirt-grass-edge-west.png`, w: 32, h: 32 },
   bld_shelter_large: { url: `${BASE}/buildings/shelter-96.png`, w: 96, h: 96 },
+  bld_market: { url: `${BASE}/buildings/trading-post-stages.png`, w: 64, h: 64, frames: 3 },
+  terrain_cart_road: { url: `${BASE}/terrain/cart-road-variants.png`, w: 32, h: 32, frames: 4 },
+  animal_deer_walk: { url: `${BASE}/animals/deer-walk.png`, w: 32, h: 48, frames: 4, fps: 6 },
+  animal_rabbit_walk: { url: `${BASE}/animals/rabbit-walk.png`, w: 32, h: 48, frames: 4, fps: 6 },
   bld_house: { url: `${BASE}/buildings/house-stages.png`, w: 64, h: 64, frames: 3 },
   bld_pottery_kiln: { url: `${BASE}/buildings/pottery-kiln-stages.png`, w: 64, h: 64, frames: 3 },
   bld_drying_rack: { url: `${BASE}/buildings/drying-rack-stages.png`, w: 64, h: 64, frames: 3 },
@@ -75,18 +79,45 @@ export const ASSET_SPECS: Record<string, AssetSpec> = {
   portrait_villager_d: { url: `${BASE}/portraits/villager_d.png`, w: 48, h: 48 },
 };
 
+/** A sheet that does not match its contract is reported and replaced by the placeholder instead of being drawn wrongly. */
+export function validateSheet(spec: AssetSpec, naturalW: number, naturalH: number): string | null {
+  const frames = spec.frames ?? 1;
+  if (naturalH < spec.h) return `height ${naturalH} is smaller than the ${spec.h}px cell`;
+  if (frames > 1 && naturalW < spec.w * frames && naturalH < spec.h * frames) return `width ${naturalW} holds fewer than ${frames} frames of ${spec.w}px`;
+  if (frames <= 1 && naturalW < spec.w) return `width ${naturalW} is smaller than the ${spec.w}px cell`;
+  return null;
+}
+
+/** Frame to draw for a looping sheet: strictly in order, and always frame 0 (the static fallback) when animation is off. */
+export function animFrame(frames: number, fps: number, nowMs: number, animate: boolean): number {
+  if (!animate || frames <= 1) return 0;
+  return Math.floor((nowMs / 1000) * fps) % frames;
+}
+
 export class AssetStore {
   private images = new Map<string, HTMLImageElement | null>();
   private listeners = new Set<() => void>();
   /** Bumped whenever an image finishes, so cached layers know to rebuild. */
   version = 0;
+  /** Human-readable problems found while loading, for the QA report. */
+  warnings: string[] = [];
 
   constructor(specs: Record<string, AssetSpec> = ASSET_SPECS) {
     if (typeof Image === 'undefined') return;
     for (const [id, spec] of Object.entries(specs)) {
       this.images.set(id, null);
       const img = new Image();
-      img.onload = () => { this.images.set(id, img); this.bump(); };
+      img.onload = () => {
+        const warn = validateSheet(spec, img.naturalWidth, img.naturalHeight);
+        if (warn) {
+          this.warnings.push(`${id}: ${warn}`);
+          if (typeof console !== 'undefined') console.warn(`[civworld] asset ${id}: ${warn}; using the placeholder`);
+          this.images.set(id, null);
+          return;
+        }
+        this.images.set(id, img);
+        this.bump();
+      };
       img.onerror = () => { this.images.set(id, null); };
       img.src = spec.url;
     }

@@ -146,6 +146,30 @@ export const HINTS: HintDef[] = [
     }),
   },
   {
+    id: 'trader_visit', priority: 42, speakerRole: 'gatherer', cooldownTicks: 200, repeat: 'cooldown',
+    trigger: ({ s }) => !!s.visitor,
+    resolved: ({ s }) => !s.visitor,
+    text: () => ({ observation: 'A traveller has goods we may need.', suggestion: 'See what they offer for our surplus.', guidance: 'The trade card shows the exact quantities. Accept or decline, nothing happens silently.' }),
+  },
+  {
+    id: 'work_fatigue', priority: 48, speakerRole: 'elder', cooldownTicks: 300, repeat: 'cooldown',
+    trigger: ({ s }) => s.citizens.length > 0 && s.citizens.reduce((a, c) => a + c.energy, 0) / s.citizens.length < 35,
+    resolved: ({ s }) => s.citizens.reduce((a, c) => a + c.energy, 0) / Math.max(1, s.citizens.length) >= 55,
+    text: () => ({ observation: 'We have worked hard. A little rest would help.', suggestion: 'More beds, or a gentler pace, would let us recover.', guidance: 'Build a shelter, or set work intensity to relaxed in Help.' }),
+  },
+  {
+    id: 'site_unstaffed', priority: 38, speakerRole: 'builder', cooldownTicks: 300, repeat: 'cooldown',
+    trigger: ({ s }) => s.buildings.some(b => b.state === 'site' && b.workers === 0) && s.tick % 200 < 100 && s.priorities.build === 0,
+    resolved: ({ s }) => !s.buildings.some(b => b.state === 'site') || s.priorities.build > 0,
+    text: () => ({ observation: 'We cannot finish while nobody is told to build.', suggestion: 'Turn the Build job on so builders pick up the site.', guidance: 'Open Jobs and set Build to normal or high.' }),
+  },
+  {
+    id: 'new_resource', priority: 36, speakerRole: 'gatherer', cooldownTicks: 400, repeat: 'cooldown',
+    trigger: ({ s }) => s.events.some(e => e.kind === 'explore' && s.tick - e.tick < 200 && String(e.facts.nodes ?? '').length > 0 && Number(e.facts.nodes) > 0),
+    resolved: ({ s }) => !s.events.some(e => e.kind === 'explore' && s.tick - e.tick < 200),
+    text: () => ({ observation: 'There is good ground beyond the camp, and we have mapped it.', suggestion: 'Workers will now fetch from the newly seen places.', guidance: 'Gathering radius in Help decides how far they walk.' }),
+  },
+  {
     id: 'idle_crew', priority: 30, speakerRole: 'gatherer', cooldownTicks: 300, repeat: 'cooldown',
     trigger: ({ s }) => s.tick > 120 && s.citizens.filter(c => c.task.kind === 'idle' && c.idleReason).length >= 2,
     resolved: ({ s }) => s.citizens.filter(c => c.task.kind === 'idle' && c.idleReason).length < 2,
@@ -226,8 +250,8 @@ export function computeAlerts(s: CivState): Alert[] {
   const days = foodDays(s);
   if (days < 1) out.push({ id: 'food_critical', severity: 'critical', text: `Food will run out in ${Math.max(0, days).toFixed(1)} days`, focus: { x: fire.x * TILE, y: fire.y * TILE } });
   else if (days < s.settings.foodReserveDays) out.push({ id: 'food_low', severity: 'warning', text: `Food reserve is ${days.toFixed(1)} days`, focus: { x: fire.x * TILE, y: fire.y * TILE } });
-  if (pctFull(s) >= 0.95) out.push({ id: 'storage_full', severity: 'warning', text: 'Storage is full: gathering of that good has stopped' });
-  if (sleepCapacity(s) > 0 && s.citizens.length > sleepCapacity(s)) out.push({ id: 'housing_full', severity: 'warning', text: `Only ${sleepCapacity(s)} places to sleep for ${s.citizens.length} people` });
+  if (pctFull(s) >= 0.95) out.push({ id: 'storage_full', severity: 'warning', text: 'Storage is full: gathering of that good has stopped', focus: { x: fire.x * TILE, y: fire.y * TILE } });
+  if (sleepCapacity(s) > 0 && s.citizens.length > sleepCapacity(s)) out.push({ id: 'housing_full', severity: 'warning', text: `Only ${sleepCapacity(s)} places to sleep for ${s.citizens.length} people`, focus: { x: fire.x * TILE, y: fire.y * TILE } });
   if (s.hazard?.phase === 'warned') out.push({ id: 'flood_warning', severity: 'warning', text: 'Flood expected: work on low ground by the river will pause' });
   if (s.hazard?.phase === 'active') out.push({ id: 'flood_active', severity: 'warning', text: 'The river is over its banks: low ground is closed until it falls' });
   const starving = s.citizens.filter(c => c.hunger >= 100).length;

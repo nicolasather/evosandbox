@@ -2,7 +2,7 @@ import { BUILDINGS } from '@/lib/civ/data/buildings';
 import { DAY_TICKS, NIGHT_FRACTION } from '@/lib/civ/data/config';
 import type { BuildingState, Citizen, CivState, NodeState } from '@/lib/civ/types';
 import { NODE_SPRITE, TILE, isWater, tileAt, type Hit, type Terrain, type WorldMap } from '@/lib/civ/world';
-import type { Camera, Size } from '@/lib/civ/camera';
+import { visibleTiles, type Camera, type Size } from '@/lib/civ/camera';
 import type { AssetStore } from './assets';
 
 /* Canvas renderer for the settlement. It only READS simulation state; it never decides
@@ -108,6 +108,8 @@ function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: Buil
   }
   if (b.kind === 'road') {
     ctx.globalAlpha = b.state === 'site' ? 0.5 : 1;
+    const cart = assets.get('terrain_cart_road');
+    if (cart) { ctx.drawImage(cart, ((b.x * 3 + b.y) % 4) * 32, 0, 32, 32, px, py, TILE, TILE); ctx.globalAlpha = 1; return; }
     ctx.fillStyle = '#8d7b5a'; ctx.fillRect(px, py, TILE, TILE);
     ctx.fillStyle = '#a89572'; for (let i = 0; i < 5; i++) ctx.fillRect(px + 3 + ((i * 9) % 22), py + 4 + ((i * 13) % 22), 5, 3);
     ctx.globalAlpha = 1;
@@ -284,10 +286,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   ctx.scale(cam.zoom, cam.zoom);
   if (ground) ctx.drawImage(ground, 0, 0);
 
-  const x0 = Math.floor((cam.cx - view.w / cam.zoom / 2) / TILE) - 2;
-  const x1 = Math.ceil((cam.cx + view.w / cam.zoom / 2) / TILE) + 2;
-  const y0 = Math.floor((cam.cy - view.h / cam.zoom / 2) / TILE) - 2;
-  const y1 = Math.ceil((cam.cy + view.h / cam.zoom / 2) / TILE) + 3;
+  const { x0, x1, y0, y1 } = visibleTiles(cam, view, TILE);
 
   // looping environment sheets (shore foam, wind in the grass). Reduced motion draws frame 0 only, so nothing flickers.
   const mid = f.quality !== 'low';
@@ -341,7 +340,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   }
   // ambient wildlife (cosmetic, no resource accounting): a goat and a sheep wander the eastern meadow in high quality
   if (hi && f.animate) {
-    const spots: [string, number, number][] = [['animal_goat_walk', 31, 9], ['animal_sheep_walk', 33, 12]];
+    const spots: [string, number, number][] = [['animal_goat_walk', 31, 9], ['animal_sheep_walk', 33, 12], ['animal_deer_walk', 6, 9], ['animal_rabbit_walk', 5, 14]];
     spots.forEach(([id, bx, by], i) => {
       const sheet = assets.get(id);
       if (!sheet || s.revealed[by * map.w + bx] !== '1') return;

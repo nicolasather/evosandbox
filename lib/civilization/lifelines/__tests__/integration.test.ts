@@ -36,7 +36,7 @@ describe('hub summary and museum records', () => {
     expect(lifelinesRecords('not json')).toEqual([]);
   });
   it('the Mode Hub registry keeps the stable id and the legacy save key', () => {
-    expect(getMode('civilization')).toMatchObject({ id: 'civilization', subtitle: 'Lifelines', saveKey: 'evo.civilization.v1', status: 'available' });
+    expect(getMode('civilization')).toMatchObject({ id: 'civilization', subtitle: 'Settlements', saveKey: 'evo.civilization.v1', status: 'available' });
   });
   it('no fake museum cards: no chapter is mapped to an exhibit unless verified', () => {
     expect(Object.keys(VERIFIED_CHAPTER_EXHIBITS)).toEqual([]);

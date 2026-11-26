@@ -40,3 +40,13 @@ export function zoomAt(c: Camera, view: Size, map: Size, nextZoom: number, sx: n
 /** The recentre target: the map point of interest at a comfortable zoom. */
 export const recenter = (focus: { x: number; y: number }, zoom: number, view: Size, map: Size): Camera =>
   clampCamera({ cx: focus.x, cy: focus.y, zoom: clampZoom(zoom) }, view, map);
+
+/** Tile rectangle on screen (with a margin for tall sprites): everything outside it is never drawn (offscreen culling). */
+export function visibleTiles(c: Camera, view: Size, tile: number, margin = 2) {
+  return {
+    x0: Math.floor((c.cx - view.w / c.zoom / 2) / tile) - margin,
+    x1: Math.ceil((c.cx + view.w / c.zoom / 2) / tile) + margin,
+    y0: Math.floor((c.cy - view.h / c.zoom / 2) / tile) - margin,
+    y1: Math.ceil((c.cy + view.h / c.zoom / 2) / tile) + margin + 1,
+  };
+}

@@ -5,12 +5,12 @@ import { BUILDINGS, BUILD_ORDER } from '@/lib/civ/data/buildings';
 import { SPEEDS } from '@/lib/civ/data/config';
 import { computeAlerts } from '@/lib/civ/hints';
 import type { CivRuntime } from '@/lib/civ/runtime';
-import { JOB_LABEL, jobStatuses, needWord, timeLabel } from '@/lib/civ/selectors';
+import { JOB_LABEL, foodSummary, jobStatuses, moodOf, needWord, timeLabel } from '@/lib/civ/selectors';
 import { acceptTradeLabel } from './tradeLabel';
 import { PhaseChip } from './panels2';
 import { DISCOVERY_MAP } from '@/lib/civ/data/discoveryMap';
 import { goalsFor, suggestedGoals } from '@/lib/civ/goals';
-import { capacity, dayOf, doneBuildings, foodDays, hasCapability, seasonOf, tradePreview } from '@/lib/civ/sim';
+import { capacity, dayOf, doneBuildings, foodDays, hasCapability, seasonOf, sleepCapacity, tradePreview } from '@/lib/civ/sim';
 import { JOB_CATEGORIES, type CivEvent, type JobCategory } from '@/lib/civ/types';
 import { BUILDING_LABEL, NODE_LABEL, TILE, type Hit } from '@/lib/civ/world';
 
@@ -34,7 +34,8 @@ export function Hud({ rt, onFocus }: { rt: CivRuntime; onFocus: (x: number, y: n
         <span className="cw-chip" title="Day, season and time of day">Day {dayOf(s.tick)} · {seasonOf(s.tick)} · {timeLabel(s.tick)}</span>
         <span className="cw-chip" title="People, and children still growing up">People {s.citizens.length}{s.children.length > 0 ? ` +${s.children.length}` : ''}</span>
         <PhaseChip rt={rt} />
-        <span className="cw-chip" title="Food in store / capacity, and days it will last"><i className="cw-ico" data-i="food" aria-hidden="true" />Food {s.stock.food}/{cap} <small>({days.toFixed(1)}d)</small></span>
+        <MoodChip rt={rt} />
+        <span className="cw-chip" title={foodTitle(s)}><i className="cw-ico" data-i="food" aria-hidden="true" />Food {s.stock.food}/{cap} <small>({days.toFixed(1)}d)</small></span>
         <span className="cw-chip" title="Wood in store / capacity"><i className="cw-ico" data-i="wood" aria-hidden="true" />Wood {s.stock.wood}/{cap}</span>
         <span className="cw-chip" title="Stone in store / capacity"><i className="cw-ico" data-i="stone" aria-hidden="true" />Stone {s.stock.stone}/{cap}</span>
         {hasCapability(s, 'stone_tool') && <span className="cw-chip" title="Tools made"><i className="cw-ico" data-i="tools" aria-hidden="true" />Tools {s.stock.tools}</span>}
@@ -55,6 +56,33 @@ export function Hud({ rt, onFocus }: { rt: CivRuntime; onFocus: (x: number, y: n
 }
 
 /* ---------- bottom toolbar ---------- */
+
+const foodTitle = (s: CivRuntime['state']) => {
+  const f = foodSummary(s);
+  return `Stored ${f.stock}. Eating about ${f.perDay.toFixed(1)} a day. Reserve held back for emergencies: ${f.reserve}. Trend over recent days: ${f.trend > 0 ? 'rising' : f.trend < 0 ? 'falling' : 'steady'}. Gathered ${f.gathered}, eaten ${f.eaten}, spoiled ${f.spoiled}.`;
+};
+
+export function MoodChip({ rt }: { rt: CivRuntime }) {
+  const m = moodOf(rt.state);
+  return <span className="cw-chip" title={`Mood ${m.score}/100. Because of: ${m.contributors.join(', ')}`}>Mood {m.label}</span>;
+}
+
+export function MigrantCard({ rt }: { rt: CivRuntime }) {
+  const m = rt.state.migrant;
+  if (!m) return null;
+  const s = rt.state;
+  const beds = sleepCapacity(s) - s.citizens.length - s.children.length;
+  return (
+    <div className="cw-trade" role="region" aria-label="Newcomer">
+      <strong>{m.name} asks to stay</strong>
+      <span>Needs a bed ({Math.max(0, beds)} free) and about one food a day. Your reserve is {foodDays(s).toFixed(1)} days.</span>
+      <div className="cw-hint-actions">
+        <button type="button" disabled={beds <= 0} onClick={() => rt.welcome()}>Welcome</button>
+        <button type="button" onClick={() => rt.turnAway()}>Decline</button>
+      </div>
+    </div>
+  );
+}
 
 export type Tool = 'none' | 'explore' | 'note';
 
@@ -179,6 +207,8 @@ export function JournalDrawer({ rt, names }: { rt: CivRuntime; names: Record<str
           return <li key={id}>{d.name}: {n > 0 ? `${n} built` : open ? 'known, not built' : 'not yet known'}</li>;
         })}
       </ul>
+      <h3>People</h3>
+      <ul className="cw-keys">{s.citizens.map(c => <li key={c.id}>{c.name}: {c.age}, {c.trait}{c.home ? ', has a bed' : ''}</li>)}{s.children.length > 0 && <li>{s.children.length} children growing up</li>}</ul>
       <h3>Glossary</h3>
       <ul className="cw-keys">
         <li><b>Reserve</b>: days of food left at the current rate of eating.</li>
@@ -232,7 +262,7 @@ const LOG_FILTERS: { id: string; label: string; kinds: CivEvent['kind'][] }[] = 
   { id: 'problems', label: 'Problems', kinds: ['shortage', 'recovery', 'hint'] },
 ];
 
-export function LogDrawer({ rt }: { rt: CivRuntime }) {
+export function LogDrawer({ rt, onFocus }: { rt: CivRuntime; onFocus?: (x: number, y: number) => void }) {
   const [filter, setFilter] = useState('all');
   const f = LOG_FILTERS.find(x => x.id === filter) ?? LOG_FILTERS[0];
   const list = [...rt.state.events].reverse().filter(e => f.kinds.length === 0 || f.kinds.includes(e.kind)).slice(0, 80);
@@ -243,7 +273,16 @@ export function LogDrawer({ rt }: { rt: CivRuntime }) {
         {LOG_FILTERS.map(x => <button key={x.id} type="button" role="radio" aria-checked={filter === x.id} onClick={() => setFilter(x.id)}>{x.label}</button>)}
       </div>
       <ol className="cw-log">
-        {list.map(e => <li key={e.id}><small>Day {dayOf(e.tick)}</small> {e.text}</li>)}
+        {list.map(e => (
+          <li key={e.id}>
+            <small>Day {dayOf(e.tick)}</small> {e.text}
+            <details>
+              <summary>What happened</summary>
+              <ul className="cw-keys">{Object.entries(e.facts).map(([k, v]) => <li key={k}>{k}: {String(v)}</li>)}</ul>
+              {onFocus && typeof e.facts.x === 'number' && typeof e.facts.y === 'number' && <button type="button" onClick={() => onFocus(Number(e.facts.x) * 32, Number(e.facts.y) * 32)}>Show on map</button>}
+            </details>
+          </li>
+        ))}
         {list.length === 0 && <li>Nothing here yet.</li>}
       </ol>
     </div>
@@ -325,6 +364,8 @@ export function Inspector({ rt, sel, onClose, onFollow }: { rt: CivRuntime; sel:
         <strong>{label}</strong>
         <span>{b.state === 'site' ? `Under construction: ${Math.round(b.progress * 100)}%` : b.kind === 'campfire' ? 'Warmth, cooking and the place everyone gathers.' : def?.purpose}</span>
         {b.state === 'site' && <span>{b.workers > 0 ? 'Builders at work' : s.priorities.build === 0 ? 'Blocked: Build jobs are switched off' : 'Waiting for a builder'}</span>}
+        {b.state === 'done' && (b.kind === 'workshop' || b.kind === 'forge' || b.kind === 'farm') && <button type="button" onClick={() => rt.pauseBuilding(b.id)}>{b.paused ? 'Resume work here' : 'Pause work here'}</button>}
+        {b.paused && <span>Paused by you: nobody works here.</span>}
         {b.kind === 'workshop' && <span>{b.note ? `Idle: ${b.note}` : `Tools made: ${s.stock.tools}`}</span>}
         {b.kind === 'farm' && b.state === 'done' && <span>Harvest ready: {b.amount ?? 0} of {b.max ?? 0}</span>}
         {b.kind === 'storage' && <span>Raises capacity to {capacity(s)} of each good</span>}
@@ -347,6 +388,7 @@ export function Inspector({ rt, sel, onClose, onFollow }: { rt: CivRuntime; sel:
       <>
         <strong>{sel.terrain[0].toUpperCase() + sel.terrain.slice(1)}</strong>
         <span>{sel.terrain === 'water' ? 'Cannot build or walk here' : 'Open ground: can be built on'}</span>
+        <span>Nearby: {s.nodes.filter(n => n.amount > 0 && Math.hypot(n.x - sel.x, n.y - sel.y) <= 6).length} resources within 6 tiles</span>
         <span>Tile {sel.x}, {sel.y}</span>
       </>
     );
