@@ -46,6 +46,8 @@ export interface Citizen {
   facing: 'e' | 'w' | 'n' | 's';
   /** Total tiles walked: drives the walk cycle so feet never slide. */
   dist: number;
+  /** Birth tick (negative for the founders), used for life stages. */
+  born?: number;
   hunger: number; // 0 fed .. 100 starving
   energy: number; // 100 rested .. 0 exhausted
   carrying: { res: ResourceId; n: number } | null;
@@ -107,7 +109,7 @@ export interface ActiveHint { id: string; role: 'gatherer' | 'builder' | 'elder'
 
 export interface Visitor {
   id: string;
-  kind: 'trader';
+  kind: 'trader' | 'caravan' | 'craftsperson' | 'messenger';
   arrivedTick: number;
   leavesTick: number;
   /** What the visitor offers and what they ask for, in whole units. */
@@ -142,7 +144,13 @@ export interface Policies {
   knowledgeFocus: 'open' | 'tools' | 'food' | 'shelter';
 }
 
-export interface Migrant { id: string; name: string; arrivedTick: number; leavesTick: number }
+export interface Migrant { id: string; name: string; arrivedTick: number; leavesTick: number; /** 1 to 3 people arrive together */ size: number }
+
+export type ModuleId = 'trade' | 'governance' | 'family' | 'climate' | 'hunting' | 'visitors' | 'water';
+
+export interface FamilyMember { id: string; name: string; parents: string[]; born: number; stage: 'child' | 'adult' | 'elder' }
+
+export interface TradeRoute { id: string; partner: string; give: { res: ResourceId; n: number }; want: { res: ResourceId; n: number }; everyDays: number; nextTick: number }
 
 export interface Settings {
   pauseWhileCrafting: boolean;
@@ -150,11 +158,15 @@ export interface Settings {
   foodReserveDays: number;
   /** Seasons can be switched off for a steady sandbox. */
   seasons: 'on' | 'off';
+  /** Optional systems: each can be switched off and none is needed for the core loop. */
+  modules: Record<ModuleId, boolean>;
 }
 
 export interface CivState {
   v: 1;
   seed: number;
+  /** 'classic' is the hand-authored first map; 'procedural' lays the same ingredients out from the seed. */
+  mapKind: 'classic' | 'procedural';
   tick: number;
   rng: number;
   nextId: number;
@@ -182,6 +194,11 @@ export interface CivState {
   foodLog: number[];
   /** A newcomer who asks to stay: the player sees the extra demand and accepts or declines. */
   migrant: Migrant | null;
+  family: FamilyMember[];
+  routes: TradeRoute[];
+  laws: string[];
+  /** Stored water, drawn from wells. */
+  water: number;
   pins: Pin[];
   notes: MapNote[];
   policies: Policies;

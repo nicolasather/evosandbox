@@ -1,4 +1,5 @@
 import { DAY_TICKS } from './data/config';
+import { recordBirth, ensureFamily, moduleOn } from './modules';
 import { SEASON_DAYS, doneBuildings, foodDays, hasCapability, nextRand, pushEvent, sleepCapacity, type CivSim } from './sim';
 import type { Citizen, CivState, MapNote, Pin, Policies } from './types';
 
@@ -158,6 +159,7 @@ export function stepPopulation(sim: CivSim) {
   const people = s.citizens.length + s.children.length;
   if (people < beds && foodDays(s) >= s.settings.foodReserveDays && s.citizens.length >= 2 && s.children.length < 3 && Math.floor(s.tick / DAY_TICKS) % 3 === 0) {
     s.children.push(s.tick);
+    if (moduleOn(s, 'family')) { const names = ['Wren', 'Tam', 'Isla', 'Noor', 'Pip', 'Bao']; recordBirth(s, names[s.nextId % names.length], `k-${s.nextId++}`); }
     pushEvent(s, 'birth', { children: s.children.length }, 'A child is born in the settlement. There is room and food enough.');
   }
   const grown = s.children.filter(b => s.tick - b >= CHILD_GROWTH_TICKS);
@@ -166,7 +168,11 @@ export function stepPopulation(sim: CivSim) {
     for (let i = 0; i < grown.length; i++) {
       const fire = s.buildings[0];
       const c = makeAdult(s, fire.x, fire.y + 1);
+      const kid = s.family.find(f => f.stage === 'child' && f.born === grown[i]);
+      if (kid) { c.name = kid.name; c.id = kid.id.replace('k-', 'c-k'); kid.id = c.id; kid.stage = 'adult'; }
+      c.born = grown[i];
       s.citizens.push(c);
+      ensureFamily(s);
       pushEvent(s, 'birth', { name: c.name, adult: true }, `${c.name} has grown up and joins the workers.`);
     }
   }

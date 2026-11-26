@@ -8,8 +8,9 @@ import {
   JOB_CATEGORIES, RESOURCES, type BuildingState, type CivEvent, type CivState, type Citizen, type EventKind, type JobCategory,
   type NodeState, type ResourceId, type Stock, type Task,
 } from './types';
+import { fireLit, coldFactor, isYieldBuilding, isRestDay, lawBuildMult, lawCostMult, lawGatherMult, moduleOn, thirsty } from './modules';
 import { childPressure, floodActive, focusBonus, reachFor, stockLimit } from './extras';
-import { createWorld, isLand, tileAt, type WorldMap } from './world';
+import { createWorld, type MapKind, isLand, tileAt, type WorldMap } from './world';
 
 /* ============================================================================
    CIV SIM — deterministic settlement simulation (master design §4, §14, §32).
@@ -78,22 +79,23 @@ function makeCitizen(s: CivState, x: number, y: number): Citizen {
     x, y, px: x, py: y, facing: 's', dist: 0, hunger: 10 + Math.floor(nextRand(s) * 20), energy: 85 + Math.floor(nextRand(s) * 15),
     carrying: null, task: { kind: 'idle', reason: 'Just arrived' }, path: [], commitUntil: 0, home: null,
     skill: { gather: 1, build: 1, craft: 1 }, override: null, idleReason: '', usingTool: false,
+    born: -(10 + (s.nextId % 20)) * DAY_TICKS,
   };
 }
 
-export function createSim(seed = 1): CivSim {
-  const map = createWorld(seed);
+export function createSim(seed = 1, kind: MapKind = 'classic'): CivSim {
+  const map = createWorld(seed, kind);
   const fire = map.buildings[0];
   const s: CivState = {
-    v: 1, seed, tick: 0, rng: seed * 2654435761 >>> 0, nextId: 1,
+    v: 1, seed, mapKind: kind, tick: 0, rng: seed * 2654435761 >>> 0, nextId: 1,
     stock: { ...STOCK.start }, priorities: { food: 3, wood: 2, stone: 1, build: 3, craft: 2 },
     citizens: [],
     nodes: map.nodes.map(n => ({ id: n.id, kind: n.kind, x: n.x, y: n.y, amount: n.amount, max: n.amount, workers: 0 })),
     buildings: [{ id: fire.id, kind: 'campfire', x: fire.x, y: fire.y, w: 1, h: 1, state: 'done', progress: 1, paid: {}, workers: 0 }],
-    seenDiscoveries: [], capabilities: [], unlockedBuildings: ['shelter'], events: [], hints: {}, activeHint: null, visitor: null, revealed: '', expeditions: [], poi: [], hazard: null, children: [], foodLog: [], migrant: null, pins: [], notes: [],
+    seenDiscoveries: [], capabilities: [], unlockedBuildings: ['shelter'], events: [], hints: {}, activeHint: null, visitor: null, revealed: '', expeditions: [], poi: [], hazard: null, children: [], foodLog: [], migrant: null, family: [], routes: [], laws: [], water: 20, pins: [], notes: [],
     policies: { resourceUse: 'balanced', constructionFocus: 'none', explorationStance: 'balanced', gatheringRadius: 'extended', knowledgeFocus: 'open' },
     tutorial: { step: 0, done: false }, alerts: [],
-    milestones: [], settings: { pauseWhileCrafting: false, workIntensity: 'normal', foodReserveDays: 3, seasons: 'on' },
+    milestones: [], settings: { pauseWhileCrafting: false, workIntensity: 'normal', foodReserveDays: 3, seasons: 'on', modules: { trade: true, governance: true, family: true, climate: true, hunting: true, visitors: true, water: true } },
     counters: { gathered: emptyStock(), consumed: emptyStock(), crafted: 0, deaths: 0, spoiled: 0 },
   };
   for (let i = 0; i < 5; i++) {
@@ -132,7 +134,7 @@ export function buildGrid(sim: CivSim): Grid {
   }
   for (const n of s.nodes) if (n.amount > 0 || n.kind === 'bush') blocked[n.y * map.w + n.x] = 1;
   for (const b of s.buildings) {
-    if (b.kind === 'road' || (b.kind === 'farm' && b.state === 'done')) continue;
+    if (b.kind === 'road' || (isYieldBuilding(b.kind) && b.state === 'done')) continue;
     for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) blocked[(b.y + j) * map.w + b.x + i] = 1;
   }
   return { w: map.w, h: map.h, blocked };
@@ -142,7 +144,7 @@ export function buildGrid(sim: CivSim): Grid {
 const dropPoints = (s: CivState) => s.buildings.filter(b => b.state === 'done' && (b.kind === 'campfire' || b.kind === 'storage'));
 
 const access = (g: Grid, b: { x: number; y: number; w: number; h: number; kind: string }): [number, number][] => {
-  if (b.kind === 'farm') {
+  if (isYieldBuilding(b.kind)) {
     const t: [number, number][] = [];
     for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) t.push([b.x + i, b.y + j]);
     return t;
@@ -185,7 +187,7 @@ export function placeBuilding(sim: CivSim, kind: string, x: number, y: number, r
   const def = BUILDINGS[kind];
   const { s } = sim;
   const paid: Partial<Stock> = {};
-  for (const [k, n] of Object.entries(def.cost)) { s.stock[k as ResourceId] -= n ?? 0; paid[k as ResourceId] = n ?? 0; }
+  for (const [k, n0] of Object.entries(def.cost)) { const n = k === 'wood' ? Math.ceil((n0 ?? 0) * lawCostMult(s)) : n0 ?? 0; s.stock[k as ResourceId] -= n; paid[k as ResourceId] = n; }
   const b: BuildingState = { id: newId(s, 'b'), kind: kind as BuildingState['kind'], x, y, w: rot && def.rotatable ? def.footprint.h : def.footprint.w, h: rot && def.rotatable ? def.footprint.w : def.footprint.h, state: 'site', progress: 0, paid, workers: 0 };
   s.buildings.push(b);
   pushEvent(s, 'building_started', { building: kind, x, y }, `Work begins on a ${def.name.toLowerCase()}.`);
@@ -283,14 +285,15 @@ function decide(sim: CivSim, g: Grid, c: Citizen, occupancy: Map<string, number>
 
   // 2. jobs
   const consider = (cat: JobCategory, prio: number) => {
-    if (prio <= 0) return;
+    if (prio <= 0 || isRestDay(s)) return; // a day of rest by law: nobody takes a job
     const boost = c.override?.category === cat ? 30 : 0;
     const base = prio * 10 + boost;
     if (cat === 'food') {
       if (s.stock.food >= stockLimit(s, cap)) return;
       const need = foodDays(s) < s.settings.foodReserveDays ? 14 : 0;
       for (const n of s.nodes) if (n.kind === 'bush' && n.amount > 0 && (workers.get(n.id) ?? 0) < 2) pushNode(n, base + need, 'food');
-      for (const b of doneBuildings(s, 'farm')) if (!b.paused && (b.amount ?? 0) > 0 && (workers.get(b.id) ?? 0) < BUILDINGS.farm.workerSlots) pushBuilding(b, base + 6 + (foodDays(s) < s.settings.foodReserveDays ? 14 : 0), 'gather', 'food', 'Harvesting the farm plot');
+      if (moduleOn(s, 'hunting') && hasCapability(s, 'hunting')) for (const n of s.nodes) if (n.kind === 'game' && n.amount > 0 && (workers.get(n.id) ?? 0) < 1) pushNode(n, base - 2, 'food');
+      for (const b of [...doneBuildings(s, 'farm'), ...doneBuildings(s, 'animal_pen')]) if (!b.paused && (b.amount ?? 0) > 0 && (workers.get(b.id) ?? 0) < BUILDINGS[b.kind].workerSlots) pushBuilding(b, base + 6 + (foodDays(s) < s.settings.foodReserveDays ? 14 : 0), 'gather', 'food', 'Harvesting the farm plot');
     } else if (cat === 'wood') {
       if (s.stock.wood >= stockLimit(s, cap)) return;
       const need = s.stock.wood < 12 ? 8 : 0;
@@ -389,7 +392,8 @@ export function stepSim(sim: CivSim): void {
   for (const c of s.citizens) {
     c.px = c.x; c.py = c.y;
     c.hunger = Math.min(100, c.hunger + CITIZEN.hungerPerTick * (c.task.kind === 'rest' ? 0.6 : 1) * (activeSeason(s) === 'Winter' ? 1.15 : 1));
-    if (c.task.kind !== 'rest') c.energy = Math.max(0, c.energy - CITIZEN.energyPerTick * (s.settings.workIntensity === 'intense' ? 1.4 : s.settings.workIntensity === 'relaxed' ? 0.7 : 1));
+    if (isRestDay(s) && c.task.kind === 'idle') c.energy = Math.min(100, c.energy + 0.2);
+    if (c.task.kind !== 'rest') c.energy = Math.max(0, c.energy - CITIZEN.energyPerTick * coldFactor(s, c) * (s.settings.workIntensity === 'intense' ? 1.4 : s.settings.workIntensity === 'relaxed' ? 0.7 : 1));
     if (c.override && c.override.until <= s.tick) c.override = null;
     runTask(sim, g, c, intensity, workers, occupancy);
   }
@@ -399,7 +403,8 @@ export function stepSim(sim: CivSim): void {
     if (n.kind === 'bush' && n.amount < n.max && activeSeason(s) !== 'Winter' && s.tick % BUSH_REGROW_TICKS === 0 && (workers.get(n.id) ?? 0) === 0) n.amount++;
   }
   for (const b of s.buildings) {
-    if (b.kind === 'farm' && b.state === 'done' && (b.amount ?? 0) < (b.max ?? 0) && s.tick % FARM_REGROW_TICKS === 0) b.amount = (b.amount ?? 0) + 1;
+    if (b.kind === 'farm' && b.state === 'done' && (b.amount ?? 0) < (b.max ?? 0) && s.tick % FARM_REGROW_TICKS === 0 && !thirsty(s)) b.amount = (b.amount ?? 0) + 1;
+    if (b.kind === 'animal_pen' && b.state === 'done' && (b.amount ?? 0) < (b.max ?? 0) && s.tick % 40 === 0 && s.stock.food > 0) b.amount = (b.amount ?? 0) + 1;
   }
   s.nodes = s.nodes.filter(n => n.kind === 'bush' || n.amount > 0);
 
@@ -419,7 +424,7 @@ export function stepSim(sim: CivSim): void {
 function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: Map<string, number>, occupancy: Map<string, number>) {
   const { s } = sim;
   const t = c.task;
-  const weak = (c.hunger >= CITIZEN.starvingAt ? 0.5 : 1) * (c.age === 'elder' ? 0.85 : 1);
+  const weak = (c.hunger >= CITIZEN.starvingAt ? 0.5 : 1) * (c.age === 'elder' ? 0.85 : 1) * (thirsty(s) ? 0.8 : 1);
   if (t.kind === 'away') return; // on an expedition: the expedition system owns this person
 
   if (t.kind === 'idle') {
@@ -455,15 +460,15 @@ function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: M
   // work tasks
   if (t.kind === 'gather') {
     const n = s.nodes.find(x => x.id === t.targetId);
-    const farm = !n ? s.buildings.find(b => b.id === t.targetId && b.kind === 'farm') : null;
+    const farm = !n ? s.buildings.find(b => b.id === t.targetId && isYieldBuilding(b.kind)) : null;
     const src = n ?? farm;
     if (!src || (src.amount ?? 0) <= 0) { finishGather(c, 'The source ran out'); return; }
-    t.left = (t.left ?? CITIZEN.gatherTicks) - weak * intensity * (c.usingTool ? TOOL_GATHER_MULT : 1) * (1 + (c.skill.gather - 1) * 0.1);
+    t.left = (t.left ?? CITIZEN.gatherTicks) - weak * intensity * lawGatherMult(s) * (c.usingTool ? TOOL_GATHER_MULT : 1) * (1 + (c.skill.gather - 1) * 0.1);
     if (t.left > 0) return;
-    const res: ResourceId = farm ? 'food' : n!.kind === 'bush' ? 'food' : n!.kind === 'tree' ? 'wood' : 'stone';
+    const res: ResourceId = farm ? 'food' : n!.kind === 'bush' || n!.kind === 'game' ? 'food' : n!.kind === 'tree' ? 'wood' : 'stone';
     src.amount = (src.amount ?? 0) - 1;
     if (!c.carrying) c.carrying = { res, n: 0 };
-    if (c.carrying.res === res) c.carrying.n++;
+    if (c.carrying.res === res) c.carrying.n += n && n.kind === 'game' ? 3 : 1;
     c.skill.gather = Math.min(5, c.skill.gather + 0.01);
     t.left = CITIZEN.gatherTicks;
     if (c.carrying.n >= CITIZEN.carryCap + (hasCapability(s, 'cart') ? 1 : 0) || (src.amount ?? 0) <= 0) finishGather(c, 'Carrying a full load');
@@ -492,7 +497,7 @@ function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: M
     if (s.stock.food > 0) {
       s.stock.food -= 1;
       s.counters.consumed.food += 1;
-      c.hunger = Math.max(0, c.hunger - CITIZEN.eatRelief * (hasCapability(s, 'controlled_fire') ? COOKED_FOOD_MULT : 1) * (doneBuildings(s, 'drying_rack').length ? 1.2 : 1));
+      c.hunger = Math.max(0, c.hunger - CITIZEN.eatRelief * (hasCapability(s, 'controlled_fire') && fireLit(s) ? COOKED_FOOD_MULT : 1) * (doneBuildings(s, 'drying_rack').length ? 1.2 : 1));
     }
     interrupt(c, 'Finished eating');
     return;
@@ -511,7 +516,7 @@ function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: M
   if (t.kind === 'build') {
     const b = s.buildings.find(x => x.id === t.targetId && x.state === 'site');
     if (!b) { interrupt(c, 'The site is finished'); return; }
-    t.left = (t.left ?? CITIZEN.buildStepTicks) - weak * intensity * (1 + (c.skill.build - 1) * 0.1);
+    t.left = (t.left ?? CITIZEN.buildStepTicks) - weak * intensity * lawBuildMult(s) * (1 + (c.skill.build - 1) * 0.1);
     if (t.left > 0) return;
     const def = BUILDINGS[b.kind];
     b.progress = Math.min(1, b.progress + CITIZEN.buildStepTicks / def.buildTicks);
@@ -549,6 +554,7 @@ function completeBuilding(sim: CivSim, b: BuildingState, by: Citizen) {
   const { s } = sim;
   b.state = 'done';
   b.progress = 1;
+  if (b.kind === 'animal_pen') { b.max = 4; b.amount = 4; }
   if (b.kind === 'farm') {
     const meadow = s.poi.some(p => p.kind === 'fertile_meadow' && p.found && Math.hypot(p.x - b.x, p.y - b.y) <= 6);
     b.max = (hasCapability(s, 'irrigation') ? 9 : 6) + (meadow ? 3 : 0); // fertile ground found by an expedition
@@ -570,20 +576,26 @@ function maybeArrival(sim: CivSim) {
   if (free <= 0 || foodDays(s) < s.settings.foodReserveDays) return;
   if (s.migrant) return;
   const name = NAMES[(s.nextId + Math.floor(nextRand(s) * NAMES.length)) % NAMES.length];
-  s.migrant = { id: newId(s, 'm'), name, arrivedTick: s.tick, leavesTick: s.tick + DAY_TICKS };
-  pushEvent(s, 'arrival', { name, offer: true }, `${name} arrives and asks to stay. There is a free bed and food enough. They would eat about one food a day.`);
+  // sometimes a whole household asks to stay: two or three people, each needing a bed
+  const beds = free;
+  const size = moduleOn(s, 'visitors') && beds >= 2 && nextRand(s) < 0.5 ? Math.min(3, beds) : 1;
+  s.migrant = { id: newId(s, 'm'), name, arrivedTick: s.tick, leavesTick: s.tick + DAY_TICKS, size };
+  pushEvent(s, 'arrival', { name, offer: true }, size > 1 ? `${name}'s household of ${size} arrives and asks to stay. They would need ${size} beds and about ${size} food a day.` : `${name} arrives and asks to stay. There is a free bed and food enough. They would eat about one food a day.`);
 }
 
 /** The player accepts a newcomer: only then does the population grow. */
 export function acceptMigrant(sim: CivSim): boolean {
   const { s } = sim;
   if (!s.migrant) return false;
-  if (sleepCapacity(s) - s.citizens.length - s.children.length <= 0) return false;
+  const size = s.migrant.size ?? 1;
+  if (sleepCapacity(s) - s.citizens.length - s.children.length < size) return false;
   const fire = s.buildings[0];
-  const c = makeCitizen(s, fire.x, fire.y + 1);
-  c.name = s.migrant.name;
-  s.citizens.push(c);
-  pushEvent(s, 'arrival', { name: c.name, people: s.citizens.length }, `${c.name} joins the settlement.`);
+  for (let i = 0; i < size; i++) {
+    const c = makeCitizen(s, fire.x, fire.y + 1);
+    if (i === 0) c.name = s.migrant.name;
+    s.citizens.push(c);
+  }
+  pushEvent(s, 'arrival', { name: s.migrant.name, people: s.citizens.length, size }, size > 1 ? `${s.migrant.name}'s household of ${size} joins the settlement.` : `${s.migrant.name} joins the settlement.`);
   s.migrant = null;
   return true;
 }

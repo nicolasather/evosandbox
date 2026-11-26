@@ -4,7 +4,7 @@ import type { ResourceId } from '../types';
    docs/civilization-overhaul/ASSET_MANIFEST.md. */
 
 export interface BuildingDef {
-  id: 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly' | 'house' | 'pottery_kiln' | 'drying_rack' | 'well' | 'records_hall';
+  id: 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly' | 'house' | 'pottery_kiln' | 'drying_rack' | 'well' | 'records_hall' | 'animal_pen';
   name: string;
   description: string;
   footprint: { w: number; h: number };
@@ -105,6 +105,12 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover the Hand-Dug Shaft Well in Merging.', visualAssetId: 'bld_well',
     purpose: 'Reliable water: the settlement can hold 2 more people.',
   },
+  animal_pen: {
+    id: 'animal_pen', name: 'Animal pen', description: 'A fenced pen for goats and sheep.',
+    footprint: { w: 2, h: 1 }, cost: { wood: 10 }, buildTicks: 36, workerSlots: 1, requires: 'herding', rotatable: true,
+    terrain: ['grass', 'dirt'], unlockHint: 'Discover Herding in Merging.', visualAssetId: 'bld_animal_pen',
+    purpose: 'Gives food again and again, but the animals eat one food a day: no food, and they wander off.',
+  },
   records_hall: {
     id: 'records_hall', name: 'Records hall', description: 'A hall where accounts and knowledge are kept.',
     footprint: { w: 2, h: 2 }, cost: { wood: 20, stone: 10 }, buildTicks: 64, workerSlots: 2, requires: 'records',
@@ -113,4 +119,4 @@ export const BUILDINGS: Record<string, BuildingDef> = {
   },
 };
 
-export const BUILD_ORDER = ['shelter', 'house', 'storage', 'workshop', 'farm', 'road', 'well', 'drying_rack', 'pottery_kiln', 'granary', 'forge', 'market', 'records_hall', 'assembly'] as const;
+export const BUILD_ORDER = ['shelter', 'house', 'storage', 'workshop', 'farm', 'road', 'well', 'drying_rack', 'pottery_kiln', 'granary', 'forge', 'market', 'animal_pen', 'records_hall', 'assembly'] as const;

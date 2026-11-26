@@ -63,7 +63,7 @@ describe('newcomers are offers, not gifts', () => {
     expect(acceptMigrant(sim)).toBe(true);
     expect(sim.s.citizens.length).toBe(people + 1);
     expect(sim.s.migrant).toBeNull();
-    sim.s.migrant = { id: 'm-x', name: 'Test', arrivedTick: 0, leavesTick: 99999 };
+    sim.s.migrant = { id: 'm-x', name: 'Test', arrivedTick: 0, leavesTick: 99999, size: 1 };
     const stock = { ...sim.s.stock };
     declineMigrant(sim);
     expect(sim.s.citizens.length).toBe(people + 1);
@@ -72,7 +72,7 @@ describe('newcomers are offers, not gifts', () => {
   });
   it('cannot be accepted without a free bed', () => {
     const sim = createSim(1);
-    sim.s.migrant = { id: 'm-y', name: 'Nia', arrivedTick: 0, leavesTick: 9999 };
+    sim.s.migrant = { id: 'm-y', name: 'Nia', arrivedTick: 0, leavesTick: 9999, size: 1 };
     expect(acceptMigrant(sim)).toBe(false);
   });
 });

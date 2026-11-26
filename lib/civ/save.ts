@@ -30,7 +30,7 @@ export function migrateState(raw: unknown): { ok: true; state: CivState; migrate
   if (typeof st.seed !== 'number' || !Array.isArray(st.citizens) || !Array.isArray(st.nodes) || !Array.isArray(st.buildings)) {
     return { ok: false, reason: 'Save is missing the settlement data' };
   }
-  const fresh = createSim(st.seed).s;
+  const fresh = createSim(st.seed, st.mapKind === 'procedural' ? 'procedural' : 'classic').s;
   const merged = { ...fresh, ...st, v: 1 } as CivState;
   merged.stock = { ...fresh.stock, ...(isObj(st.stock) ? st.stock : {}) } as CivState['stock'];
   merged.priorities = { ...fresh.priorities, ...(isObj(st.priorities) ? st.priorities : {}) } as CivState['priorities'];
@@ -54,5 +54,5 @@ export function parseSave(text: string | null): LoadResult | null {
   try { data = JSON.parse(text); } catch { return { ok: false, reason: 'Save is not valid JSON' }; }
   const m = migrateState(data);
   if (!m.ok) return m;
-  return { ok: true, sim: { map: createWorld(m.state.seed), s: m.state }, migrated: m.migrated };
+  return { ok: true, sim: { map: createWorld(m.state.seed, m.state.mapKind === 'procedural' ? 'procedural' : 'classic'), s: m.state }, migrated: m.migrated };
 }

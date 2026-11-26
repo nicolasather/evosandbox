@@ -2,6 +2,7 @@ import { applyDiscoveries } from './bridge';
 import { AUTOSAVE_TICKS, SPEEDS, TICKS_PER_SECOND, type Speed } from './data/config';
 import { askMoreHint, dismissHint, stepWorld } from './hints';
 import { CIV_BACKUP_KEY, CIV_CORRUPT_KEY, CIV_SAVE_KEY, parseSave, serializeSim } from './save';
+import { LAWS as _LAWS, acceptVisitor, adoptLaw, cancelRoute, establishRoute, repealLaw, type LawId, type ModuleId } from './modules';
 import { addNote, addPin, previewExpedition, removeNote, removePin, sendExpedition, setPolicy, skipTutorial, togglePin, tutorialEvent } from './extras';
 import { acceptMigrant, declineMigrant, toggleBuildingPause, acceptTrade, assignOverride, cancelBuilding, createSim, declineTrade, placeBuilding, setPriority, type CivSim } from './sim';
 import type { CivState, JobCategory, Policies, Settings } from './types';
@@ -115,6 +116,12 @@ export class CivRuntime {
   removeNote(id: string) { removeNote(this.state, id); this.bump(); }
   tutorial(id: string) { const before = this.state.tutorial.step; tutorialEvent(this.state, id); if (this.state.tutorial.step !== before) this.bump(); }
   skipTutorial() { skipTutorial(this.state); this.bump(); }
+  setModule(id: ModuleId, on: boolean) { this.state.settings.modules[id] = on; this.save(); this.bump(); }
+  adopt(id: LawId) { const r = adoptLaw(this.state, id); if (r.ok) this.save(); this.bump(); return r; }
+  repeal(id: LawId) { repealLaw(this.state, id); this.save(); this.bump(); }
+  openRoute() { const r = establishRoute(this.sim); if (r.ok) this.save(); this.bump(); return r; }
+  dropRoute(id: string) { cancelRoute(this.state, id); this.save(); this.bump(); }
+  receiveVisitor() { const r = acceptVisitor(this.sim); this.bump(); return r; }
   welcome() { const ok = acceptMigrant(this.sim); this.bump(); return ok; }
   turnAway() { declineMigrant(this.sim); this.bump(); }
   pauseBuilding(id: string) { toggleBuildingPause(this.state, id); this.bump(); }
@@ -158,8 +165,10 @@ export class CivRuntime {
   }
 
   /** Start a brand-new settlement. The previous (possibly corrupt) bytes stay under the backup keys. */
-  startFresh(seed = 1) {
-    this.sim = createSim(seed);
+  startFresh(seed = 1, kind: 'classic' | 'procedural' = 'classic') {
+    // the settlement being replaced is kept as a backup copy first
+    try { this.storage?.setItem(CIV_BACKUP_KEY, serializeSim(this.sim)); } catch { /* backup not possible */ }
+    this.sim = createSim(seed, kind);
     this.notice = null;
     this.save();
     this.bump();

@@ -1,5 +1,6 @@
 import { HINT_GLOBAL_COOLDOWN } from './data/config';
 import { stepExtras } from './extras';
+import { fireLit, moduleOn, outsideTemperature, stepModules, thirsty } from './modules';
 import { activeSeason, capacity, doneBuildings, foodDays, hasCapability, isNight, maybeVisitor, pushEvent, sleepCapacity, stepSim, type CivSim } from './sim';
 import type { ActiveHint, CivState } from './types';
 import { TILE } from './world';
@@ -178,6 +179,24 @@ export const HINTS: HintDef[] = [
       : { observation: 'The stream is far for so many of us.', suggestion: 'Clean water close to camp would make the settlement safer as it grows.', guidance: 'Look for a way to reach water close to camp. Try Merging.' }),
   },
   {
+    id: 'campfire_fuel', priority: 85, speakerRole: 'elder', cooldownTicks: 300, repeat: 'cooldown',
+    trigger: ({ s }) => moduleOn(s, 'climate') && !fireLit(s),
+    resolved: ({ s }) => fireLit(s),
+    text: () => ({ observation: 'The fire has gone out. It is cold, and nothing can be cooked.', suggestion: 'We need wood to keep it going.', guidance: 'Raise the Wood priority; the fire takes wood from the store every day.' }),
+  },
+  {
+    id: 'cold_nights', priority: 58, speakerRole: 'elder', cooldownTicks: 400, repeat: 'cooldown',
+    trigger: ({ s }) => moduleOn(s, 'climate') && outsideTemperature(s) < 2 && !hasCapability(s, 'clothing') && doneBuildings(s, 'shelter').length + doneBuildings(s, 'house').length === 0,
+    resolved: ({ s }) => outsideTemperature(s) >= 2 || hasCapability(s, 'clothing') || doneBuildings(s, 'shelter').length + doneBuildings(s, 'house').length > 0,
+    text: () => ({ observation: 'The nights are bitter. We shiver without a roof.', suggestion: 'A roof and something warm to wear would help.', guidance: 'Build a shelter. A discovery in Merging may also give us warmer clothing.' }),
+  },
+  {
+    id: 'water_low', priority: 90, speakerRole: 'gatherer', cooldownTicks: 300, repeat: 'cooldown',
+    trigger: ({ s }) => thirsty(s),
+    resolved: ({ s }) => !thirsty(s),
+    text: () => ({ observation: 'The water is gone. We are thirsty and the fields are dry.', suggestion: 'A well would give us water close to camp.', guidance: 'Build a well if you can, and keep fewer fields until the water returns.' }),
+  },
+  {
     id: 'idle_crew', priority: 30, speakerRole: 'gatherer', cooldownTicks: 300, repeat: 'cooldown',
     trigger: ({ s }) => s.tick > 120 && s.citizens.filter(c => c.task.kind === 'idle' && c.idleReason).length >= 2,
     resolved: ({ s }) => s.citizens.filter(c => c.task.kind === 'idle' && c.idleReason).length < 2,
@@ -263,6 +282,8 @@ export function computeAlerts(s: CivState): Alert[] {
   if (s.hazard?.phase === 'warned') out.push({ id: 'flood_warning', severity: 'warning', text: 'Flood expected: work on low ground by the river will pause' });
   if (s.hazard?.phase === 'active') out.push({ id: 'flood_active', severity: 'warning', text: 'The river is over its banks: low ground is closed until it falls' });
   if (s.citizens.length >= 7 && doneBuildings(s, 'well').length === 0) out.push({ id: 'water', severity: 'info', text: 'Water is far for a settlement this size: a well would help' });
+  if (thirsty(s)) out.push({ id: 'thirst', severity: 'critical', text: 'Out of water: people are thirsty and fields are dry' });
+  if (moduleOn(s, 'climate') && !fireLit(s)) out.push({ id: 'fire_out', severity: 'warning', text: 'The fire is out: no wood to keep it burning', focus: { x: s.buildings[0].x * TILE, y: s.buildings[0].y * TILE } });
   const starving = s.citizens.filter(c => c.hunger >= 100).length;
   if (starving) out.push({ id: 'starving', severity: 'critical', text: `${starving} ${starving === 1 ? 'person is' : 'people are'} too hungry to work well` });
   return out;
@@ -284,6 +305,7 @@ export function stepWorld(sim: CivSim): void {
     }
   }
   stepExtras(sim);
-  maybeVisitor(sim);
+  stepModules(sim);
+  if (moduleOn(s, 'trade')) maybeVisitor(sim);
   if (s.tick % 20 === 0) evaluateHints(sim);
 }

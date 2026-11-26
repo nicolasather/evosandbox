@@ -8,6 +8,7 @@ import type { CivRuntime } from '@/lib/civ/runtime';
 import { JOB_LABEL, forecastFor, foodSummary, jobStatuses, moodOf, needWord, timeLabel } from '@/lib/civ/selectors';
 import { acceptTradeLabel } from './tradeLabel';
 import { PhaseChip } from './panels2';
+import { ClimateChips } from './panels3';
 import { DISCOVERY_MAP } from '@/lib/civ/data/discoveryMap';
 import { goalsFor, suggestedGoals } from '@/lib/civ/goals';
 import { capacity, dayOf, doneBuildings, foodDays, hasCapability, seasonOf, sleepCapacity, tradePreview } from '@/lib/civ/sim';
@@ -17,7 +18,7 @@ import { BUILDING_LABEL, NODE_LABEL, TILE, type Hit } from '@/lib/civ/world';
 /* React panels around the settlement canvas. They read simulation state through the
    runtime and issue commands to it; they never contain game rules. */
 
-export type DrawerId = 'build' | 'jobs' | 'goals' | 'journal' | 'log' | 'help';
+export type DrawerId = 'build' | 'jobs' | 'goals' | 'trade' | 'journal' | 'log' | 'help';
 
 const PRIORITY_NAMES = ['Off', 'Low', 'Normal', 'High'];
 
@@ -35,6 +36,7 @@ export function Hud({ rt, onFocus }: { rt: CivRuntime; onFocus: (x: number, y: n
         <span className="cw-chip" title="People, and children still growing up">People {s.citizens.length}{s.children.length > 0 ? ` +${s.children.length}` : ''}</span>
         <PhaseChip rt={rt} />
         <MoodChip rt={rt} />
+        <ClimateChips rt={rt} />
         <span className="cw-chip" title={foodTitle(s)}><i className="cw-ico" data-i="food" aria-hidden="true" />Food {s.stock.food}/{cap} <small>({days.toFixed(1)}d)</small></span>
         <span className="cw-chip" title="Wood in store / capacity"><i className="cw-ico" data-i="wood" aria-hidden="true" />Wood {s.stock.wood}/{cap}</span>
         <span className="cw-chip" title="Stone in store / capacity"><i className="cw-ico" data-i="stone" aria-hidden="true" />Stone {s.stock.stone}/{cap}</span>
@@ -75,9 +77,9 @@ export function MigrantCard({ rt }: { rt: CivRuntime }) {
   return (
     <div className="cw-trade" role="region" aria-label="Newcomer">
       <strong>{m.name} asks to stay</strong>
-      <span>Needs a bed ({Math.max(0, beds)} free) and about one food a day. Your reserve is {foodDays(s).toFixed(1)} days.</span>
+      <span>{m.size > 1 ? `${m.size} people together. ` : ''}Needs {m.size ?? 1} bed(s) ({Math.max(0, beds)} free) and about {m.size ?? 1} food a day. Your reserve is {foodDays(s).toFixed(1)} days.</span>
       <div className="cw-hint-actions">
-        <button type="button" disabled={beds <= 0} onClick={() => rt.welcome()}>Welcome</button>
+        <button type="button" disabled={beds < (m.size ?? 1)} onClick={() => rt.welcome()}>Welcome</button>
         <button type="button" onClick={() => rt.turnAway()}>Decline</button>
       </div>
     </div>
@@ -92,7 +94,7 @@ export function Toolbar({ drawer, setDrawer, home, tool, setTool }: { drawer: Dr
   );
   return (
     <div className="cw-toolbar" role="toolbar" aria-label="Settlement tools">
-      {item('build', 'Build')}{item('jobs', 'Jobs')}{item('goals', 'Goals')}{item('journal', 'Journal')}{item('log', 'History')}{item('help', 'Help')}
+      {item('build', 'Build')}{item('jobs', 'Jobs')}{item('goals', 'Goals')}{item('trade', 'Trade')}{item('journal', 'Journal')}{item('log', 'History')}{item('help', 'Help')}
       <button type="button" aria-pressed={tool === 'explore'} onClick={() => setTool(tool === 'explore' ? 'none' : 'explore')} title="Pick unexplored ground to send an expedition">Explore</button>
       <button type="button" aria-pressed={tool === 'note'} onClick={() => setTool(tool === 'note' ? 'none' : 'note')} title="Flag a place on the map">Note</button>
       <button type="button" onClick={home} title="Recentre on the campfire (Home)">Recentre</button>
@@ -241,13 +243,15 @@ export function TradeCard({ rt }: { rt: CivRuntime }) {
   if (!v || !p) return null;
   return (
     <div className="cw-trade" role="region" aria-label="Visiting trader">
-      <strong>A trader has stopped by</strong>
-      <span>{acceptTradeLabel(p)}</span>
+      <strong>{v.kind === 'caravan' ? 'A caravan has arrived' : v.kind === 'craftsperson' ? 'A craftsperson is visiting' : v.kind === 'messenger' ? 'A messenger has arrived' : 'A trader has stopped by'}</strong>
+      {v.kind === 'craftsperson' && <span>Teaches a better way of working in return for {v.want.n} food and a place to stay.</span>}
+      {v.kind === 'messenger' && <span>Brings news of a nearby place.</span>}
+      {(v.kind === 'trader' || v.kind === 'caravan') && <span>{acceptTradeLabel(p)}</span>}
       {p.belowReserve && <span className="cw-blocked">This would leave your food below the reserve target.</span>}
       {!p.enough && <span className="cw-blocked">You do not have enough to offer.</span>}
       {msg && <span className="cw-blocked">{msg}</span>}
       <div className="cw-hint-actions">
-        <button type="button" disabled={!p.enough || !p.room} onClick={() => { const r = rt.accept(); if (!r.ok) setMsg(r.reason); }}>Accept</button>
+        <button type="button" disabled={(v.kind === 'trader' || v.kind === 'caravan') && (!p.enough || !p.room)} onClick={() => { const r = v.kind === 'trader' || v.kind === 'caravan' ? rt.accept() : rt.receiveVisitor(); if (!r.ok) setMsg(r.reason); }}>Accept</button>
         <button type="button" onClick={() => rt.decline()}>Decline</button>
       </div>
     </div>

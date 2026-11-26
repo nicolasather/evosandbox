@@ -63,6 +63,13 @@ function drawNode(ctx: CanvasRenderingContext2D, assets: AssetStore, n: NodeStat
   const by = (n.y + 1) * TILE;
   const ratio = n.max > 0 ? n.amount / n.max : 0;
   const state = ratio > 0.5 ? 0 : ratio > 0 ? 1 : 2; // full, partial, depleted
+  if (n.kind === 'game') {
+    const deer = assets.get('animal_deer_walk');
+    if (n.amount <= 0) return;
+    if (deer) ctx.drawImage(deer, 0, 0, 32, 48, bx - 16, by - 47, 32, 48);
+    else { ctx.fillStyle = '#8a6a3c'; ctx.fillRect(bx - 9, by - 20, 18, 12); ctx.fillRect(bx + 5, by - 28, 6, 10); }
+    return;
+  }
   const sheetId = n.kind === 'bush' ? 'res_berry_states' : n.kind === 'rock' ? 'res_stonepile_states' : null;
   const sheet = sheetId ? assets.get(sheetId) : null;
   if (sheet) { ctx.drawImage(sheet, state * 48, 0, 48, 48, bx - 24, by - 43 - 1, 48, 48); return; }
@@ -83,7 +90,7 @@ function drawNode(ctx: CanvasRenderingContext2D, assets: AssetStore, n: NodeStat
 }
 
 const PLACEHOLDER_COLOR: Record<string, [string, string]> = {
-  records_hall: ['#8a7a60', '#5a7a9a'], house: ['#9a7a52', '#b46a3a'], pottery_kiln: ['#8a5a48', '#c0704a'], drying_rack: ['#7a5a3a', '#b8a060'], well: ['#7d7d78', '#4a7aa0'], market: ['#8a6a3c', '#c0503a'], assembly: ['#8a7a60', '#6a8a5a'],
+  animal_pen: ['#7a5a3a', '#a08a60'], records_hall: ['#8a7a60', '#5a7a9a'], house: ['#9a7a52', '#b46a3a'], pottery_kiln: ['#8a5a48', '#c0704a'], drying_rack: ['#7a5a3a', '#b8a060'], well: ['#7d7d78', '#4a7aa0'], market: ['#8a6a3c', '#c0503a'], assembly: ['#8a7a60', '#6a8a5a'],
   granary: ['#8a7a4c', '#c9a85a'], forge: ['#5a5550', '#c0562a'], shelter: ['#8a6a3c', '#b8863c'], storage: ['#7a5a3a', '#9c7a4a'], workshop: ['#6d6a62', '#a05a32'], farm: ['#6b4a2c', '#3f7a35'],
 };
 
