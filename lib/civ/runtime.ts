@@ -2,7 +2,7 @@ import { applyDiscoveries } from './bridge';
 import { AUTOSAVE_TICKS, SPEEDS, TICKS_PER_SECOND, type Speed } from './data/config';
 import { askMoreHint, dismissHint, stepWorld } from './hints';
 import { CIV_BACKUP_KEY, CIV_CORRUPT_KEY, CIV_SAVE_KEY, exportText, parseImport, parseSave, serializeSim } from './save';
-import { LAWS as _LAWS, acceptVisitor, adoptLaw, cancelRoute, establishRoute, repealLaw, type LawId, type ModuleId } from './modules';
+import { acceptVisitor, adoptLaw, cancelRoute, establishRoute, repealLaw, type LawId, type ModuleId } from './modules';
 import { addNote, addPin, previewExpedition, removeNote, removePin, sendExpedition, setPolicy, skipTutorial, togglePin, tutorialEvent } from './extras';
 import { acceptMigrant, declineMigrant, toggleBuildingPause, acceptTrade, assignOverride, cancelBuilding, createSim, declineTrade, placeBuilding, setPriority, type CivSim } from './sim';
 import type { CivState, JobCategory, Policies, Settings } from './types';
