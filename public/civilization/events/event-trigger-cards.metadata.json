@@ -1,0 +1,22 @@
+{
+  "assetId": "event_trigger_cards",
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "frames": 12,
+  "order": [
+    "low_food",
+    "full_stockpile",
+    "long_carry",
+    "missing_tool",
+    "new_resource",
+    "housing_shortage",
+    "successful_harvest",
+    "work_fatigue",
+    "trade_visitor",
+    "water_access",
+    "building_blocked",
+    "discovery_duplicate"
+  ],
+  "background": "opaque",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

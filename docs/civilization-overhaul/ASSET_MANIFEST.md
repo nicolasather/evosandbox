@@ -192,6 +192,12 @@
 | `terrain_path_edge_variants` | `public/civilization/terrain/path-edge-variants.png` | Edge strip | 128x32 (32x32 cells) | 4 | — | — | Top-left | North/east/south/west path edge pieces |
 | `fx_shore_foam_variants` | `public/civilization/effects/shore-foam-variants.png` | Shore strip | 128x32 (32x32 cells) | 4 | — | — | Top-left | Foam edge variants for shore transition |
 
+### ART backlog: event coverage (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `event_trigger_cards` | `public/civilization/events/event-trigger-cards.png` | Event illustration strip | 768x64 (64x64 cells) | 12 | — | — | Center | Covers every Section 43 trigger: low food, full stockpile, long carry, missing tool, new resource, housing shortage, successful harvest, work fatigue, trade visitor, water access, building blocked, discovery duplicate |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
