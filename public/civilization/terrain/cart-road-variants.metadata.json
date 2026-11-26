@@ -1,0 +1,15 @@
+{
+  "assetId": "terrain_cart_road_variants",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "frames": 4,
+  "order": [
+    "straight",
+    "bend",
+    "junction",
+    "end"
+  ],
+  "background": "opaque",
+  "anchor": "top-left",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

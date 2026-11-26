@@ -114,6 +114,17 @@
 | `animal_goat_walk` | `public/civilization/animals/goat-walk.png` | Walk sheet | 128x48 (32x48 cells) | 4 | 6 FPS | Yes | (16,47) | Idle pair + walk pair, transparent background |
 | `animal_sheep_walk` | `public/civilization/animals/sheep-walk.png` | Walk sheet | 128x48 (32x48 cells) | 4 | 6 FPS | Yes | (16,47) | Idle pair + walk pair, transparent background |
 
+### Growing village environment (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `terrain_irrigation_channel` | `public/civilization/terrain/irrigation-channel-variants.png` | Tile variant strip | 128x32 (32x32 cells) | 4 | — | — | Top-left | Straight, bend, junction and end channel tiles |
+| `terrain_cart_road_variants` | `public/civilization/terrain/cart-road-variants.png` | Tile variant strip | 128x32 (32x32 cells) | 4 | — | — | Top-left | Packed cart-road variants with wheel-rut detail |
+| `bld_trading_post_stages` | `public/civilization/buildings/trading-post-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed trading post; 2x2 footprint |
+| `bld_workshop_large` | `public/civilization/buildings/workshop-large-96.png` | Completed building | 96x96 | 1 | — | — | (48,89) | Larger workshop variant; 3x2 footprint |
+| `animal_deer_walk` | `public/civilization/animals/deer-walk.png` | Walk sheet | 128x48 (32x48 cells) | 4 | 6 FPS | Yes | (16,47) | Idle pair + walk pair for huntable wildlife |
+| `animal_rabbit_walk` | `public/civilization/animals/rabbit-walk.png` | Walk sheet | 128x48 (32x48 cells) | 4 | 6 FPS | Yes | (16,47) | Idle pair + walk pair for huntable wildlife |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
