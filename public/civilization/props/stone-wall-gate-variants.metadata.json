@@ -1,0 +1,17 @@
+{
+  "assetId": "prop_stone_wall_gate",
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "frames": 2,
+  "order": [
+    "wall",
+    "gate"
+  ],
+  "footprint": "1x1 per tile",
+  "anchor": {
+    "x": 32,
+    "y": 57
+  },
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
