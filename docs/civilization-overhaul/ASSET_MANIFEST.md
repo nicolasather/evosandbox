@@ -259,3 +259,11 @@ The loader (`components/civworld/assets.ts`) already requests every file below a
 | `ui_emote_{hungry,tired,idea,alert}` | `ui/emote_*.png` | 16x16 | 1 | n/a | DONE |
 
 Review rules still apply: nearest-neighbour, transparent background, top-left light, same palette as ART_DIRECTION.md, no labels inside cells, static fallback for every animation.
+
+## Wiring status (CODE, 2026-11-26)
+`e2e/unused-assets.py` lists every art file under `public/civilization` that no source file references. All delivered strips are now drawn: building thumbnails (build drawer), era badges (phase chip), hint icons (hint bubble), event cards (history), trigger cards (hint bubble) and expanded emotes (person inspector), all through the shared `SpriteIcon`. Still not referenced (11), all older or sample variants superseded by a wired file:
+- characters: `trader-portrait-64.png`, `villager-portraits-sample-48x48.png`, `villager-sample-32x32.png`, `villager-sample-32x48.png` (samples; role sheets and portraits are used)
+- effects: `day-night-overlay.png` (replaced by `dawn-night-tint-sheet.png`), `fx_smoke_loop.png` (replaced by `smoke-sheet.png`)
+- props: `path-variants.png`; terrain: `dirt-muted.png`, `grass-soft.png` (replaced by the seasonal/edge sheets)
+- ui: `building-thumbnails-16.png`, `building-thumbnails-16-v2.png` (v3 is wired)
+Art for animal pen, loom and trading post has no thumbnail frame in the strip; the build drawer shows a text card only for those.

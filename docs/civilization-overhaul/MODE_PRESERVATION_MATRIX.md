@@ -17,3 +17,18 @@ Registry: `lib/modes/registry.ts`; switch: `components/AppRoot.tsx` (`useState<M
 Shared keys that must never be rewritten by the civ world: `evo.profile.v1`, `evo.museum.v1`, `evo.trade.v1`, `evo.retention.v1`, `evo.characters.v1`, `evo.learn.v1`, `evo.notebook.v1`, `evo.theme`, `evo.quality`, `evo.scene`, `evo.flag.*`, `es.modepackets.*`.
 
 Regression checks after workspace slices: the Merging tab still shows the Mode Hub; each mode id still launches from the hub and returns; no write to any key above from the civ world (`lib/civ/__tests__/preservation.test.ts`).
+
+## Play-through record (2026-11-26, `e2e/modes.mjs 30`)
+Each mode opened from the launcher, left running 30 s with a keypress, then returned to the workspace. Error listeners were attached to the page.
+
+| Mode | Result | Runtime errors | Returns |
+|---|---|---|---|
+| survival | opens, 26 controls | 0 | yes |
+| civilization (lifelines) | opens, 58 controls | 0 | yes |
+| archaeology | opens, 45 controls | 0 | yes |
+| escape-room | opens, 39 controls | 0 | yes |
+| decipher | opens, 43 controls | 0 | yes |
+| alien-archaeology | opens, 25 controls | 0 | yes |
+| reverse-evolution | opens, 12 controls | 0 | yes |
+| minimum-path | opens, 6 controls | 0 | yes |
+| main-evolution | the Merging tab itself (checked by section 18 point 8, 9, 11) | 0 | n/a |

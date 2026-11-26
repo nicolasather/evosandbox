@@ -8,7 +8,7 @@ import type { CivRuntime } from '@/lib/civ/runtime';
 import { JOB_LABEL, forecastFor, foodSummary, jobStatuses, moodOf, needWord, timeLabel } from '@/lib/civ/selectors';
 import { acceptTradeLabel } from './tradeLabel';
 import { PhaseChip } from './panels2';
-import { BUILDING_FRAME, SpriteIcon, eventCard, hintIconFor } from './SpriteIcon';
+import { BUILDING_FRAME, EMOTE_FRAME, SpriteIcon, TRIGGER_FRAME, eventCard, hintIconFor } from './SpriteIcon';
 import { ClimateChips } from './panels3';
 import { DISCOVERY_MAP } from '@/lib/civ/data/discoveryMap';
 import { goalsFor, suggestedGoals } from '@/lib/civ/goals';
@@ -345,7 +345,7 @@ export function Inspector({ rt, sel, onClose, onFollow }: { rt: CivRuntime; sel:
     body = (
       <>
         <span className="cw-villager" data-v={c.id.length % 4} aria-hidden="true" />
-        <strong>{c.name}</strong>
+        <strong>{c.name} <SpriteIcon sheet="emote" size={16} frame={c.hunger >= 55 ? EMOTE_FRAME.hungry : c.energy <= 30 ? EMOTE_FRAME.tired : c.task.kind === 'idle' ? EMOTE_FRAME.question : EMOTE_FRAME.happy} /></strong>
         <span>{c.age === 'elder' ? 'Elder' : 'Adult'} · {c.trait}</span>
         <span>Now: {c.task.kind === 'idle' ? (c.idleReason || 'Waiting') : c.task.reason}</span>
         {c.carrying && <span>Carrying {c.carrying.n} {c.carrying.res}</span>}
@@ -418,6 +418,7 @@ export function HintCard({ rt, mode = 'bubbles' }: { rt: CivRuntime; mode?: 'bub
   return (
     <div className="cw-hint" role="status" aria-live="polite">
       <span className="cw-portrait" data-role={h.role} aria-hidden="true" />
+      {TRIGGER_FRAME[h.id] !== undefined && <SpriteIcon sheet="eventC" frame={TRIGGER_FRAME[h.id]} size={48} />}
       <div>
         <strong><SpriteIcon sheet="hint" frame={hintIconFor(h.level, h.id)} size={24} /> {h.speaker}</strong>
         <p>{h.text}</p>

@@ -52,3 +52,10 @@ export const hintIconFor = (level: string, id: string): number => {
   if (/discover|idea|tool/.test(id)) return HINT_FRAME.discovery;
   return level === 'guidance' ? HINT_FRAME.warning : HINT_FRAME.thought;
 };
+
+/** Frames of the trigger-card strip, keyed by the hint that fires on that trigger. */
+export const TRIGGER_FRAME: Record<string, number> = {
+  food_low: 0, food_critical: 0, storage_full: 1, wood_far: 2, missing_tool: 3, new_resource: 4, housing_full: 5,
+  work_fatigue: 7, trader_visit: 8, water_access: 9, water_low: 9, site_unstaffed: 10,
+};
+export const EMOTE_FRAME = { hungry: 0, tired: 1, idea: 2, alert: 3, happy: 4, question: 5, sweat: 6, heart: 7 } as const;
