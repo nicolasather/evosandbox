@@ -1,0 +1,13 @@
+{
+  "assetId": "fx_forge_smoke",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "frames": 6,
+  "fps": 8,
+  "loop": true,
+  "anchor": {
+    "x": 16,
+    "y": 31
+  },
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

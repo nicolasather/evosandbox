@@ -1,0 +1,15 @@
+{
+  "assetId": "bld_granary_full_empty",
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "frames": 2,
+  "order": [
+    "empty",
+    "full"
+  ],
+  "anchor": {
+    "x": 32,
+    "y": 57
+  },
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

@@ -135,6 +135,17 @@
 | `prop_stone_wall_gate` | `public/civilization/props/stone-wall-gate-variants.png` | Prop variant strip | 128x64 (64x64 cells) | 2 | — | — | (32,57) | Stone wall and gate variants; 1x1 tile pieces |
 | `bld_bridge_variants` | `public/civilization/props/bridge-variants.png` | Infrastructure variant strip | 128x64 (64x64 cells) | 2 | — | — | (32,57) | Bridge variants for a 3x1 crossing footprint |
 
+### ART backlog: era upgrades (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `bld_house_variants` | `public/civilization/buildings/house-variants.png` | Variant sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Wattle, stone and painted house styles; 2x2 footprint |
+| `bld_terraced_fields_stages` | `public/civilization/buildings/terraced-fields-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, terraces, planted field; 3x2 footprint |
+| `bld_loom_stages` | `public/civilization/buildings/loom-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed loom; 1x1 footprint |
+| `prop_orchard_variants` | `public/civilization/vegetation/orchard-variants.png` | Variant strip | 128x64 (64x64 cells) | 2 | — | — | (32,57) | Young and fruiting orchard trees |
+| `bld_granary_full_empty` | `public/civilization/vegetation/granary-full-empty.png` | State strip | 128x64 (64x64 cells) | 2 | — | — | (32,57) | Empty and stocked granary states |
+| `fx_forge_smoke` | `public/civilization/effects/forge-smoke-sheet.png` | Animation sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Forge chimney smoke loop |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
