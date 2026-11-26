@@ -161,6 +161,18 @@
 | `char_villager_variety_32x48` | `public/civilization/characters/villager-variety-32x48.png` | Variety strip | 192x48 (32x48 cells) | 6 | — | — | (16,47) | Six skin-tone/hair-colour variants |
 | `char_villager_actions_expanded` | `public/civilization/characters/villager-actions-expanded-32x48.png` | Action strip | 320x48 (32x48 cells) | 10 | 8 FPS | No | (16,47) | Carry wood/stone/food, build, sow, harvest, cook, fish, hunt, teach |
 
+### ART backlog: environmental effects (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `fx_rain_splash` | `public/civilization/effects/rain-splash-sheet.png` | Animation sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Rain impact splash loop |
+| `fx_fireflies` | `public/civilization/effects/fireflies-sheet.png` | Animation sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Night firefly glints |
+| `fx_dust` | `public/civilization/effects/dust-sheet.png` | Animation sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Construction/gathering dust puff |
+| `fx_sparks` | `public/civilization/effects/sparks-sheet.png` | Animation sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Forge/tool sparks |
+| `fx_harvest_sparkle` | `public/civilization/effects/harvest-sparkle-sheet.png` | Animation sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Harvest completion sparkle |
+| `fx_festival_lanterns` | `public/civilization/effects/lanterns-sheet.png` | Animation sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Festival lantern shimmer |
+| `fx_chimney_smoke` | `public/civilization/effects/chimney-smoke-sheet.png` | Animation sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Shared smoke loop for occupied chimneys |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
