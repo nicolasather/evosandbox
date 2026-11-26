@@ -1,0 +1,26 @@
+{
+  "assetId": "char_villager_actions_expanded",
+  "frameWidth": 32,
+  "frameHeight": 48,
+  "frames": 10,
+  "order": [
+    "carry-wood",
+    "carry-stone",
+    "build-hammer",
+    "sow",
+    "harvest",
+    "cook",
+    "fish",
+    "hunt",
+    "teach",
+    "carry-food"
+  ],
+  "fps": 8,
+  "loop": false,
+  "anchor": {
+    "x": 16,
+    "y": 47
+  },
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

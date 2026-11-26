@@ -1,0 +1,20 @@
+{
+  "assetId": "char_villager_variety_32x48",
+  "frameWidth": 32,
+  "frameHeight": 48,
+  "frames": 6,
+  "variants": [
+    "skin-1-hair-1",
+    "skin-2-hair-2",
+    "skin-3-hair-3",
+    "skin-4-hair-4",
+    "skin-5-hair-5",
+    "skin-6-hair-6"
+  ],
+  "anchor": {
+    "x": 16,
+    "y": 47
+  },
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
