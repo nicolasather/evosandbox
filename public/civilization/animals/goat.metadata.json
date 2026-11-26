@@ -1,0 +1,25 @@
+{
+  "assetId": "animal_goat_walk",
+  "frameWidth": 32,
+  "frameHeight": 48,
+  "frames": 4,
+  "rows": {
+    "south": [
+      0,
+      1
+    ],
+    "walk": [
+      2,
+      3
+    ]
+  },
+  "fps": 6,
+  "loop": true,
+  "anchor": {
+    "x": 16,
+    "y": 47
+  },
+  "background": "transparent",
+  "light": "top-left",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

@@ -103,6 +103,17 @@
 | `event_timeline_cards` | `public/civilization/events/event-cards.png` | Event illustration strip | 384x96 (96x96 cells) | 4 | — | — | Center | First harvest, heavy rain, trader arrival, food shortage |
 | `event_timeline_cards_preview_4x` | `public/civilization/events/event-cards-4x-preview.png` | Review preview | 1536x384 | 4 | — | — | — | Nearest-neighbor 4x preview |
 
+### Permanent settlement environment (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `bld_house_stages` | `public/civilization/buildings/house-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed household house; 2x2 footprint |
+| `bld_pottery_kiln_stages` | `public/civilization/buildings/pottery-kiln-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed kiln; 1x1 footprint |
+| `bld_drying_rack_stages` | `public/civilization/buildings/drying-rack-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed drying rack; 1x1 footprint |
+| `bld_animal_pen_stages` | `public/civilization/buildings/animal-pen-stages.png` | Construction sheet | 192x64 (64x64 cells) | 3 | — | — | (32,57) | Foundation, frame, completed pen; 2x1 footprint |
+| `animal_goat_walk` | `public/civilization/animals/goat-walk.png` | Walk sheet | 128x48 (32x48 cells) | 4 | 6 FPS | Yes | (16,47) | Idle pair + walk pair, transparent background |
+| `animal_sheep_walk` | `public/civilization/animals/sheep-walk.png` | Walk sheet | 128x48 (32x48 cells) | 4 | 6 FPS | Yes | (16,47) | Idle pair + walk pair, transparent background |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
