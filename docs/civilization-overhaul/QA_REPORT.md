@@ -50,3 +50,6 @@ The ART backlog items 2–9 were rechecked against the manifest, loader, and del
 | 9. Manifest accuracy | Stable IDs, dimensions, frames and anchors match `ASSET_SPECS`; all 100 loader paths resolve. | DONE |
 
 The 11 files listed as unused in the manifest are legacy/sample/superseded variants, not missing deliverables; the active replacements are wired. Procedural fallback code remains intentionally for runtime resilience, not because an ART asset is absent.
+
+### Correction to the ART verification above (CODE, same day)
+That check confirmed files exist and resolve; it did not confirm each one is drawn. A code scan then found nine loaded assets that no code requested (`fx_tint`, `terrain_water_quiet`, `res_woodpile_states`, `ui_emote_idea`, `fx_rain_splash`, `fx_dust`, `bld_terraced_fields_stages`, `char_villager_actions_expanded`, `char_villager_variety_32x48`). They are now drawn (see ASSET_MANIFEST.md, "Art drawn in-game"), and the villager samples and superseded thumbnails and portraits are removed. Checked again after the change: `tsc` clean, `next build` passes, jest 217/217 suites (1928 tests), `e2e/section18.mjs` 13/13, lint 0 errors and 0 warnings.
