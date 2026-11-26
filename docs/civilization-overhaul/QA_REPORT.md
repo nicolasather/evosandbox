@@ -9,7 +9,7 @@ Per-slice results (typecheck / lint / tests / browser checks) are appended here 
 | Final (item 13) | 2026-11-26 | pass | 0 errors, 21 warnings (frozen modes' React Compiler rules reported as warnings, see HANDOFF) | full jest: see "Totals" below | `e2e/section18.mjs` 13/13; `e2e/modes.mjs` 8/8 modes open, run 30 s, 0 errors, return to the workspace; `next build` passes | stale browser tabs from earlier runs had to be closed before the e2e (a 200-citizen autosave from the perf run leaked into check 3) |
 
 ## Totals
-Filled in from the last full `npx jest --testTimeout=30000` run: see the line at the end of this file.
+Full `npx jest --testTimeout=30000`: 217 suites, 1928 tests, 1927 pass. The one failure is `perf.test.ts` (200-citizen tick budget, 122.9 ms average against a 120 ms test bound) when 217 suites run in parallel on a loaded machine; alone it passes at about 11 ms. Civilization-specific: `lib/civ`, `CivPanels`, `CivModulesPanels`, `CivAccessibility`, `WorkspaceShell`, `ModeCoverage` = 282 tests, all passing. Browser e2e: 13/13 acceptance checks plus 8/8 modes.
 
 ## Performance (item 6)
 Measured in the browser with the e2e FPS script and in jest (`lib/civ/__tests__/perf.test.ts`):
