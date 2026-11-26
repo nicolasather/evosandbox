@@ -14,8 +14,15 @@
 | `terrain_path` | `public/civilization/terrain/path.png` | Static tile | 32×32 | 1 | — | — | Top-left | Packed dirt path on grass |
 | `prop_rock` | `public/civilization/terrain/rock.png` | Static sprite | 32×32 | 1 | — | — | Bottom-center | Transparent bg, warm outline |
 | `prop_tree` | `public/civilization/terrain/tree.png` | Static sprite | 48×64 | 1 | — | — | Bottom-center | Transparent bg, top-left light |
-| `fx_campfire_sheet` | `public/civilization/effects/campfire-sheet.png` | Spritesheet | 192×32 (32×32 cells) | 6 | 8 FPS (125ms) | Yes | Bottom-center | Fire + rising smoke |
-| `fx_campfire_static` | `public/civilization/effects/campfire-static.png` | Static fallback | 32×32 | 1 | — | — | Bottom-center | Reduced-motion fallback |
+| `fx_campfire_sheet` | `public/civilization/effects/campfire-sheet.png` | Spritesheet | 192×32 (32×32 cells) | 6 | 8 FPS (125ms) | Yes | (16,31) | Generated pixel art (`e94101c`); stone ring, logs, flame + embers |
+| `fx_campfire_static` | `public/civilization/effects/campfire-static.png` | Static fallback | 32×32 | 1 | — | — | (16,31) | Generated pixel art (`e94101c`); reduced-motion fallback |
+| `fx_smoke` | `public/civilization/effects/smoke-sheet.png` | Spritesheet | 192×32 (32×32 cells) | 6 | 8 FPS (125ms) | Yes | (16,31) | Generated pixel art (`e94101c`); rising warm-grey smoke loop |
+| `fx_shore_water` | `public/civilization/effects/shore-water-sheet.png` | Spritesheet | 192×32 (32×32 cells) | 6 | 8 FPS (125ms) | Yes | (16,31) | Generated pixel art (`e94101c`); shore ripple/foam loop |
+| `bld_shelter_large` | `public/civilization/buildings/shelter-96.png` | Completed building | 96×96 | 1 | — | — | (48,89) | Generated pixel art (`1144f5f`); 3×2 thatched shelter + 4x preview |
+| `bld_shelter_stages` | `public/civilization/buildings/shelter-stages.png` | Construction sheet | 192×64 (64×64 cells) | 3 | — | — | (32,57) | Generated pixel art (`1144f5f`); foundation, frame, hut + 4x preview |
+| `bld_storage_stages` | `public/civilization/buildings/storage-stages.png` | Construction sheet | 192×64 (64×64 cells) | 3 | — | — | (32,57) | Generated pixel art (`1144f5f`); foundation, frame, storage + 4x preview |
+| `bld_workshop_stages` | `public/civilization/buildings/workshop-stages.png` | Construction sheet | 192×64 (64×64 cells) | 3 | — | — | (32,57) | Generated pixel art (`1144f5f`); foundation, frame, workshop + 4x preview |
+| `bld_house_stages` | `public/civilization/buildings/house-stages.png` | Construction sheet | 192×64 (64×64 cells) | 3 | — | — | (32,57) | Generated pixel art (`1144f5f`); foundation, frame, house + 4x preview |
 
 ---
 
