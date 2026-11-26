@@ -1,0 +1,26 @@
+{
+  "assetId": "ui_building_thumbnails",
+  "frameWidth": 16,
+  "frameHeight": 16,
+  "frames": 16,
+  "order": [
+    "shelter",
+    "house",
+    "storage",
+    "workshop",
+    "farm",
+    "road",
+    "well",
+    "drying",
+    "kiln",
+    "granary",
+    "forge",
+    "market",
+    "assembly",
+    "trading",
+    "records",
+    "town"
+  ],
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

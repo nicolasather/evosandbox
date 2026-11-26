@@ -173,6 +173,14 @@
 | `fx_festival_lanterns` | `public/civilization/effects/lanterns-sheet.png` | Animation sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Festival lantern shimmer |
 | `fx_chimney_smoke` | `public/civilization/effects/chimney-smoke-sheet.png` | Animation sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Shared smoke loop for occupied chimneys |
 
+### ART backlog: UI art (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `ui_building_thumbnails` | `public/civilization/ui/building-thumbnails-16.png` | Thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Shelter through town hall build-menu thumbnails |
+| `ui_era_badges` | `public/civilization/ui/era-badges-24.png` | Badge strip | 120x24 (24x24 cells) | 5 | — | — | Center | Camp, village, town, complex and legacy badges |
+| `ui_emotes_expanded` | `public/civilization/ui/emotes-expanded-16.png` | Emote strip | 128x16 (16x16 cells) | 8 | — | — | Center | Hungry, tired, idea, alert, happy, question, sweat, heart |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.

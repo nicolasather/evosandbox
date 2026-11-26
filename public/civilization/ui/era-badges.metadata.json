@@ -1,0 +1,15 @@
+{
+  "assetId": "ui_era_badges",
+  "frameWidth": 24,
+  "frameHeight": 24,
+  "frames": 5,
+  "order": [
+    "camp",
+    "village",
+    "town",
+    "complex",
+    "legacy"
+  ],
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
