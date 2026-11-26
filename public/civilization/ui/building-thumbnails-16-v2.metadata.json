@@ -1,0 +1,9 @@
+{
+  "assetId": "ui_building_thumbnails_v2",
+  "frameWidth": 16,
+  "frameHeight": 16,
+  "frames": 16,
+  "notes": "Refreshed highlight pass for clearer silhouettes at game scale",
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

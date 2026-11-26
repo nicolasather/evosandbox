@@ -207,6 +207,7 @@
 | `fx_dawn_night_tint` | `public/civilization/effects/dawn-night-tint-sheet.png` | Tint strip | 128x32 (32x32 cells) | 4 | — | — | Top-left | Autumn dusk, winter night, dawn, clear day |
 | `event_part2_cards` | `public/civilization/events/part2-event-cards.png` | Event illustration strip | 384x64 (64x64 cells) | 6 | — | — | Center | Harvest festival, disagreement, flood warning, migration, policy change, discovery milestone |
 | `ui_building_thumbnails_refresh` | `public/civilization/ui/building-thumbnails-16.png` | Refreshed thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Highlight pass for clearer silhouettes at game scale |
+| `ui_building_thumbnails_v2` | `public/civilization/ui/building-thumbnails-16-v2.png` | Refreshed thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Stronger highlight clusters; preferred compact UI variant |
 
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
