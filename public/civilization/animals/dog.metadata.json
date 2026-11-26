@@ -1,0 +1,20 @@
+{
+  "assetId": "animal_dog_walk",
+  "frameWidth": 32,
+  "frameHeight": 48,
+  "frames": 4,
+  "order": [
+    "idle-a",
+    "idle-b",
+    "walk-a",
+    "walk-b"
+  ],
+  "fps": 7,
+  "loop": true,
+  "anchor": {
+    "x": 16,
+    "y": 47
+  },
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

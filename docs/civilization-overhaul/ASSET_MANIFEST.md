@@ -146,6 +146,14 @@
 | `bld_granary_full_empty` | `public/civilization/vegetation/granary-full-empty.png` | State strip | 128x64 (64x64 cells) | 2 | — | — | (32,57) | Empty and stocked granary states |
 | `fx_forge_smoke` | `public/civilization/effects/forge-smoke-sheet.png` | Animation sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Forge chimney smoke loop |
 
+### ART backlog: domestic animals and wildlife (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `animal_dog_walk` | `public/civilization/animals/dog-walk.png` | Walk sheet | 128x48 (32x48 cells) | 4 | 7 FPS | Yes | (16,47) | Herding dog idle/walk loop |
+| `animal_chicken_walk` | `public/civilization/animals/chicken-walk.png` | Walk sheet | 128x48 (32x48 cells) | 4 | 7 FPS | Yes | (16,47) | Chicken idle/walk loop |
+| `animal_fish_swim` | `public/civilization/animals/fish-swim.png` | Swim sheet | 128x32 (32x32 cells) | 4 | 8 FPS | Yes | (16,24) | River fish swim loop |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.

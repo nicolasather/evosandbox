@@ -1,0 +1,14 @@
+{
+  "assetId": "animal_fish_swim",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "frames": 4,
+  "fps": 8,
+  "loop": true,
+  "anchor": {
+    "x": 16,
+    "y": 24
+  },
+  "background": "transparent",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
