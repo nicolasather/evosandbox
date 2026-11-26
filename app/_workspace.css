@@ -146,3 +146,6 @@
   .cw-trade{width:calc(100% - 20px)}
 }
 
+.cw-card strong .cw-sprite{vertical-align:middle;margin-right:6px}
+.cw-log li .cw-sprite{float:left;margin:0 8px 4px 0}
+.cw-hint strong .cw-sprite,.cw-chip .cw-sprite{vertical-align:middle}

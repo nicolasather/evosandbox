@@ -8,6 +8,7 @@ import type { CivRuntime } from '@/lib/civ/runtime';
 import { JOB_LABEL, forecastFor, foodSummary, jobStatuses, moodOf, needWord, timeLabel } from '@/lib/civ/selectors';
 import { acceptTradeLabel } from './tradeLabel';
 import { PhaseChip } from './panels2';
+import { BUILDING_FRAME, SpriteIcon, eventCard, hintIconFor } from './SpriteIcon';
 import { ClimateChips } from './panels3';
 import { DISCOVERY_MAP } from '@/lib/civ/data/discoveryMap';
 import { goalsFor, suggestedGoals } from '@/lib/civ/goals';
@@ -117,7 +118,7 @@ export function BuildDrawer({ rt, onPick, active }: { rt: CivRuntime; onPick: (k
         const afford = costs.every(([k, n]) => s.stock[k] >= n);
         return (
           <button key={id} type="button" className="cw-card" disabled={!unlocked} aria-pressed={active === id} onClick={() => onPick(id)}>
-            <strong>{d.name}</strong>
+            <strong>{BUILDING_FRAME[id] !== undefined && <SpriteIcon sheet="building" frame={BUILDING_FRAME[id]} size={32} />} {d.name}</strong>
             <span>{d.description}</span>
             <span>{d.purpose}</span>
             <span className="cw-cost">
@@ -279,6 +280,7 @@ export function LogDrawer({ rt, onFocus }: { rt: CivRuntime; onFocus?: (x: numbe
       <ol className="cw-log">
         {list.map(e => (
           <li key={e.id}>
+            {(() => { const c = eventCard(e.kind, e.facts); return c ? <SpriteIcon sheet={c.sheet} frame={c.frame} size={48} /> : null; })()}
             <small>Day {dayOf(e.tick)}</small> {e.text}
             <details>
               <summary>What happened</summary>
@@ -417,7 +419,7 @@ export function HintCard({ rt, mode = 'bubbles' }: { rt: CivRuntime; mode?: 'bub
     <div className="cw-hint" role="status" aria-live="polite">
       <span className="cw-portrait" data-role={h.role} aria-hidden="true" />
       <div>
-        <strong>{h.speaker}</strong>
+        <strong><SpriteIcon sheet="hint" frame={hintIconFor(h.level, h.id)} size={24} /> {h.speaker}</strong>
         <p>{h.text}</p>
         <div className="cw-hint-actions">
           {h.level !== 'guidance' && <button type="button" onClick={() => rt.moreHint()}>Any ideas?</button>}
