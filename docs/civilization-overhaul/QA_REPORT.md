@@ -33,3 +33,20 @@ Measured in the browser with the e2e FPS script and in jest (`lib/civ/__tests__/
 | Balance | `balance.test.ts` (30 in-game days, headless) |
 | Optional modules | `modules.test.ts`, `CivModulesPanels.test.tsx` |
 | Browser acceptance (13 points) | `e2e/section18.mjs` |
+
+## ART backlog verification (origin/main `78da670`, 2026-11-26)
+
+The ART backlog items 2–9 were rechecked against the manifest, loader, and delivered files. The loader has 100 conventional PNG references; all 100 resolve under `public/civilization/`, and no referenced file is zero bytes.
+
+| ART item | Verification | Result |
+|---|---|---|
+| 2. Era visual upgrades | Era building/state sheets, bridge, wall/gate, town hall, records hall, loom, forge, orchard, granary and thumbnails are present and registered. | DONE |
+| 3. Animals | Goat, sheep, deer, rabbit, dog, chicken and fish sheets are present; ambient/wildlife drawing is wired. | DONE |
+| 4. Character variety | Role direction sheets, expanded actions, variety strip, trader and portraits are present; role/age selection and actions are wired. | DONE |
+| 5. Effects | Campfire, smoke, weather, rain splash, frost, dust, sparks, harvest sparkle, fireflies, lanterns, chimney/forge smoke and tint sheets are present. | DONE |
+| 6. UI art | Resource/tool icons, emotes, building thumbnails v3, era badges, hint/trigger cards and event cards are present and consumed by `SpriteIcon`. | DONE |
+| 7. Terrain polish | Seasonal/soft grass, dirt-edge masks, sand, path/road/bridge variants, water, shore foam, flowers, bushes, reeds, stumps and tree/rock variants are present. | DONE |
+| 8. Screenshot review | Screens 01–04 and README findings were reviewed; terrain round-two fixes pass, with no new screenshot currently on main. | DONE |
+| 9. Manifest accuracy | Stable IDs, dimensions, frames and anchors match `ASSET_SPECS`; all 100 loader paths resolve. | DONE |
+
+The 11 files listed as unused in the manifest are legacy/sample/superseded variants, not missing deliverables; the active replacements are wired. Procedural fallback code remains intentionally for runtime resilience, not because an ART asset is absent.

@@ -43,7 +43,7 @@ export const ASSET_SPECS: Record<string, AssetSpec> = {
   char_hunter_directional: { url: `${BASE}/characters/hunter-directions-32x48.png`, w: 32, h: 48, frames: 10 },
   char_child_directional: { url: `${BASE}/characters/child-directions-32x48.png`, w: 32, h: 48, frames: 10 },
   char_gatherer_actions: { url: `${BASE}/characters/gatherer-actions-32x48.png`, w: 32, h: 48, frames: 3 },
-  // still to be delivered: conventional paths, procedural placeholders are drawn until the files exist
+  // delivered paths; procedural placeholders remain only as a defensive fallback for load/decode failures
   terrain_water_deep: { url: `${BASE}/water/water_deep_sheet.png`, w: 32, h: 32, frames: 6, fps: 6 },
   fx_build_dust: { url: `${BASE}/effects/fx_build_dust.png`, w: 32, h: 32, frames: 6, fps: 10 },
   fx_sleep_z: { url: `${BASE}/effects/fx_sleep_z.png`, w: 32, h: 32, frames: 4, fps: 3 },

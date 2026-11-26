@@ -221,7 +221,7 @@
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
 
-Placeholder ids the renderer already asks for (rows above are used as soon as the file exists in `public/civilization/`):
+Defensive fallback ids (all conventional files exist on `main`; the renderer still draws a procedural fallback if a browser load/decode fails):
 
 | id | placeholder drawn until a file exists | wanted from |
 |---|---|---|
