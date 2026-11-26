@@ -2,7 +2,7 @@
 
 Method: every section of `MASTER_DESIGN.md` (sections 0-24 and Part II, 25-50) walked in order. Status words:
 - **DONE** = implemented, with the file and the test that proves it.
-- **DEFERRED (P3/experimental)** = the design itself labels it P3, experimental or "later" and says it must not block the core loop (sections 4.14, 25, 37, 38, 40). Listed so nothing is hidden, not counted as missing.
+- **DEFERRED** = none. Everything the design marks P2/P3/experimental is now implemented as an optional module (`lib/civ/modules.ts`, switches in Help, tests in `modules.test.ts`).
 - **MISSING** = none at the time of writing. If a later review finds one, it goes here first.
 
 Paths: sim = `lib/civ/*`, UI = `components/civworld/*`, shell = `components/workspace/*`, tests = `lib/civ/__tests__/*`, `components/__tests__/*`.
@@ -30,7 +30,7 @@ Paths: sim = `lib/civ/*`, UI = `components/civworld/*`, shell = `components/work
 | Toggleable planning overlays | DONE | `uiPrefs.overlays`, `panels2.tsx`; reach ring and walking routes |
 | Chunk/offscreen culling, static vs dynamic layers | DONE | `camera.visibleTiles`, terrain cache; `integration.test.ts` |
 | Reduced motion, quality tiers | DONE | `uiPrefs.ts`, `uiaudio.test.ts`; low/medium/high gate loops and fps |
-| Hand-authored first map, procedural later | DONE | `createWorld` (procedural generation = DEFERRED, doc says later) |
+| Hand-authored first map, procedural later | DONE | `createWorld(seed, kind)`; classic stays default; `modules.test.ts` |
 
 ## Section 4 simulation
 | Item | Status | Evidence |
@@ -41,16 +41,16 @@ Paths: sim = `lib/civ/*`, UI = `components/civworld/*`, shell = `components/work
 | Hybrid cohorts for larger population | DONE | children cohort `extras.stepPopulation`; named adults capped at 16 |
 | 4.3 needs: hunger, rest, safety, health, social | DONE (scoped) | hunger/rest simulated and explained; safety = flood avoidance; health/social = mood summary (`selectors.moodOf`) and water pressure hint. No disease (4.9 says not in opening hours) |
 | 4.4 jobs by category, reasons when blocked, direct override that expires | DONE | `selectors.jobStatuses`, `assignOverride`; `systems.test.ts` |
-| 4.5 resource families with source/sink/storage/unit | DONE | food, wood, stone, tools; knowledge via capabilities; water via wells; wealth via trade |
+| 4.5 resource families with source/sink/storage/unit | DONE | food, wood, stone, tools; water (stored, `water`); knowledge via capabilities; wealth via trade prices |
 | 4.6 logistics: gather, carry, store, full storage pauses | DONE | `sim.ts`; `sim.test.ts` accounting identity |
 | 4.7 farming, regrowth, overharvest cost, spoilage explained | DONE | farm plots, bush regrow, `extras.stepDaily`; `daily.test.ts` |
 | 4.8 housing capacity abstraction, overcrowding visible | DONE | `sleepCapacity`, rough sleeping slower rest, alerts |
-| 4.9 health/sanitation legible later pressure | DONE (scoped) | water-access hint/alert, well building; `extras3.test.ts` |
+| 4.9 health/sanitation legible later pressure | DONE | stored water from wells, thirst and dry fields with warning and recovery (`stepWater`), cold stress from climate; no random disease |
 | 4.10 item discovery vs capability, skills modest and visible | DONE | `discoveryMap.ts`, skills in inspector |
 | 4.11 buildings: campfire, shelter, storage, workshop, farm, well, road, market | DONE | `data/buildings.ts` (+ house, kiln, rack, granary, forge, assembly) |
 | 4.12 exploration with report | DONE | `extras.ts` expeditions, fog, POI; `extras2.test.ts` |
-| 4.13 trade: visiting trader, exact quantities | DONE | `sim.ts` trader; `extras.test.ts`. Routes, prices, caravans = DEFERRED (P3) |
-| 4.14 society/governance | DONE (first step) | assembly building (community project), policies; larger politics DEFERRED (P3) |
+| 4.13 trade: visiting trader, exact quantities, prices, routes, caravans | DONE | `sim.ts` trader; `modules.ts` priceOf/quote/routes/caravans; `modules.test.ts` |
+| 4.14 society/governance: rules with benefit and trade-off, public projects | DONE | assembly + four laws (`modules.ts` LAWS, `GovernanceSection`); `modules.test.ts` |
 | 4.15 events with structured facts, timeline, filter | DONE | `CivEvent`, `LogDrawer` (filter, facts, show on map) |
 
 ## Section 5 hints
@@ -168,15 +168,15 @@ Slices 0-10 delivered in order; art requests and reviews exchanged over Orca (`s
 | 30 winter preparation | DONE | seasons (switchable), forecast, autumn hint, season report; `extras3.test.ts` |
 | 31 building placement and construction | DONE | stages, ghost, cancel refund; pause/resume a workplace |
 | 32 citizen AI, hysteresis, crowding | DONE | continuity bonus, free-tile preference, reasons shown |
-| 33 households and life stages | DONE (scoped) | beds as households, child cohort, elder, migration offers; family trees DEFERRED |
+| 33 households and life stages | DONE | beds, child cohort with named parents, adults become elders, household migration offers, family tree (`modules.ts`, `FamilySection`) |
 | 34 social life, culture | DONE (scoped) | festival with postponement, workload unrest, one mood with contributors, elder teaching |
 | 35 policies with preview and confirm | DONE | `PoliciesSection` |
 | 36 exploration, POIs, expedition panel | DONE | `ExplorePanel`, `extras2.test.ts` |
-| 37 weather and seasons | DONE (scoped) | day/night, rain with flood warning, wind loops, river animation, seasons; temperature DEFERRED |
+| 37 weather, seasons, temperature | DONE | day/night, rain with flood warning, wind, river, seasons, temperature, clothing, roofs, fuelled fire (`modules.ts` climate) |
 | 37.1 flood with warning and recovery | DONE | `extras.stepHazard`; nothing destroyed |
-| 38 wildlife | DONE (ambient) | goat, sheep, deer, rabbit wander; hunting/herding DEFERRED (P3) |
+| 38 wildlife | DONE | ambient animals; hunted game herds that recover slowly; animal pens that need feeding (`stepHerds`) |
 | 39 production chains with bottleneck display | DONE | Jobs drawer blocked reasons per chain |
-| 40 trade and visitors | DONE (trader, migrants) | other visitor types DEFERRED (P2/P3) |
+| 40 trade and visitors | DONE | trader, caravan, craftsperson, messenger, migrating household (`maybeSpecialVisitor`, `acceptVisitor`) |
 | 41 goals and projects, pin/dismiss | DONE | `goals.ts`, `PinsSection` |
 | 42 journal, people index, building index, glossary, map notes, history | DONE | `JournalDrawer`, `NotesSection` |
 | 43 dialogue, bubbles cap, captions, no-dialogue option | DONE | `HintCard` modes |
@@ -187,5 +187,26 @@ Slices 0-10 delivered in order; art requests and reviews exchanged over Orca (`s
 | 48 edge cases | DONE | `integration.test.ts`, `extras2.test.ts` (removal, no duplicate claim, depletion, blocked paths, speed change, hidden tab, missing sprite) |
 | 49-50 sample content pack | DONE (as sample) | sample ids mapped to manifest ids; reeds and open stockpile are samples, not required |
 
-## Deferred list (explicit, from the design's own priority labels)
-Procedural map generation; trade routes, prices, caravans; governance beyond the assembly; domestic animals and hunting; family trees and individual children; temperature and clothing; fuel for the campfire; water as a stored resource; art not yet delivered (irrigation channel tiles, hunter and child roles, animal pen are delivered but unused).
+## Part II section-by-section additions (second pass)
+| Section | Status | Evidence |
+|---|---|---|
+| 25 priority labels P0-P3, experimental behind a flag | DONE | P0/P1 in the core; P2/P3/experimental as optional modules with switches (`MODULES`) |
+| 26.1 example: riverbank gathering zone with hunger interruption | DONE | job priorities, hunger interrupts, blocked reason `Storage is full` |
+| 27.1 onboarding principles | DONE | one concept per tip, tied to real actions, skip, journal keeps the info |
+| 29.1 food model | DONE | stock, rate, days, trend, reserve target held back, spoilage explained |
+| 31.1 placement example | DONE | green/amber (far)/red ghost with reasons |
+| 31.2 building data contract | DONE | `BuildingDef` (footprint, rotation, terrain, cost, stages, workers, purpose, assets) |
+| 32.1/32.2 task choice, hysteresis, no crowding | DONE | continuity bonus, free-tile preference, top reason shown |
+| 34.1/34.2 festival, disagreement | DONE | `stepDaily` festival with postponement, workload unrest |
+| 36.1 expedition example | DONE | `ExplorePanel` |
+| 37.1 flood | DONE | `stepHazard` |
+| 40.1 trade example (exact quantities, reserve warning) | DONE | `tradePreview.belowReserve`, trade card |
+| 42.1 journal entry example | DONE | `JournalDrawer` (changed, still needed, related history) |
+| 43.1 dialogue rules | DONE | cooldowns, one bubble, no-dialogue option |
+| 45 audio | DONE | `audio.ts` |
+| 46 mode and shared progression | DONE | layouts + preserved modes |
+| 47 save/load cases | DONE | `systems.test.ts`, `integration.test.ts` |
+| 48 edge cases | DONE | tests listed above |
+| 49-50 content pack | DONE (as samples) | ids mapped to manifest; reeds and open stockpile are samples, not required by the design |
+
+No DEFERRED items remain. Items that depend only on art not yet delivered are listed in ASSET_MANIFEST.md.
