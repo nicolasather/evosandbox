@@ -146,8 +146,8 @@ export function ClimateChips({ rt }: { rt: CivRuntime }) {
   const s = rt.state;
   return (
     <>
-      {moduleOn(s, 'water') && <span className="cw-chip" title={`Stored water. Wells fill it, people and fields use it. Capacity ${waterCapacity(s)}.`}>Water {Math.round(s.water)}/{waterCapacity(s)}</span>}
-      {moduleOn(s, 'climate') && <span className="cw-chip" title="Outside temperature. Clothing, a roof and a lit fire keep people warm.">{outsideTemperature(s)}°C</span>}
+      {moduleOn(s, 'water') && <span className="cw-chip" data-opt="1" title={`Stored water. Wells fill it, people and fields use it. Capacity ${waterCapacity(s)}.`}>Water {Math.round(s.water)}/{waterCapacity(s)}</span>}
+      {moduleOn(s, 'climate') && <span className="cw-chip" data-opt="1" title="Outside temperature. Clothing, a roof and a lit fire keep people warm.">{outsideTemperature(s)}°C</span>}
     </>
   );
 }

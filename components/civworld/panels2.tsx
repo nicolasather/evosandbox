@@ -25,7 +25,7 @@ export function TutorialTip({ rt }: { rt: CivRuntime }) {
 
 export function PhaseChip({ rt }: { rt: CivRuntime }) {
   const p = phaseOf(rt.state);
-  return <span className="cw-chip" title={`Next: ${p.next}`}>{p.name}</span>;
+  return <span className="cw-chip" data-opt="1" title={`Next: ${p.next}`}>{p.name}</span>;
 }
 
 const POLICY_OPTIONS: { key: keyof Policies; label: string; values: string[] }[] = [

@@ -66,7 +66,7 @@ const foodTitle = (s: CivRuntime['state']) => {
 
 export function MoodChip({ rt }: { rt: CivRuntime }) {
   const m = moodOf(rt.state);
-  return <span className="cw-chip" title={`Mood ${m.score}/100. Because of: ${m.contributors.join(', ')}`}>Mood {m.label}</span>;
+  return <span className="cw-chip" data-opt="1" title={`Mood ${m.score}/100. Because of: ${m.contributors.join(', ')}`}>Mood {m.label}</span>;
 }
 
 export function MigrantCard({ rt }: { rt: CivRuntime }) {

@@ -177,13 +177,31 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     setGhostMsg(prev => (prev === msg ? prev : msg));
   };
 
+  // touch: one finger pans, two fingers pinch to zoom
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ dist: number; zoom: number } | null>(null);
+  const pinchDist = () => { const [a, b] = [...touches.current.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
   const onPointerDown = (e: PointerEvent<HTMLCanvasElement>) => {
     if (e.button === 2) { setBuildKind(null); ghost.current = null; return; }
     e.currentTarget.setPointerCapture(e.pointerId);
     follow.current = null;
+    if (e.pointerType === 'touch') {
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.current.size === 2) { pinch.current = { dist: pinchDist(), zoom: cam.current.zoom }; drag.current = null; return; }
+    }
     drag.current = { x: e.clientX, y: e.clientY, cx: cam.current.cx, cy: cam.current.cy, moved: false };
   };
   const onPointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType === 'touch' && touches.current.has(e.pointerId)) {
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.current.size === 2 && pinch.current) {
+        const [a, b] = [...touches.current.values()];
+        const r = canvasRef.current!.getBoundingClientRect();
+        cam.current = zoomAt(cam.current, view.current, mapSize, pinch.current.zoom * (pinchDist() / Math.max(1, pinch.current.dist)), (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+        setZoomLabel(cam.current.zoom);
+        return;
+      }
+    }
     const d = drag.current;
     if (d) {
       const dx = e.clientX - d.x;
@@ -197,6 +215,11 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     ghostAt(sx, sy);
   };
   const onPointerUp = (e: PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType === 'touch') {
+      const wasPinch = touches.current.size >= 2;
+      touches.current.delete(e.pointerId);
+      if (wasPinch) { pinch.current = null; drag.current = null; saveCam(cam.current); return; }
+    }
     const d = drag.current;
     drag.current = null;
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
