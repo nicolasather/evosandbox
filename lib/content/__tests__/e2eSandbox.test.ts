@@ -23,11 +23,12 @@ import { createRng } from '../../seed';
    modes. Then the sandbox is rolled back and deleted. The real tree is hashed before and after: it must not change. */
 
 const ROOT = process.cwd();
+const PY = process.platform === 'win32' ? 'python' : 'python3';
 const sha = (p: string) => createHash('sha256').update(readFileSync(p)).digest('hex');
 const REAL_FILES = ['data/db.json', 'data/processing.json', 'data/sources.json', 'data/verified/alt_routes.json', 'data/verified/mode_packets.json'];
 const realHash = () => Object.fromEntries(REAL_FILES.map(f => [f, sha(path.join(ROOT, f))]));
 const run = (args: string[], env: Record<string, string> = {}) =>
-  spawnSync('python3', ['tools/verified_content.py', ...args], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, ...env } });
+  spawnSync(PY, ['tools/verified_content.py', ...args], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, ...env } });
 
 describe('pilot fixture → sandbox → engine → 3D → motion → modes → rollback', () => {
   const before = realHash();
@@ -44,7 +45,7 @@ describe('pilot fixture → sandbox → engine → 3D → motion → modes → r
     const pub = run(['publish', '--batch', 'pilot', '--apply', '--sandbox', sandbox]);
     expect(pub.status).toBe(0);
     backupDir = (pub.stdout.match(/Backup:\s*(\S+)/) ?? [])[1] ?? '';
-    const build = spawnSync('python3', ['tools/build_db.py'], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, EVO_ROOT: sandbox } });
+    const build = spawnSync(PY, ['tools/build_db.py'], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, EVO_ROOT: sandbox } });
     expect(build.status).toBe(0);
     const raw = JSON.parse(readFileSync(path.join(sandbox, 'build/db.json'), 'utf8')) as Db;
     const proc = JSON.parse(readFileSync(path.join(sandbox, 'data/processing.json'), 'utf8')) as ProcessingData;

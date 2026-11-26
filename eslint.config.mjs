@@ -21,7 +21,28 @@ const eslintConfig = defineConfig([
     // to upstream so they stay easy to diff and update; they are linted there,
     // not here. Everything this project wrote itself is linted.
     "components/vengeance/**",
+    // scratch backups and one-off node asset generators (CommonJS scripts)
+    ".backup_*/**",
+    "tools/**/*.js",
   ]),
+  {
+    // React Compiler rules flag legacy patterns in the preserved game modes. Those modes are
+    // frozen by the civilization overhaul (see docs/civilization-overhaul/MODE_PRESERVATION_MATRIX.md),
+    // so they are reported as warnings until each mode gets its own refactor.
+    files: [
+      "components/Sandbox.tsx",
+      "components/devlab/Gallery.tsx",
+      "components/escaperoom/EscapeRoomMode.tsx",
+      "components/sandbox/EmoteTray.tsx",
+      "components/sandbox/SandboxGuide.tsx",
+      "components/survival/SurvivalPrimer.tsx",
+    ],
+    rules: {
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/refs": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;
