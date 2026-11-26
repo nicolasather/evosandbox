@@ -1,0 +1,16 @@
+{
+  "assetId": "event_timeline_cards",
+  "frameWidth": 96,
+  "frameHeight": 96,
+  "frames": 4,
+  "order": [
+    "first_harvest",
+    "heavy_rain",
+    "trader_arrival",
+    "food_shortage"
+  ],
+  "background": "opaque",
+  "palette": "shared warm earth / teal",
+  "provenance": "Original hand-authored pixel clusters matching ART_DIRECTION.md",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

@@ -90,6 +90,19 @@
 |---|---|---|---|---|---|---|---|---|
 | `character_role_portraits_final_64` | `public/civilization/characters/role-portraits-final-64.png` | Portrait strip | 384x64 (64x64 cells) | 6 | — | — | (32,59) | Gatherer, hunter, builder, toolmaker, elder, child |
 
+### Late content: trader, weather and event art (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `char_trader_directional_32x48` | `public/civilization/characters/trader-directions-32x48.png` | Direction strip | 128x48 (32x48 cells) | 4 | — | — | (16,47) | N/E/S/W visiting trader with cap, satchel and walking staff |
+| `char_trader_directional_preview_4x` | `public/civilization/characters/trader-directions-4x-preview.png` | Review preview | 512x192 | 4 | — | — | — | Nearest-neighbor 4x preview |
+| `char_trader_portrait_64` | `public/civilization/characters/trader-portrait-64.png` | Portrait | 64x64 | 1 | — | — | (32,59) | Named visitor/trader portrait fallback |
+| `char_trader_portrait_preview_4x` | `public/civilization/characters/trader-portrait-4x-preview.png` | Review preview | 256x256 | 1 | — | — | — | Nearest-neighbor 4x preview |
+| `fx_weather_rain` | `public/civilization/effects/weather-rain-sheet.png` | Weather overlay sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Low-opacity rain streaks for cosmetic rain and flood warning |
+| `fx_weather_frost` | `public/civilization/effects/weather-frost-sheet.png` | Weather overlay sheet | 192x32 (32x32 cells) | 6 | 8 FPS | Yes | (16,31) | Pale frost sparkle/ground edge loop |
+| `event_timeline_cards` | `public/civilization/events/event-cards.png` | Event illustration strip | 384x96 (96x96 cells) | 4 | — | — | Center | First harvest, heavy rain, trader arrival, food shortage |
+| `event_timeline_cards_preview_4x` | `public/civilization/events/event-cards-4x-preview.png` | Review preview | 1536x384 | 4 | — | — | — | Nearest-neighbor 4x preview |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.
