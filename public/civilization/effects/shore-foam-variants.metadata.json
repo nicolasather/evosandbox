@@ -1,0 +1,9 @@
+{
+  "assetId": "terrain_shore_foam",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "frames": 4,
+  "background": "opaque",
+  "anchor": "top-left",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

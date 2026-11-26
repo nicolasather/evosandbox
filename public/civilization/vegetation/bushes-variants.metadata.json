@@ -1,0 +1,9 @@
+{
+  "assetId": "terrain_bushes",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "frames": 4,
+  "background": "transparent",
+  "anchor": "top-left",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
