@@ -198,6 +198,16 @@
 |---|---|---|---|---|---|---|---|---|
 | `event_trigger_cards` | `public/civilization/events/event-trigger-cards.png` | Event illustration strip | 768x64 (64x64 cells) | 12 | — | — | Center | Covers every Section 43 trigger: low food, full stockpile, long carry, missing tool, new resource, housing shortage, successful harvest, work fatigue, trade visitor, water access, building blocked, discovery duplicate |
 
+### Extra pass: seasons, tint and Part II events (`IMAGE3` follow-up)
+
+| Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `terrain_grass_seasons` | `public/civilization/terrain/grass-seasons.png` | Season strip | 96x32 (32x32 cells) | 3 | — | — | Top-left | Autumn, winter and dawn variants |
+| `terrain_tree_seasons` | `public/civilization/terrain/tree-seasons.png` | Season strip | 144x64 (48x64 cells) | 3 | — | — | Bottom-centre | Autumn, winter and dawn variants |
+| `fx_dawn_night_tint` | `public/civilization/effects/dawn-night-tint-sheet.png` | Tint strip | 128x32 (32x32 cells) | 4 | — | — | Top-left | Autumn dusk, winter night, dawn, clear day |
+| `event_part2_cards` | `public/civilization/events/part2-event-cards.png` | Event illustration strip | 384x64 (64x64 cells) | 6 | — | — | Center | Harvest festival, disagreement, flood warning, migration, policy change, discovery milestone |
+| `ui_building_thumbnails_refresh` | `public/civilization/ui/building-thumbnails-16.png` | Refreshed thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Highlight pass for clearer silhouettes at game scale |
+
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
 
 Provisional contract (DECISIONS.md D-004): tile 32x32, 3/4 top-down, light from top-left, character cell 32x48 anchored bottom-centre, nearest-neighbour, transparent backgrounds. Owners keep their own rows above; CODE edits only this section. The renderer uses the **Asset ID** column above as the stable key (`components/civworld/assets.ts`). Missing or failed files fall back to a procedurally drawn placeholder, never a crash.

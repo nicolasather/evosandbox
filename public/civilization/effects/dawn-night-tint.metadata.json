@@ -1,0 +1,14 @@
+{
+  "assetId": "fx_dawn_night_tint",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "frames": 4,
+  "order": [
+    "autumn-dusk",
+    "winter-night",
+    "dawn",
+    "clear-day"
+  ],
+  "background": "opaque",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

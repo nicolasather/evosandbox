@@ -1,0 +1,16 @@
+{
+  "assetId": "event_part2_cards",
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "frames": 6,
+  "order": [
+    "first_harvest_festival",
+    "community_disagreement",
+    "river_flood_warning",
+    "migration_offer",
+    "policy_change",
+    "discovery_milestone"
+  ],
+  "background": "opaque",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

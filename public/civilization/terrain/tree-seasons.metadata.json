@@ -1,0 +1,13 @@
+{
+  "assetId": "terrain_tree_seasons",
+  "frameWidth": 48,
+  "frameHeight": 64,
+  "frames": 3,
+  "order": [
+    "autumn",
+    "winter",
+    "dawn"
+  ],
+  "background": "opaque",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}

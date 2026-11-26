@@ -1,0 +1,13 @@
+{
+  "assetId": "terrain_grass_seasons",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "frames": 3,
+  "order": [
+    "autumn",
+    "winter",
+    "dawn"
+  ],
+  "background": "opaque",
+  "license": "Original project asset; © Evolution Sandbox contributors"
+}
