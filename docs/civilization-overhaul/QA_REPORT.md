@@ -53,3 +53,29 @@ The 11 files listed as unused in the manifest are legacy/sample/superseded varia
 
 ### Correction to the ART verification above (CODE, same day)
 That check confirmed files exist and resolve; it did not confirm each one is drawn. A code scan then found nine loaded assets that no code requested (`fx_tint`, `terrain_water_quiet`, `res_woodpile_states`, `ui_emote_idea`, `fx_rain_splash`, `fx_dust`, `bld_terraced_fields_stages`, `char_villager_actions_expanded`, `char_villager_variety_32x48`). They are now drawn (see ASSET_MANIFEST.md, "Art drawn in-game"), and the villager samples and superseded thumbnails and portraits are removed. Checked again after the change: `tsc` clean, `next build` passes, jest 217/217 suites (1928 tests), `e2e/section18.mjs` 13/13, lint 0 errors and 0 warnings.
+
+## Accessibility, live pass (CODE, 2026-11-26)
+Run with `node docs/civilization-overhaul/e2e/a11y-live.mjs` (headless Chrome, dev server on :3111, 1280x800). Each check was run in the browser, not only in unit tests.
+
+| Check | Result |
+|---|---|
+| Keyboard-only tab order through the workspace | 29 distinct stops (tabs, layout buttons, map, pause and speed, HUD warning, zoom, toolbar, Merging, Crew settings). Every stop has an accessible name and a visible focus ring. The Next.js dev overlay is excluded: it is development tooling, not game UI. |
+| Keyboard pan, zoom, pause | Arrow keys pan (the camera position is now remembered, as with the pointer). `+` zooms. Space toggles pause. All pass. |
+| Keyboard build | Enter on Build opens the drawer; Enter on Shelter selects it; Tab to the map; arrows move the placement outline, validated like the pointer; Enter places it. A shelter was placed on the first valid try. |
+| Escape | Closes an open drawer even when focus is on one of its buttons (fixed: it previously did nothing from a focused control). |
+| Contrast, live computed colours | 28 visible text elements in the settlement pane and drawers. Lowest ratio 9.73:1 (WCAG AA needs 4.5:1). No failures. The static palette tests in `CivAccessibility.test.tsx` also pass. |
+| Accessible names | No unnamed button, input or canvas in the pane or drawers. The map's label now also describes the build keys. |
+| Reduced motion | With the sim paused, the picture changes between two samples 1.2 s apart when motion is on (fire, smoke, birds), and is pixel-identical when `prefers-reduced-motion: reduce` is emulated. The gate is also unit-tested (`uiaudio.test.ts`). |
+| Colour-blind safety | Checked on the screenshots: every warning and alert carries words ("Warning: Food reserve is 1.8 days", "Locked: ..."), resources carry numbers and labels, and priorities are text segments. No status depends on colour alone. Not tested with a simulated colour-vision filter. |
+| Screen-reader labels | Verified in the DOM. Live regions are covered by `CivAccessibility.test.tsx`. No real screen reader was run. |
+
+Gaps found and fixed in this pass: keyboard placement did not exist (placing a building needed the pointer); Escape did not close a drawer from a focused button; the keyboard camera position was not remembered.
+
+## Final art review (CODE, 2026-11-26), default quality tier
+Screenshots (1280x800, default tier), in `docs/civilization-overhaul/screens/`:
+- `desktop_main.png`: settlement with people, houses, campfire, farms, trees, bushes and the rest of the terrain. The new art reads correctly.
+- `desktop_build_drawer.png`: build drawer with the building thumbnails (v3) and their costs and unlock hints.
+- `desktop_night.png`: night (the HUD reads "Night"). Before this pass the night tint was too weak to read as night. It now has a cool wash on top of the tint sheet; the change is visible in the saved screenshot.
+- `desktop_keyboard_build.png`: after the keyboard-only shelter placement.
+
+Not changed, and not art: small red and green squares scattered on the grass are map notes and pins (`render.ts`, notes drawn as small coloured rectangles), and the "1 Issue" badge bottom left is the Next.js development overlay, not part of the game.

@@ -86,6 +86,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
   const [buildKind, setBuildKind] = useState<string | null>(null);
   const [ghostMsg, setGhostMsg] = useState<string>('');
   const rotated = useRef(false);
+  const kbCursor = useRef<{ x: number; y: number } | null>(null); // the keyboard placement outline, in tiles
   const [zoomLabel, setZoomLabel] = useState(START_ZOOM);
   const live = useRef({ selected: null as Hit | null, visible, drawer: null as DrawerId | null });
   useEffect(() => { live.current = { selected, visible, drawer }; }, [selected, visible, drawer]);
@@ -266,9 +267,38 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     cam.current = recenter({ x: (fire.x + 0.5) * TILE, y: (fire.y + 0.5) * TILE }, START_ZOOM, view.current, mapSize);
     setZoomLabel(cam.current.zoom);
   }, [rt, mapSize]);
-  const cancelBuild = () => { setBuildKind(null); ghost.current = null; setGhostMsg(''); };
+  const cancelBuild = () => { setBuildKind(null); ghost.current = null; kbCursor.current = null; setGhostMsg(''); };
+  // keyboard placement: arrows move the outline one tile (validated like the pointer), Enter places it
+  const ghostAtTile = (gx: number, gy: number) => {
+    if (!buildKind) return;
+    const v = validatePlacement(rt.sim, buildKind, gx, gy, rotated.current);
+    ghost.current = { kind: buildKind, x: gx, y: gy, valid: v.ok, far: v.ok && v.far };
+    setGhostMsg(v.ok ? (v.far ? 'Valid, but far from the camp: long carrying routes' : 'Valid: Enter places it') : v.reason);
+  };
+  const placeAtGhost = () => {
+    const g = ghost.current;
+    if (!buildKind || !g) return;
+    const r = rt.place(buildKind, g.x, g.y, rotated.current);
+    if (r.ok && buildKind === 'shelter') rt.tutorial('shelter');
+    if (r.ok) { setBuildKind(null); ghost.current = null; kbCursor.current = null; setGhostMsg(''); } else setGhostMsg(r.reason);
+  };
   const onKey = (e: KeyboardEvent<HTMLElement>) => {
-    if ((e.target as HTMLElement).closest('input,select,textarea,button')) { if (e.key === 'Escape' && buildKind) { cancelBuild(); e.preventDefault(); } return; }
+    if (buildKind && !(e.target as HTMLElement).closest('input,select,textarea,button') && (e.key === 'Enter' || e.key.startsWith('Arrow'))) {
+      e.preventDefault();
+      if (e.key === 'Enter') { placeAtGhost(); return; }
+      const d = BUILDINGS[buildKind];
+      const start = kbCursor.current ?? (() => { const c = screenToWorld(cam.current, view.current, view.current.w / 2, view.current.h / 2); return { x: Math.floor(c.x / TILE) - Math.floor(d.footprint.w / 2), y: Math.floor(c.y / TILE) - Math.floor(d.footprint.h / 2) }; })();
+      const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+      const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+      kbCursor.current = { x: start.x + dx, y: start.y + dy };
+      ghostAtTile(kbCursor.current.x, kbCursor.current.y);
+      return;
+    }
+    if ((e.target as HTMLElement).closest('input,select,textarea,button')) {
+      // Escape works from a focused control too: it leaves placement mode or closes the open drawer
+      if (e.key === 'Escape' && (buildKind || drawer)) { if (buildKind) cancelBuild(); else setDrawer(null); e.preventDefault(); }
+      return;
+    }
     const step = 48 / cam.current.zoom;
     const move = (dx: number, dy: number) => { follow.current = null; cam.current = clampCamera({ ...cam.current, cx: cam.current.cx + dx, cy: cam.current.cy + dy }, view.current, mapSize); };
     if (e.key === 'ArrowLeft') move(-step, 0);
@@ -282,6 +312,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     else if (e.key === ' ') rt.togglePause();
     else if (e.key === 'Escape') { if (buildKind) cancelBuild(); else if (drawer) setDrawer(null); else setSelected(null); }
     else return;
+    saveCam(cam.current); // keyboard pan and zoom are remembered like pointer ones
     e.preventDefault();
   };
 
@@ -298,7 +329,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
   return (
     <div className="cw-root" data-visible={visible ? '1' : '0'} data-compact={ui.compact ? '1' : '0'} style={{ ['--cw-scale' as string]: ui.uiScale }} ref={hostRef} onKeyDown={onKey}>
       <canvas ref={canvasRef} className="cw-canvas" tabIndex={0} role="application" data-build={buildKind ? '1' : '0'}
-        aria-label="Settlement map. Arrow keys pan, plus and minus zoom, Home recentres, Space pauses."
+        aria-label="Settlement map. Arrow keys pan, or move the placement outline while building; Enter places it. Plus and minus zoom, Home recentres, Space pauses."
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
         onPointerLeave={() => { hover.current = null; }} onWheel={onWheel} onContextMenu={e => e.preventDefault()} />
       <Hud rt={rt} onFocus={focusOn} />

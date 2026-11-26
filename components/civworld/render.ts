@@ -509,6 +509,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   }
   const tint = f.quality === 'low' ? null : assets.get('fx_tint');
   if (tint && night > 0) paintTint(ctx, tint, view, night, activeSeason(s) === 'Winter' ? 1 : 0);
-  else if (night > 0) { ctx.fillStyle = `rgba(12,20,52,${(0.28 * night).toFixed(3)})`; ctx.fillRect(0, 0, view.w, view.h); }
+  // the sheet alone reads as dusk; a cool wash on top makes night clearly night (the fallback when the sheet is absent is the same wash)
+  if (night > 0) { ctx.fillStyle = `rgba(12,20,52,${((tint ? 0.2 : 0.28) * night).toFixed(3)})`; ctx.fillRect(0, 0, view.w, view.h); }
   if (tint && t < 0.06) paintTint(ctx, tint, view, (1 - t / 0.06) * 0.5, 2);
 }
