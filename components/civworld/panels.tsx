@@ -5,7 +5,7 @@ import { BUILDINGS, BUILD_ORDER } from '@/lib/civ/data/buildings';
 import { SPEEDS } from '@/lib/civ/data/config';
 import { computeAlerts } from '@/lib/civ/hints';
 import type { CivRuntime } from '@/lib/civ/runtime';
-import { JOB_LABEL, foodSummary, jobStatuses, moodOf, needWord, timeLabel } from '@/lib/civ/selectors';
+import { JOB_LABEL, forecastFor, foodSummary, jobStatuses, moodOf, needWord, timeLabel } from '@/lib/civ/selectors';
 import { acceptTradeLabel } from './tradeLabel';
 import { PhaseChip } from './panels2';
 import { DISCOVERY_MAP } from '@/lib/civ/data/discoveryMap';
@@ -300,6 +300,8 @@ export function HelpDrawer({ rt }: { rt: CivRuntime }) {
         <li>Click a person, building, tree or tile to inspect it. <kbd>Esc</kbd> clears or cancels building.</li>
         <li><kbd>Space</kbd> pause or resume</li>
       </ul>
+      <p className="cw-note">Forecast: {forecastFor(rt.state).text}</p>
+      <label className="cw-check"><input type="checkbox" checked={st.seasons !== 'off'} onChange={e => rt.setSetting('seasons', e.target.checked ? 'on' : 'off')} /> Seasons (turn off for a steady sandbox)</label>
       <label className="cw-check"><input type="checkbox" checked={st.pauseWhileCrafting} onChange={e => rt.setSetting('pauseWhileCrafting', e.target.checked)} /> Pause the settlement while Merging is open</label>
       <label className="cw-field">Work intensity
         <select value={st.workIntensity} onChange={e => rt.setSetting('workIntensity', e.target.value as typeof st.workIntensity)}>

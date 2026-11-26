@@ -310,7 +310,7 @@ export function stepDaily(sim: CivSim) {
   // knowledge passes on: an elder teaches the least skilled adult
   const elder = s.citizens.find(c => c.age === 'elder');
   const pupil = [...s.citizens].filter(c => c.age === 'adult').sort((a, b) => a.skill.gather + a.skill.build + a.skill.craft - (b.skill.gather + b.skill.build + b.skill.craft))[0];
-  if (elder && pupil) { pupil.skill.gather = Math.min(5, pupil.skill.gather + 0.05); pupil.skill.build = Math.min(5, pupil.skill.build + 0.05); }
+  if (elder && pupil) { const step = doneBuildings(s, 'records_hall').length ? 0.1 : 0.05; pupil.skill.gather = Math.min(5, pupil.skill.gather + step); pupil.skill.build = Math.min(5, pupil.skill.build + step); }
   // the first harvest festival happens only when there is food to spare, and the history says why it was postponed
   if (doneBuildings(s, 'farm').length > 0 && !s.milestones.includes('festival')) {
     if (foodDays(s) >= s.settings.foodReserveDays + 1) {

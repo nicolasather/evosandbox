@@ -87,6 +87,7 @@ export function SettingsSection({ ui, setUi }: { ui: UiPrefs; setUi: (p: UiPrefs
       </label>
       <label className="cw-check"><input type="checkbox" checked={ui.compact} onChange={e => setUi({ ...ui, compact: e.target.checked })} /> Compact mode (smaller bars, fewer words)</label>
       <label className="cw-check"><input type="checkbox" checked={ui.reduceMotion} onChange={e => setUi({ ...ui, reduceMotion: e.target.checked })} /> Reduce motion (also follows your system setting)</label>
+      <label className="cw-check"><input type="checkbox" checked={ui.overlays} onChange={e => setUi({ ...ui, overlays: e.target.checked })} /> Planning overlays (gathering reach and walking routes)</label>
       <label className="cw-field">Villager hints
         <select value={ui.hints} onChange={e => setUi({ ...ui, hints: e.target.value as UiPrefs['hints'] })}>
           <option value="bubbles">Speech bubbles</option>

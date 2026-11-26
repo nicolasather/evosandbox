@@ -4,7 +4,7 @@ import type { ResourceId } from '../types';
    docs/civilization-overhaul/ASSET_MANIFEST.md. */
 
 export interface BuildingDef {
-  id: 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly' | 'house' | 'pottery_kiln' | 'drying_rack' | 'well';
+  id: 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly' | 'house' | 'pottery_kiln' | 'drying_rack' | 'well' | 'records_hall';
   name: string;
   description: string;
   footprint: { w: number; h: number };
@@ -20,6 +20,8 @@ export interface BuildingDef {
   visualAssetId: string;
   /** Row of the sprite sheet cell that sits on the footprint's bottom edge (default 57). */
   anchorY?: number;
+  /** The footprint can be turned a quarter turn (width and height swap). */
+  rotatable?: boolean;
   /** What it does, in the inspector. */
   purpose: string;
 }
@@ -46,7 +48,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
   farm: {
     id: 'farm', name: 'Farm plot', description: 'Tilled ground that gives food again and again.',
     footprint: { w: 3, h: 2 }, cost: { wood: 6 }, buildTicks: 30, workerSlots: 2, requires: 'agriculture',
-    terrain: ['grass', 'dirt'], unlockHint: 'Discover Agriculture in Merging.', visualAssetId: 'bld_farm',
+    terrain: ['grass', 'dirt'], unlockHint: 'Discover Agriculture in Merging.', visualAssetId: 'bld_farm', rotatable: true,
     purpose: 'Regrows a harvest of food that workers gather.',
   },
   granary: {
@@ -76,7 +78,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
   assembly: {
     id: 'assembly', name: 'Assembly', description: 'A shared gathering place where the community decides things together.',
     footprint: { w: 3, h: 2 }, cost: { wood: 24, stone: 14 }, buildTicks: 70, workerSlots: 2, requires: 'assembly',
-    terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover the Public Assembly Plaza in Merging.', visualAssetId: 'bld_assembly',
+    terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover the Public Assembly Plaza in Merging.', visualAssetId: 'bld_assembly', rotatable: true,
     purpose: 'A community project: the settlement can hold 4 more people.',
   },
   house: {
@@ -103,6 +105,12 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover the Hand-Dug Shaft Well in Merging.', visualAssetId: 'bld_well',
     purpose: 'Reliable water: the settlement can hold 2 more people.',
   },
+  records_hall: {
+    id: 'records_hall', name: 'Records hall', description: 'A hall where accounts and knowledge are kept.',
+    footprint: { w: 2, h: 2 }, cost: { wood: 20, stone: 10 }, buildTicks: 64, workerSlots: 2, requires: 'records',
+    terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover Record Keeping in Merging.', visualAssetId: 'bld_records_hall',
+    purpose: 'Elders teach twice as fast: skills grow quicker.',
+  },
 };
 
-export const BUILD_ORDER = ['shelter', 'house', 'storage', 'workshop', 'farm', 'road', 'well', 'drying_rack', 'pottery_kiln', 'granary', 'forge', 'market', 'assembly'] as const;
+export const BUILD_ORDER = ['shelter', 'house', 'storage', 'workshop', 'farm', 'road', 'well', 'drying_rack', 'pottery_kiln', 'granary', 'forge', 'market', 'records_hall', 'assembly'] as const;

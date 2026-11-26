@@ -6,3 +6,6 @@
 - The Merging pane is a CSS containing block (`transform: translateZ(0)`) so Sandbox's fixed layers stay inside it. Resizing changes the pane's width only; it is never re-parented or remounted, so the craft session survives.
 - The simulation clock lives outside the shell and keeps running in every layout.
 - Keys: `Esc` on the divider restores the previous layout; divider is focusable and moves with arrow keys.
+
+## Layouts (all implemented)
+`civ` collapsed (handle), `dock` compact strip (Merging laid out at 760px and scaled to 380px), `split` (draggable, keyboard divider; Merging never narrower than 560px), `overlay` (large temporary overlay, Escape or backdrop returns), `merge` (maximized / focus). Narrow screens (<820px) use a bottom drawer. Sandbox keyboard shortcuts only act while its pane is visible.

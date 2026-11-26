@@ -7,10 +7,10 @@ export type Quality = 'low' | 'medium' | 'high';
 export type HintMode = 'bubbles' | 'compact' | 'off';
 
 export interface AudioPrefs { master: number; effects: number; ambience: number; muted: boolean }
-export interface UiPrefs { quality: Quality; uiScale: number; compact: boolean; hints: HintMode; reduceMotion: boolean; audio: AudioPrefs }
+export interface UiPrefs { quality: Quality; uiScale: number; compact: boolean; hints: HintMode; reduceMotion: boolean; overlays: boolean; audio: AudioPrefs }
 
 export const DEFAULT_UI: UiPrefs = {
-  quality: 'high', uiScale: 1, compact: false, hints: 'bubbles', reduceMotion: false,
+  quality: 'high', uiScale: 1, compact: false, hints: 'bubbles', reduceMotion: false, overlays: false,
   audio: { master: 0.6, effects: 0.8, ambience: 0.4, muted: true }, // muted until the player turns sound on
 };
 
@@ -31,6 +31,7 @@ export function parseUiPrefs(raw: string | null | undefined): UiPrefs {
       compact: o.compact === true,
       hints: o.hints === 'compact' || o.hints === 'off' || o.hints === 'bubbles' ? o.hints : 'bubbles',
       reduceMotion: o.reduceMotion === true,
+      overlays: o.overlays === true,
       audio: {
         master: clamp01(a.master, DEFAULT_UI.audio.master), effects: clamp01(a.effects, DEFAULT_UI.audio.effects),
         ambience: clamp01(a.ambience, DEFAULT_UI.audio.ambience), muted: a.muted === false ? false : true,

@@ -83,7 +83,7 @@ function drawNode(ctx: CanvasRenderingContext2D, assets: AssetStore, n: NodeStat
 }
 
 const PLACEHOLDER_COLOR: Record<string, [string, string]> = {
-  house: ['#9a7a52', '#b46a3a'], pottery_kiln: ['#8a5a48', '#c0704a'], drying_rack: ['#7a5a3a', '#b8a060'], well: ['#7d7d78', '#4a7aa0'], market: ['#8a6a3c', '#c0503a'], assembly: ['#8a7a60', '#6a8a5a'],
+  records_hall: ['#8a7a60', '#5a7a9a'], house: ['#9a7a52', '#b46a3a'], pottery_kiln: ['#8a5a48', '#c0704a'], drying_rack: ['#7a5a3a', '#b8a060'], well: ['#7d7d78', '#4a7aa0'], market: ['#8a6a3c', '#c0503a'], assembly: ['#8a7a60', '#6a8a5a'],
   granary: ['#8a7a4c', '#c9a85a'], forge: ['#5a5550', '#c0562a'], shelter: ['#8a6a3c', '#b8863c'], storage: ['#7a5a3a', '#9c7a4a'], workshop: ['#6d6a62', '#a05a32'], farm: ['#6b4a2c', '#3f7a35'],
 };
 
@@ -325,6 +325,13 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   }
 
   if (f.overlays) {
+    ctx.strokeStyle = 'rgba(120,200,255,0.55)'; ctx.lineWidth = 1;
+    for (const c of s.citizens) {
+      if (c.path.length === 0) continue;
+      ctx.beginPath(); ctx.moveTo(c.x * TILE + 16, c.y * TILE + 16);
+      for (const [px2, py2] of c.path) ctx.lineTo(px2 * TILE + 16, py2 * TILE + 16);
+      ctx.stroke();
+    }
     const fire = s.buildings[0];
     ctx.strokeStyle = 'rgba(255,209,102,0.35)'; ctx.setLineDash([6, 6]); ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(fire.x * TILE + 16, fire.y * TILE + 16, 12 * TILE, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
@@ -370,6 +377,15 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   }
   list.sort((a, b) => a.y - b.y);
   for (const d of list) d.draw();
+
+  // a new discovery gets a short, subtle reaction at the fire, not a screen takeover
+  const lastFind = [...s.events].reverse().find(e => e.kind === 'discovery');
+  if (lastFind && s.tick - lastFind.tick < 80 && f.animate) {
+    const fire = s.buildings[0];
+    const k = (s.tick - lastFind.tick) / 80;
+    ctx.strokeStyle = `rgba(255,209,102,${(0.8 * (1 - k)).toFixed(2)})`; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(fire.x * TILE + 16, fire.y * TILE + 16, 10 + k * 40, 0, Math.PI * 2); ctx.stroke();
+  }
 
   // ambient life: a few birds cross the map by day (cosmetic only, no resource accounting, still when motion is reduced)
   if (f.animate && hi) {

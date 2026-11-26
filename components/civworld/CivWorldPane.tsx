@@ -5,7 +5,7 @@ import { BUILDINGS } from '@/lib/civ/data/buildings';
 import { TICKS_PER_SECOND } from '@/lib/civ/data/config';
 import type { CivRuntime } from '@/lib/civ/runtime';
 import { validatePlacement } from '@/lib/civ/sim';
-import { clampCamera, recenter, screenToWorld, zoomAt, type Camera, type Size } from '@/lib/civ/camera';
+import { clampCamera, clampZoom, recenter, screenToWorld, zoomAt, type Camera, type Size } from '@/lib/civ/camera';
 import { TILE, hitTest, type Hit, type MapLike } from '@/lib/civ/world';
 import { AssetStore } from './assets';
 import db from '@/data/db.json';
@@ -20,6 +20,17 @@ import { useCivVersion } from './useCiv';
    React owns the panels; the canvas draws straight from the runtime's simulation state. */
 
 const START_ZOOM = 2;
+const CAM_KEY = 'evo.civworld.cam';
+
+function loadCam(): Camera {
+  const fallback = { cx: 19.5 * TILE, cy: 12.5 * TILE, zoom: START_ZOOM };
+  try {
+    const o = JSON.parse(window.localStorage.getItem(CAM_KEY) ?? 'null') as Partial<Camera> | null;
+    if (o && Number.isFinite(o.cx) && Number.isFinite(o.cy) && Number.isFinite(o.zoom)) return { cx: Number(o.cx), cy: Number(o.cy), zoom: clampZoom(Number(o.zoom)) };
+  } catch { /* use the default */ }
+  return fallback;
+}
+const saveCam = (c: Camera) => { try { window.localStorage.setItem(CAM_KEY, JSON.stringify(c)); } catch { /* not remembered */ } };
 
 /** Discovery display names come from the existing catalogue; the settlement never keeps its own copy. */
 const DISCOVERY_NAMES: Record<string, string> = Object.fromEntries((db as { nodes: { id: string; n: string }[] }).nodes.map(n => [n.id, n.n]));
@@ -59,7 +70,8 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
   const groundVersion = useRef(-1);
   const view = useRef<Size>({ w: 800, h: 600 });
   const dpr = useRef(1);
-  const cam = useRef<Camera>({ cx: 19.5 * TILE, cy: 12.5 * TILE, zoom: START_ZOOM });
+  // the last camera position is remembered per device, so coming back from another tab or mode lands where you were
+  const cam = useRef<Camera>(loadCam());
   const hover = useRef<Hit | null>(null);
   const ghost = useRef<Ghost | null>(null);
   const follow = useRef<string | null>(null);
@@ -69,6 +81,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
   const [drawer, setDrawer] = useState<DrawerId | null>(null);
   const [buildKind, setBuildKind] = useState<string | null>(null);
   const [ghostMsg, setGhostMsg] = useState<string>('');
+  const rotated = useRef(false);
   const [zoomLabel, setZoomLabel] = useState(START_ZOOM);
   const live = useRef({ selected: null as Hit | null, visible, drawer: null as DrawerId | null });
   useEffect(() => { live.current = { selected, visible, drawer }; }, [selected, visible, drawer]);
@@ -125,7 +138,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
       const alpha = rt.paused ? 1 : Math.max(0, Math.min(1, (now - rt.lastTickAt) / (TICK_MS / rt.speed)));
       drawFrame(ctx, rt.sim.map, rt.state, assets, ground.current, {
         cam: cam.current, view: view.current, dpr: dpr.current, now, alpha, animate: animationOn(reduced.current, uiRef.current), quality: uiRef.current.quality,
-        hover: hover.current, selected: lv.selected, ghost: ghost.current, overlays: lv.drawer === 'build',
+        hover: hover.current, selected: lv.selected, ghost: ghost.current, overlays: lv.drawer === 'build' || uiRef.current.overlays,
       });
     };
     raf = requestAnimationFrame(frame);
@@ -147,7 +160,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     const d = BUILDINGS[buildKind];
     const gx = Math.floor(w.x / TILE) - Math.floor(d.footprint.w / 2);
     const gy = Math.floor(w.y / TILE) - Math.floor(d.footprint.h / 2);
-    const v = validatePlacement(rt.sim, buildKind, gx, gy);
+    const v = validatePlacement(rt.sim, buildKind, gx, gy, rotated.current);
     ghost.current = { kind: buildKind, x: gx, y: gy, valid: v.ok, far: v.ok && v.far };
     const msg = v.ok ? (v.far ? 'Valid, but far from the camp: long carrying routes' : 'Valid: click to place') : v.reason;
     setGhostMsg(prev => (prev === msg ? prev : msg));
@@ -176,13 +189,14 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     const d = drag.current;
     drag.current = null;
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+    saveCam(cam.current);
     if (!d || d.moved) return;
     const { sx, sy } = posOf(e);
     if (buildKind) {
       ghostAt(sx, sy);
       const g = ghost.current;
       if (g) {
-        const r = rt.place(buildKind, g.x, g.y);
+        const r = rt.place(buildKind, g.x, g.y, rotated.current);
         if (r.ok && buildKind === 'shelter') rt.tutorial('shelter');
         if (r.ok) { if (!e.shiftKey) { setBuildKind(null); ghost.current = null; setGhostMsg(''); } } else setGhostMsg(r.reason);
       }
@@ -202,6 +216,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     const { sx, sy } = posOf(e);
     cam.current = zoomAt(cam.current, view.current, mapSize, cam.current.zoom + (e.deltaY < 0 ? 1 : -1), sx, sy);
     setZoomLabel(cam.current.zoom);
+    saveCam(cam.current);
   };
   const zoomBy = (dz: number) => {
     cam.current = zoomAt(cam.current, view.current, mapSize, cam.current.zoom + dz, view.current.w / 2, view.current.h / 2);
@@ -229,13 +244,14 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     else if (e.key === '+' || e.key === '=') zoomBy(1);
     else if (e.key === '-') zoomBy(-1);
     else if (e.key === 'Home') goHome();
+    else if ((e.key === 'r' || e.key === 'R') && buildKind) { rotated.current = !rotated.current; setGhostMsg(m => m + ' (rotated)'); }
     else if (e.key === ' ') rt.togglePause();
     else if (e.key === 'Escape') { if (buildKind) cancelBuild(); else setSelected(null); }
     else return;
     e.preventDefault();
   };
 
-  const pickBuild = (kind: string) => { setDrawer(null); setBuildKind(kind); setSelected(null); setGhostMsg('Move over the map to place it. Esc cancels.'); };
+  const pickBuild = (kind: string) => { rotated.current = false; setDrawer(null); setBuildKind(kind); setSelected(null); setGhostMsg('Move over the map to place it. Esc cancels.'); };
   const openDrawer = (d: DrawerId | null) => { if (d === 'jobs') rt.tutorial('jobs'); setDrawer(d); };
   const drawerBody = drawer === 'build' ? <BuildDrawer rt={rt} onPick={pickBuild} active={buildKind} />
     : drawer === 'jobs' ? <JobsDrawer rt={rt} />

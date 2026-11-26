@@ -1,6 +1,6 @@
 import { HINT_GLOBAL_COOLDOWN } from './data/config';
 import { stepExtras } from './extras';
-import { capacity, doneBuildings, foodDays, hasCapability, isNight, maybeVisitor, pushEvent, seasonOf, sleepCapacity, stepSim, type CivSim } from './sim';
+import { activeSeason, capacity, doneBuildings, foodDays, hasCapability, isNight, maybeVisitor, pushEvent, sleepCapacity, stepSim, type CivSim } from './sim';
 import type { ActiveHint, CivState } from './types';
 import { TILE } from './world';
 
@@ -117,8 +117,8 @@ export const HINTS: HintDef[] = [
   },
   {
     id: 'winter_prep', priority: 55, speakerRole: 'elder', cooldownTicks: 400, repeat: 'cooldown',
-    trigger: ({ s }) => seasonOf(s.tick) === 'Autumn' && foodDays(s) < s.settings.foodReserveDays + 2,
-    resolved: ({ s }) => foodDays(s) >= s.settings.foodReserveDays + 2 || seasonOf(s.tick) === 'Winter',
+    trigger: ({ s }) => activeSeason(s) === 'Autumn' && foodDays(s) < s.settings.foodReserveDays + 2,
+    resolved: ({ s }) => foodDays(s) >= s.settings.foodReserveDays + 2 || activeSeason(s) === 'Winter',
     text: () => ({
       observation: 'We have enough for now, but not for the cold months.',
       suggestion: 'The berries stop in winter. We should lay by more food while they last.',
@@ -168,6 +168,14 @@ export const HINTS: HintDef[] = [
     trigger: ({ s }) => s.events.some(e => e.kind === 'explore' && s.tick - e.tick < 200 && String(e.facts.nodes ?? '').length > 0 && Number(e.facts.nodes) > 0),
     resolved: ({ s }) => !s.events.some(e => e.kind === 'explore' && s.tick - e.tick < 200),
     text: () => ({ observation: 'There is good ground beyond the camp, and we have mapped it.', suggestion: 'Workers will now fetch from the newly seen places.', guidance: 'Gathering radius in Help decides how far they walk.' }),
+  },
+  {
+    id: 'water_access', priority: 52, speakerRole: 'elder', cooldownTicks: 400, repeat: 'cooldown',
+    trigger: ({ s }) => s.citizens.length >= 7 && doneBuildings(s, 'well').length === 0,
+    resolved: ({ s }) => doneBuildings(s, 'well').length > 0 || s.citizens.length < 7,
+    text: ({ s }) => (hasCapability(s, 'well')
+      ? { observation: 'Carrying water from the river is wearing us out.', suggestion: 'A well near camp would help.', guidance: 'Place a Well from the Build panel.' }
+      : { observation: 'The stream is far for so many of us.', suggestion: 'Clean water close to camp would make the settlement safer as it grows.', guidance: 'Look for a way to reach water close to camp. Try Merging.' }),
   },
   {
     id: 'idle_crew', priority: 30, speakerRole: 'gatherer', cooldownTicks: 300, repeat: 'cooldown',
@@ -254,6 +262,7 @@ export function computeAlerts(s: CivState): Alert[] {
   if (sleepCapacity(s) > 0 && s.citizens.length > sleepCapacity(s)) out.push({ id: 'housing_full', severity: 'warning', text: `Only ${sleepCapacity(s)} places to sleep for ${s.citizens.length} people`, focus: { x: fire.x * TILE, y: fire.y * TILE } });
   if (s.hazard?.phase === 'warned') out.push({ id: 'flood_warning', severity: 'warning', text: 'Flood expected: work on low ground by the river will pause' });
   if (s.hazard?.phase === 'active') out.push({ id: 'flood_active', severity: 'warning', text: 'The river is over its banks: low ground is closed until it falls' });
+  if (s.citizens.length >= 7 && doneBuildings(s, 'well').length === 0) out.push({ id: 'water', severity: 'info', text: 'Water is far for a settlement this size: a well would help' });
   const starving = s.citizens.filter(c => c.hunger >= 100).length;
   if (starving) out.push({ id: 'starving', severity: 'critical', text: `${starving} ${starving === 1 ? 'person is' : 'people are'} too hungry to work well` });
   return out;

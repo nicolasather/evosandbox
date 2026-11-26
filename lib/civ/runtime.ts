@@ -103,7 +103,7 @@ export class CivRuntime {
   setSetting<K extends keyof Settings>(k: K, v: Settings[K]) { this.state.settings[k] = v; this.save(); this.bump(); }
   setPriority(cat: JobCategory, level: number) { setPriority(this.state, cat, level); this.bump(); }
   override(citizenId: string, cat: JobCategory | null) { assignOverride(this.state, citizenId, cat); this.bump(); }
-  place(kind: string, x: number, y: number) { const r = placeBuilding(this.sim, kind, x, y); if (r.ok) this.save(); this.bump(); return r; }
+  place(kind: string, x: number, y: number, rot = false) { const r = placeBuilding(this.sim, kind, x, y, rot); if (r.ok) this.save(); this.bump(); return r; }
   cancel(id: string) { const r = cancelBuilding(this.sim, id); this.bump(); return r; }
   preview(tx: number, ty: number, party: string[]) { return previewExpedition(this.sim, tx, ty, party); }
   explore(tx: number, ty: number, party: string[]) { const r = sendExpedition(this.sim, tx, ty, party); this.bump(); return r; }

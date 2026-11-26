@@ -1,18 +1,18 @@
 # HANDOFF
 
-Maintained by CODE (lead dev). Art bots append to ASSET_MANIFEST.md only.
+Maintained by CODE (lead developer). Art bots append to `ASSET_MANIFEST.md` only. The audit of the whole design is in `COMPLETION_AUDIT.md`.
 
-- **Current slice:** 0-10 done; polish and art re-review ongoing
+- **Current slice:** 0-10 implemented and pushed to `main`; completion audit in progress of final verification (full jest, lint, build, localhost smoke).
 - **Owner:** CODE
-- **Implemented:** Slice 2: `lib/civ/world.ts` (seeded 40x30 map, hit testing), `lib/civ/camera.ts`, `components/civworld/{assets,render,CivWorldPane}` canvas renderer with pan/zoom/hover/select/recenter, keyboard controls, AssetStore with missing-file fallback to placeholders. Slice 1: `components/workspace/WorkspaceShell.tsx` (Civilization | Merging | Modes tabs; Collapse/Split/Maximize; draggable+keyboard divider; narrow screens use a bottom drawer), `lib/workspace/layout.ts` (pure prefs, key `evo.workspace.v1`), `components/civworld/CivWorldPane.tsx` (placeholder), `Sandbox` gained optional `openHubSignal` prop, `AppRoot` default mode renders the shell. Sandbox stays mounted in every layout. Slice 0: docs structure, REPOSITORY_AUDIT.md, MODE_PRESERVATION_MATRIX.md, DECISIONS.md D-001..D-007, ASSET_MANIFEST.md (provisional contract), WORKSPACE_UX.md
-- **Files changed:** app/_workspace.css, app/globals.css, components/AppRoot.tsx, components/Sandbox.tsx, components/workspace/*, components/civworld/*, lib/workspace/*, tests, docs/civilization-overhaul/*
-- **Assets received:** terrain (grass, dirt, path, shore_water, rock, tree), fx campfire sheet, villager sample 32x32 + portraits (see ASSET_MANIFEST)
-- **Assets pending:** terrain palette sample (IMAGE), character scale test (IMAGE3)
-- **Tests:** typecheck clean; eslint clean on new files; jest WorkspaceShell (4) + layout (4) + Sandbox/ModeHub/TopBar suites pass
-- **Known issues:** Pre-existing failing test lib/civilization/lifelines/__tests__/integration.test.ts (expects Civilization subtitle Lifelines, registry says Settlements; untouched by this work). Farm, sand, portraits, hunter and child art not delivered or not yet used. Sandbox uses viewport media queries, so at narrow split widths (<~500px) its desktop layout can clip (guide cards). Split min is 34%; use Maximize on small windows. Pre-existing lint error at Sandbox.tsx:86 (guideOn effect), not mine. Sandbox window-level keyboard shortcuts stay active while Merging is hidden (to review in Slice 10).
-- **Decisions needed:** none (all provisional decisions are recorded in DECISIONS.md)
-- **Next small task:** act on IMAGE/IMAGE3 re-review of screens/ round 2; optional P2 items listed in DECISIONS D-008
+- **What exists:** workspace shell (tabs, collapse, dock, split, overlay, maximize), canvas settlement, deterministic simulation, citizens with needs and jobs, resources, build system with stages and rotation, discovery bridge (real db ids), hints, alerts, history, goals, journal, pins and map notes, seasons, flood hazard, exploration with fog, visiting trader, newcomer offers, child cohort, policies, quality tiers, UI scale, compact mode, audio (off by default), tutorial.
+- **Art status:** delivered and wired: terrain (soft grass, dirt edges, sand, shore, water loops, path, cart road), props, campfire and smoke, buildings with construction stages (shelter large, house, storage, workshop, granary, forge, kiln, drying rack, trading post as market, town hall as assembly, public well, records hall, farm growth), resource states (berry, stone pile), citizen role sheets and action poses, portraits, emotes and HUD icons, animals (goat, sheep, deer, rabbit as ambient wildlife).
+- **Art delivered but not used yet:** woodpile states, hunter and child roles, animal pen, irrigation channel tiles, stone wall/gate, bridge variants, workshop-large 96px (workshop footprint is 2x2).
+- **Tests:** `npx jest lib/civ lib/workspace components/__tests__/{WorkspaceShell,CivPanels,ModeCoverage}` (all passing at last run); `npm run typecheck`; `npx eslint lib/civ components/civworld components/workspace`.
+- **Known issues:** pre-existing lint error at `components/Sandbox.tsx` (guideOn effect). Disk on the dev machine was nearly full during this work (full `next build` needs about 700 MB free).
+- **Decisions:** see `DECISIONS.md` (D-001 to D-010 and later additions).
+- **Next small task:** act on any IMAGE/IMAGE3 review of `screens/`; pick up items from the deferred list in `COMPLETION_AUDIT.md` (P3 systems).
 
-## Systems map (lib/civ)
-types.ts state; sim.ts tick, citizens, construction, trader, seasons; path.ts BFS; hints.ts hints, alerts, stepWorld; bridge.ts discovery bridge; goals.ts; selectors.ts; save.ts (evo.civworld.v1 plus backup and corrupt keys); runtime.ts clock (pause, 1/2/4x, pause-while-crafting, hidden-tab pause); data/* tuning, buildings, DISCOVERY_MAP (real db ids).
-UI: components/civworld (canvas renderer, panels, asset loader with fallbacks), components/workspace (shell).
+## Systems map
+- `lib/civ/types.ts` state; `sim.ts` tick, citizens, construction, trader, newcomers, seasons; `path.ts` BFS; `hints.ts` hints, alerts, `stepWorld`; `extras.ts` exploration, flood, children, policies, pins, notes, phases, tutorial, daily upkeep; `bridge.ts` discovery bridge; `goals.ts`; `selectors.ts` (jobs, mood, food summary, forecast); `save.ts` (`evo.civworld.v1`, backup, corrupt copy); `runtime.ts` clock; `uiPrefs.ts` and `audio.ts` device preferences; `data/*` tuning, buildings, `DISCOVERY_MAP`.
+- UI: `components/civworld` (canvas renderer `render.ts`, asset loader `assets.ts`, panels `panels.tsx`, `panels2.tsx`, pane `CivWorldPane.tsx`); `components/workspace/WorkspaceShell.tsx`.
+- Keys written: `evo.civworld.v1`, `evo.civworld.v1.backup`, `evo.civworld.v1.corrupt`, `evo.civworld.ui.v1`, `evo.civworld.cam`, `evo.workspace.v1`. No other mode key is ever written.

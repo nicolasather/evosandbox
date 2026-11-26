@@ -63,6 +63,7 @@ export const isNight = (tick: number) => timeOfDay(tick) >= 1 - NIGHT_FRACTION;
 /** Gentle seasons: six days each. Winter stops berry regrowth and makes people hungrier; nothing else changes. */
 export const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'] as const;
 export const SEASON_DAYS = 6;
+export const activeSeason = (s: CivState) => (s.settings.seasons === 'off' ? 'Summer' : seasonOf(s.tick));
 export const seasonOf = (tick: number): (typeof SEASONS)[number] => SEASONS[Math.floor((dayOf(tick) - 1) / SEASON_DAYS) % 4];
 
 export function pushEvent(s: CivState, kind: EventKind, facts: CivEvent['facts'], text: string) {
@@ -92,7 +93,7 @@ export function createSim(seed = 1): CivSim {
     seenDiscoveries: [], capabilities: [], unlockedBuildings: ['shelter'], events: [], hints: {}, activeHint: null, visitor: null, revealed: '', expeditions: [], poi: [], hazard: null, children: [], foodLog: [], migrant: null, pins: [], notes: [],
     policies: { resourceUse: 'balanced', constructionFocus: 'none', explorationStance: 'balanced', gatheringRadius: 'extended', knowledgeFocus: 'open' },
     tutorial: { step: 0, done: false }, alerts: [],
-    milestones: [], settings: { pauseWhileCrafting: false, workIntensity: 'normal', foodReserveDays: 3 },
+    milestones: [], settings: { pauseWhileCrafting: false, workIntensity: 'normal', foodReserveDays: 3, seasons: 'on' },
     counters: { gathered: emptyStock(), consumed: emptyStock(), crafted: 0, deaths: 0, spoiled: 0 },
   };
   for (let i = 0; i < 5; i++) {
@@ -153,12 +154,12 @@ const access = (g: Grid, b: { x: number; y: number; w: number; h: number; kind: 
 
 export type PlacementResult = { ok: true; far: boolean } | { ok: false; reason: string };
 
-export function validatePlacement(sim: CivSim, kind: string, x: number, y: number): PlacementResult {
+export function validatePlacement(sim: CivSim, kind: string, x: number, y: number, rot = false): PlacementResult {
   const def = BUILDINGS[kind];
   const { map, s } = sim;
   if (!def) return { ok: false, reason: 'Unknown building' };
   if (def.requires && !hasCapability(s, def.requires) && !s.unlockedBuildings.includes(kind)) return { ok: false, reason: def.unlockHint };
-  const { w, h } = def.footprint;
+  const { w, h } = rot && def.rotatable ? { w: def.footprint.h, h: def.footprint.w } : def.footprint;
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
     const t = tileAt(map, x + i, y + j);
     if (t === null) return { ok: false, reason: 'Outside the map' };
@@ -178,14 +179,14 @@ export function validatePlacement(sim: CivSim, kind: string, x: number, y: numbe
   return { ok: true, far };
 }
 
-export function placeBuilding(sim: CivSim, kind: string, x: number, y: number): { ok: true; id: string } | { ok: false; reason: string } {
-  const v = validatePlacement(sim, kind, x, y);
+export function placeBuilding(sim: CivSim, kind: string, x: number, y: number, rot = false): { ok: true; id: string } | { ok: false; reason: string } {
+  const v = validatePlacement(sim, kind, x, y, rot);
   if (!v.ok) return v;
   const def = BUILDINGS[kind];
   const { s } = sim;
   const paid: Partial<Stock> = {};
   for (const [k, n] of Object.entries(def.cost)) { s.stock[k as ResourceId] -= n ?? 0; paid[k as ResourceId] = n ?? 0; }
-  const b: BuildingState = { id: newId(s, 'b'), kind: kind as BuildingState['kind'], x, y, w: def.footprint.w, h: def.footprint.h, state: 'site', progress: 0, paid, workers: 0 };
+  const b: BuildingState = { id: newId(s, 'b'), kind: kind as BuildingState['kind'], x, y, w: rot && def.rotatable ? def.footprint.h : def.footprint.w, h: rot && def.rotatable ? def.footprint.w : def.footprint.h, state: 'site', progress: 0, paid, workers: 0 };
   s.buildings.push(b);
   pushEvent(s, 'building_started', { building: kind, x, y }, `Work begins on a ${def.name.toLowerCase()}.`);
   return { ok: true, id: b.id };
@@ -387,7 +388,7 @@ export function stepSim(sim: CivSim): void {
   const intensity = s.settings.workIntensity === 'intense' ? 1.25 : s.settings.workIntensity === 'relaxed' ? 0.8 : 1;
   for (const c of s.citizens) {
     c.px = c.x; c.py = c.y;
-    c.hunger = Math.min(100, c.hunger + CITIZEN.hungerPerTick * (c.task.kind === 'rest' ? 0.6 : 1) * (seasonOf(s.tick) === 'Winter' ? 1.15 : 1));
+    c.hunger = Math.min(100, c.hunger + CITIZEN.hungerPerTick * (c.task.kind === 'rest' ? 0.6 : 1) * (activeSeason(s) === 'Winter' ? 1.15 : 1));
     if (c.task.kind !== 'rest') c.energy = Math.max(0, c.energy - CITIZEN.energyPerTick * (s.settings.workIntensity === 'intense' ? 1.4 : s.settings.workIntensity === 'relaxed' ? 0.7 : 1));
     if (c.override && c.override.until <= s.tick) c.override = null;
     runTask(sim, g, c, intensity, workers, occupancy);
@@ -395,7 +396,7 @@ export function stepSim(sim: CivSim): void {
 
   // world regrowth
   for (const n of s.nodes) {
-    if (n.kind === 'bush' && n.amount < n.max && seasonOf(s.tick) !== 'Winter' && s.tick % BUSH_REGROW_TICKS === 0 && (workers.get(n.id) ?? 0) === 0) n.amount++;
+    if (n.kind === 'bush' && n.amount < n.max && activeSeason(s) !== 'Winter' && s.tick % BUSH_REGROW_TICKS === 0 && (workers.get(n.id) ?? 0) === 0) n.amount++;
   }
   for (const b of s.buildings) {
     if (b.kind === 'farm' && b.state === 'done' && (b.amount ?? 0) < (b.max ?? 0) && s.tick % FARM_REGROW_TICKS === 0) b.amount = (b.amount ?? 0) + 1;
@@ -407,7 +408,11 @@ export function stepSim(sim: CivSim): void {
   updateMilestones(sim);
   if (s.tick % DAY_TICKS === 0 && s.tick > 0) {
     const season = seasonOf(s.tick);
-    if (seasonOf(s.tick - 1) !== season) pushEvent(s, 'season', { season }, season === 'Winter' ? 'Winter begins. Berries stop growing and everyone eats a little more.' : `${season} begins.`);
+    if (s.settings.seasons !== 'off' && seasonOf(s.tick - 1) !== season) {
+      const log = s.foodLog;
+      const report = seasonOf(s.tick - 1) === 'Winter' && log.length >= 2 ? ` Winter report: food went from ${log[0]} to ${log[log.length - 1]}.` : '';
+      pushEvent(s, 'season', { season }, (season === 'Winter' ? 'Winter begins. Berries stop growing and everyone eats a little more.' : `${season} begins.`) + report);
+    }
   }
 }
 
@@ -461,7 +466,7 @@ function runTask(sim: CivSim, g: Grid, c: Citizen, intensity: number, workers: M
     if (c.carrying.res === res) c.carrying.n++;
     c.skill.gather = Math.min(5, c.skill.gather + 0.01);
     t.left = CITIZEN.gatherTicks;
-    if (c.carrying.n >= CITIZEN.carryCap || (src.amount ?? 0) <= 0) finishGather(c, 'Carrying a full load');
+    if (c.carrying.n >= CITIZEN.carryCap + (hasCapability(s, 'cart') ? 1 : 0) || (src.amount ?? 0) <= 0) finishGather(c, 'Carrying a full load');
     return;
   }
 
@@ -544,7 +549,11 @@ function completeBuilding(sim: CivSim, b: BuildingState, by: Citizen) {
   const { s } = sim;
   b.state = 'done';
   b.progress = 1;
-  if (b.kind === 'farm') { b.max = hasCapability(s, 'irrigation') ? 9 : 6; b.amount = b.max; }
+  if (b.kind === 'farm') {
+    const meadow = s.poi.some(p => p.kind === 'fertile_meadow' && p.found && Math.hypot(p.x - b.x, p.y - b.y) <= 6);
+    b.max = (hasCapability(s, 'irrigation') ? 9 : 6) + (meadow ? 3 : 0); // fertile ground found by an expedition
+    b.amount = b.max;
+  }
   const def = BUILDINGS[b.kind];
   pushEvent(s, 'building_done', { building: b.kind, x: b.x, y: b.y, by: by.name }, `${by.name} and the others finish the ${def.name.toLowerCase()}.`);
   const key = `first_${b.kind}`;

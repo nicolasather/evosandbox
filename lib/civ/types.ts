@@ -148,6 +148,8 @@ export interface Settings {
   pauseWhileCrafting: boolean;
   workIntensity: 'relaxed' | 'normal' | 'intense';
   foodReserveDays: number;
+  /** Seasons can be switched off for a steady sandbox. */
+  seasons: 'on' | 'off';
 }
 
 export interface CivState {

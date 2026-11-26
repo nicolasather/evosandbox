@@ -91,3 +91,21 @@ export function foodSummary(s: CivState) {
   const trend = log.length >= 2 ? log[log.length - 1] - log[0] : 0;
   return { stock: s.stock.food, perDay, days: foodDays(s), trend, reserve: Math.floor(perDay * s.settings.foodReserveDays * 0.5), gathered: s.counters.gathered.food, eaten: s.counters.consumed.food, spoiled: s.counters.spoiled };
 }
+
+/** An approximate look ahead (never omniscient): the next season, when it starts and what it changes. */
+export function forecastFor(s: CivState): { next: string; daysLeft: number; text: string } {
+  if (s.settings.seasons === 'off') return { next: 'none', daysLeft: 0, text: 'Seasons are switched off: conditions stay steady.' };
+  const day = Math.floor(s.tick / 240);
+  const inSeason = day % 6;
+  const idx = Math.floor(day / 6) % 4;
+  const names = ['Spring', 'Summer', 'Autumn', 'Winter'];
+  const next = names[(idx + 1) % 4];
+  const daysLeft = 6 - inSeason;
+  const effects: Record<string, string> = {
+    Spring: 'Berries regrow again. Rain may raise the river in the second year.',
+    Summer: 'Mild: steady work and regrowth.',
+    Autumn: 'Last chance to build up food before winter.',
+    Winter: 'Berries stop growing and everyone eats a little more.',
+  };
+  return { next, daysLeft, text: `${next} in about ${daysLeft} days. ${effects[next]}` };
+}

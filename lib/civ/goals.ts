@@ -7,7 +7,7 @@ import type { CivState } from './types';
 
 export interface Goal {
   id: string;
-  kind: 'survival' | 'infrastructure' | 'discovery' | 'community';
+  kind: 'survival' | 'infrastructure' | 'discovery' | 'community' | 'exploration';
   title: string;
   detail: string;
   done: boolean;
@@ -30,6 +30,8 @@ export function goalsFor(s: CivState): Goal[] {
   if (hasCapability(s, 'agriculture')) list.push({ id: 'farm', kind: 'infrastructure', title: 'Till a farm plot', detail: 'A plot regrows food for as long as it is worked.', done: doneBuildings(s, 'farm').length > 0 });
   if (hasCapability(s, 'granary')) list.push({ id: 'granary', kind: 'infrastructure', title: 'Build a granary', detail: 'Raises capacity by 60 for every good.', done: doneBuildings(s, 'granary').length > 0 });
   if (hasCapability(s, 'smelting')) list.push({ id: 'forge', kind: 'infrastructure', title: 'Build a forge', detail: 'Makes two tools per cycle.', done: doneBuildings(s, 'forge').length > 0 });
+  const seen = s.revealed.split('1').length - 1;
+  list.push({ id: 'map_east', kind: 'exploration', title: 'Map the land beyond the camp', detail: 'Use Explore to send two people toward the dark edges of the map.', done: s.revealed.length > 0 && seen / s.revealed.length >= 0.6 });
   list.push({ id: 'people_8', kind: 'community', title: 'Grow to 8 people', detail: 'Newcomers stay only where there is a bed and food in reserve.', done: s.citizens.length >= 8 });
   void hasShelter;
   return list;

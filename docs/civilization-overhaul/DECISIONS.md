@@ -12,3 +12,6 @@
 | D-008 | 2026-11-25 | Scope of master design Part II (P2/P3/experimental) | Build everything vs layered | Built: gentle seasons, visiting trader, goals/projects, journal, history, policies (intensity, food reserve), hints/alerts. NOT built (design marks them P2/P3/experimental and says they must not block the core): expeditions/fog of war, flood events, wildlife simulation, roads, households/family trees, children as individuals, audio. | lib/civ |
 | D-009 | 2026-11-25 | Hidden-tab rule | Catch up vs pause | Simulation pauses while the tab is hidden; catch-up after a stall is capped at 6 ticks. | lib/civ/runtime |
 | D-010 | 2026-11-25 | Pause while crafting | Always vs preference | Preference, off by default; Merging on screen is what counts as crafting. | runtime, shell |
+| D-011 | 2026-11-26 | Newcomers | Automatic vs offer | Offer: the player sees the extra bed and food demand and accepts or declines; declining is free. | sim.ts, panels.tsx |
+| D-012 | 2026-11-26 | Compact dock | Narrow real layout vs scaled | Merging is laid out at 760px and scaled to a 380px strip, because Sandbox lays itself out from the viewport. | WorkspaceShell |
+| D-013 | 2026-11-26 | Part II deferrals | see COMPLETION_AUDIT.md deferred list | P3/experimental items stay deferred; each has a data hook. | docs |
