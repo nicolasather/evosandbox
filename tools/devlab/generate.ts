@@ -38,7 +38,7 @@ refuseOnVercel();
       if (rec.status === 'ok' && rec.markup) rec.preview = writePreview(r.id, previewSvg(rec.markup));
       writeResult(rec);
       if (rec.status === 'ok') { const g = gridsOf([rec])[0]; if (g) { const i = others.findIndex(o => o.id === g.id); if (i >= 0) others[i] = g; else others.push(g); } }
-      rec.status === 'ok' ? ok++ : failed++;
+      if (rec.status === 'ok') ok++; else failed++;
       console.log(`[${++n}/${todo.length}] ${r.id.padEnd(30)} ${rec.status.toUpperCase().padEnd(6)} attempts=${rec.attempts.length} ${rec.status === 'failed' ? `(${rec.failure?.kind}: ${rec.failure?.message.slice(0, 90)})` : `paths=${rec.metrics?.detail.paths}`}`);
     }
   };

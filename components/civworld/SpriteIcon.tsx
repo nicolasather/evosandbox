@@ -11,6 +11,7 @@ const SHEETS = {
   eventA: { url: `${BASE}/events/event-cards.png`, cell: 96, count: 4 },
   eventB: { url: `${BASE}/events/part2-event-cards.png`, cell: 64, count: 6 },
   eventC: { url: `${BASE}/events/event-trigger-cards.png`, cell: 64, count: 12 },
+  trader: { url: `${BASE}/characters/trader-portrait-64.png`, cell: 64, count: 1 },
 } as const;
 export type SheetId = keyof typeof SHEETS;
 

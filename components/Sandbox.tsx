@@ -83,6 +83,8 @@ export function Sandbox({ onLaunchMode, variant = 'main', openHubSignal = 0, onD
   const [helpOpen, setHelpOpen] = useState(false);
   /** The first-time guide: null until the saved flag is read on the client, then on until finished. */
   const [guideOn, setGuideOn] = useState<boolean | null>(null);
+  // the saved flag lives in localStorage, so it can only be read on the client, after mount
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setGuideOn(!guideDone(variant)); }, [variant]);
   const replayGuide = useCallback(() => { clearGuideDone(variant); setGuideOn(true); }, [variant]);
   const [journalOpen, setJournalOpen] = useState(false);

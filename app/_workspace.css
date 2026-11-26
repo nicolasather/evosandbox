@@ -104,10 +104,12 @@
 .cw-portrait[data-role="builder"]{background-position:-128px 0}
 .cw-portrait[data-role="toolmaker"]{background-position:-192px 0}
 .cw-portrait[data-role="elder"]{background-position:-256px 0}
-.cw-villager{width:48px;height:48px;background:url(/civilization/portraits/villager_a.png) no-repeat;image-rendering:pixelated}
-.cw-villager[data-v="1"]{background-image:url(/civilization/portraits/villager_b.png)}
-.cw-villager[data-v="2"]{background-image:url(/civilization/portraits/villager_c.png)}
-.cw-villager[data-v="3"]{background-image:url(/civilization/portraits/villager_d.png)}
+.cw-villager{width:64px;height:96px;background:url(/civilization/characters/villager-variety-32x48.png) no-repeat;background-size:384px 96px;image-rendering:pixelated;flex:0 0 64px}
+.cw-villager[data-v="1"]{background-position:-64px 0}
+.cw-villager[data-v="2"]{background-position:-128px 0}
+.cw-villager[data-v="3"]{background-position:-192px 0}
+.cw-villager[data-v="4"]{background-position:-256px 0}
+.cw-villager[data-v="5"]{background-position:-320px 0}
 .cw-ico{display:inline-block;width:16px;height:16px;margin-right:4px;vertical-align:-3px;background-size:16px 16px;image-rendering:pixelated}
 .cw-ico[data-i="food"]{background-image:url(/civilization/ui/icon_food.png)}
 .cw-ico[data-i="wood"]{background-image:url(/civilization/ui/icon_wood.png)}

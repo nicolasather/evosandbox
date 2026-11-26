@@ -80,11 +80,15 @@ export function Gallery() {
     try { setData(await api<Payload>(`/api/dev/visual-lab${health ? '?health=1' : ''}`)); setError(null); }
     catch (e) { setError((e as Error).message); }
   }, []);
+  // fetch on mount: the result is data from the server, which effects are for
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
   // deep link: /admin/visual-lab?focus=vl_pagoda opens that resource straight away
   useEffect(() => {
     if (!data) return;
     const f = new URLSearchParams(window.location.search).get('focus');
+    // deep link: the URL names a resource that exists only once the data has arrived
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (f && data.dataset.resources.some(r => r.id === f)) setSel(s => s ?? f);
   }, [data]);
 
@@ -228,6 +232,8 @@ function Detail({ r, rec, rv, existing, busy, onClose, onRegenerate, onReview }:
   }, [onClose]);
 
   useEffect(() => {
+    // the build time of the chosen record's model, measured on the client when it is selected
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!rec?.markup) { setPerf(''); return; }
     const t0 = performance.now();
     const m = buildModel(`${labKey(rec)}|perf${Date.now()}`, rec.markup);

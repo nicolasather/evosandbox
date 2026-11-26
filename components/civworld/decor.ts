@@ -82,6 +82,15 @@ export function ambientAnimals(list: { y: number; draw: () => void }[], ctx: Can
 }
 
 /** Little effects on buildings that are working or celebrating. */
+/** Dust puffs at the resources people are working: gathering and chopping throw up dust. */
+export function workDust(list: { y: number; draw: () => void }[], ctx: CanvasRenderingContext2D, assets: AssetStore, s: CivState, now: number) {
+  for (const n of s.nodes) {
+    if (n.workers <= 0 || n.amount <= 0) continue;
+    const px = (n.x + 0.5) * TILE; const py = (n.y + 1) * TILE;
+    list.push({ y: n.y + 0.9, draw: () => { cell(ctx, assets, 'fx_dust', animFrame(6, 8, now + n.x * 70 + n.y * 30, true), px, py); } });
+  }
+}
+
 export function buildingFx(list: { y: number; draw: () => void }[], ctx: CanvasRenderingContext2D, assets: AssetStore, s: CivState, now: number, night: boolean) {
   const fr = (n: number, fps: number, off = 0) => animFrame(n, fps, now + off * 125, true);
   const festival = s.events.some(e => e.facts.festival === true && s.tick - e.tick < DAY_TICKS);
@@ -92,6 +101,7 @@ export function buildingFx(list: { y: number; draw: () => void }[], ctx: CanvasR
     if (b.kind === 'forge') list.push({ y: b.y + b.h + 0.1, draw: () => { cell(ctx, assets, 'fx_forge_smoke', fr(6, 8), bx + 10, by - 44); if (b.workers > 0) cell(ctx, assets, 'fx_sparks', fr(6, 10), bx - 8, by - 10); } });
     if (b.kind === 'farm' && (b.amount ?? 0) >= (b.max ?? 1) * 0.67 && b.workers > 0) list.push({ y: b.y + b.h + 0.1, draw: () => { cell(ctx, assets, 'fx_harvest_sparkle', fr(6, 8), bx, by - 8); } });
     if (festival && (b.kind === 'assembly' || b.kind === 'campfire')) list.push({ y: b.y + b.h + 0.2, draw: () => { cell(ctx, assets, 'fx_lanterns', fr(6, 6), bx, by - 30); } });
+    if (b.kind === 'storage') { const wood = s.stock.wood; list.push({ y: b.y + b.h + 0.15, draw: () => { cell(ctx, assets, 'res_woodpile_states', wood >= 20 ? 0 : wood > 0 ? 1 : 2, bx + 22, by + 2); } }); }
     if (night && b.kind === 'house') list.push({ y: b.y + b.h + 0.1, draw: () => { ctx.fillStyle = 'rgba(255,200,90,0.35)'; ctx.fillRect(bx - 4, by - 22, 8, 8); } });
   }
 }
@@ -108,6 +118,9 @@ export function weatherOverlay(ctx: CanvasRenderingContext2D, assets: AssetStore
       const f = animFrame(6, 8, now, true);
       for (let y = 0; y < view.h; y += 64) for (let x = 0; x < view.w; x += 64) ctx.drawImage(sheet, f * 32, 0, 32, 32, x, y, 64, 64);
     }
+    // splashes where the rain lands, spread over the view and offset so they do not beat in step
+    const splash = assets.get('fx_rain_splash');
+    if (splash && quality === 'high') for (let i = 0; i < 24; i++) ctx.drawImage(splash, animFrame(6, 8, now + i * 83, true) * 32, 0, 32, 32, (i * 131 + Math.floor(now / 90)) % Math.max(1, view.w), (i * 97) % Math.max(1, view.h), 32, 32);
   } else if (activeSeason(s) === 'Winter') {
     const frost = assets.get('fx_weather_frost');
     if (frost && quality === 'high') for (let y = 0; y < view.h; y += 96) for (let x = 0; x < view.w; x += 96) ctx.drawImage(frost, animFrame(6, 4, now, true) * 32, 0, 32, 32, x + ((x * 7 + y) % 40), y, 48, 48);

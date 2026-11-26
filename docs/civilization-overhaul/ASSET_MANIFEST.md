@@ -38,8 +38,8 @@
 
 | Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `char_villager_sample_32x48` | `public/civilization/characters/villager-sample-32x48.png` | Spritesheet | 256x96 (32x48 cells) | 8 | provisional | Yes | (16,47) | East/west rows; idle/walk/work frame contract in adjacent metadata |
-| `char_villager_portraits_sample` | `public/civilization/characters/villager-portraits-sample-48x48.png` | Portrait strip | 288x48 (48x48 cells) | 6 | — | — | Center | Six initial role samples |
+| `char_villager_sample_32x48` | `public/civilization/characters/villager-sample-32x48.png` | Spritesheet | 256x96 (32x48 cells) | 8 | provisional | Yes | (16,47) | East/west rows; idle/walk/work frame contract in adjacent metadata | **Removed**: superseded by `char_villager_variety` and the directional sheets (in game).
+| `char_villager_portraits_sample` | `public/civilization/characters/villager-portraits-sample-48x48.png` | Portrait strip | 288x48 (48x48 cells) | 6 | — | — | Center | Six initial role samples | **Removed**: superseded by the per-person portraits `portrait_villager_a`–`d` (in game).
 | `char_villager_sample_preview_4x` | `public/civilization/characters/villager-sample-4x-preview.png` | Review preview | 1024x384 | 8 | — | — | — | Nearest-neighbor 4x preview; review-only |
 | `char_villager_portraits_preview_4x` | `public/civilization/characters/villager-portraits-4x-preview.png` | Review preview | 1152x192 | 6 | — | — | — | Nearest-neighbor 4x preview; review-only |
 
@@ -184,7 +184,7 @@
 
 | Asset ID | Path | Type | Dimensions | Frames | FPS / Duration | Loop | Anchor | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `ui_building_thumbnails` | `public/civilization/ui/building-thumbnails-16.png` | Thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Shelter through town hall build-menu thumbnails |
+| `ui_building_thumbnails` | `public/civilization/ui/building-thumbnails-16.png` | Thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Shelter through town hall build-menu thumbnails | **Removed**: superseded by `ui_building_thumbnails_v3` (in game).
 | `ui_era_badges` | `public/civilization/ui/era-badges-24.png` | Badge strip | 120x24 (24x24 cells) | 5 | — | — | Center | Camp, village, town, complex and legacy badges |
 | `ui_emotes_expanded` | `public/civilization/ui/emotes-expanded-16.png` | Emote strip | 128x16 (16x16 cells) | 8 | — | — | Center | Hungry, tired, idea, alert, happy, question, sweat, heart |
 
@@ -213,8 +213,8 @@
 | `terrain_tree_seasons` | `public/civilization/terrain/tree-seasons.png` | Season strip | 144x64 (48x64 cells) | 3 | — | — | Bottom-centre | Autumn, winter and dawn variants |
 | `fx_dawn_night_tint` | `public/civilization/effects/dawn-night-tint-sheet.png` | Tint strip | 128x32 (32x32 cells) | 4 | — | — | Top-left | Autumn dusk, winter night, dawn, clear day |
 | `event_part2_cards` | `public/civilization/events/part2-event-cards.png` | Event illustration strip | 384x64 (64x64 cells) | 6 | — | — | Center | Harvest festival, disagreement, flood warning, migration, policy change, discovery milestone |
-| `ui_building_thumbnails_refresh` | `public/civilization/ui/building-thumbnails-16.png` | Refreshed thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Highlight pass for clearer silhouettes at game scale |
-| `ui_building_thumbnails_v2` | `public/civilization/ui/building-thumbnails-16-v2.png` | Refreshed thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Stronger highlight clusters; preferred compact UI variant |
+| `ui_building_thumbnails_refresh` | `public/civilization/ui/building-thumbnails-16.png` | Refreshed thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Highlight pass for clearer silhouettes at game scale | **Removed**: superseded by `ui_building_thumbnails_v3` (in game).
+| `ui_building_thumbnails_v2` | `public/civilization/ui/building-thumbnails-16-v2.png` | Refreshed thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Stronger highlight clusters; preferred compact UI variant | **Removed**: superseded by `ui_building_thumbnails_v3` (in game).
 | `ui_building_thumbnails_v3` | `public/civilization/ui/building-thumbnails-16-v3.png` | Refreshed thumbnail strip | 256x16 (16x16 cells) | 16 | — | — | Center | Distinct pitched/flat/arched/awning/well/field silhouettes; no floating pixels |
 
 ## Integration contract and placeholders (maintained by `CODE`, the lead developer)
@@ -251,7 +251,7 @@ The loader (`components/civworld/assets.ts`) already requests every file below a
 | `bld_shelter` `bld_storage` `bld_workshop` | `buildings/*-stages.png` | 64x64 cells, 3 stages | foundation, frame, finished | (32,57) at footprint bottom-centre | DONE |
 | `bld_farm` | `buildings/farm.png` | 96x64 (3x2 tiles) | 1 | bottom-left | DONE |
 | `bld_farm` (+ stages) | `buildings/farm.png` | 96x64 | 1 | bottom-left | DONE |
-| `portrait_villager_{a,b,c,d}` | `portraits/villager_{a..d}.png` | 48x48 | 1 | n/a | DONE |
+| `portrait_villager_{a,b,c,d}` | `portraits/villager_{a..d}.png` | 48x48 | 1 | n/a | DONE | **Removed**: superseded by `villager-variety-32x48.png` (six skin and hair variants, used in the person inspector).
 | `char_<role>_directional` builder, toolmaker, elder, hunter, child | `characters/<role>-directions-32x48.png` | 32x48, same layout as gatherer | 10x4 | (16,47) | DONE (builder, toolmaker, elder used by job and age; hunter, child not yet used) |
 | `char_gatherer_actions` carry, eat, sleep | `characters/gatherer-actions-32x48.png` | 32x48 | 3 cols x 4 dirs | (16,47) | DONE |
 | `fx_smoke_loop` `fx_build_dust` `fx_sleep_z` | `effects/*.png` | 32x32 | 4-6 | bottom-centre | DONE |
@@ -260,10 +260,22 @@ The loader (`components/civworld/assets.ts`) already requests every file below a
 
 Review rules still apply: nearest-neighbour, transparent background, top-left light, same palette as ART_DIRECTION.md, no labels inside cells, static fallback for every animation.
 
-## Wiring status (CODE, 2026-11-26)
-`e2e/unused-assets.py` lists every art file under `public/civilization` that no source file references. All delivered strips are now drawn: building thumbnails (build drawer), era badges (phase chip), hint icons (hint bubble), event cards (history), trigger cards (hint bubble) and expanded emotes (person inspector), all through the shared `SpriteIcon`. Still not referenced (11), all older or sample variants superseded by a wired file:
-- characters: `trader-portrait-64.png`, `villager-portraits-sample-48x48.png`, `villager-sample-32x32.png`, `villager-sample-32x48.png` (samples; role sheets and portraits are used)
-- effects: `day-night-overlay.png` (replaced by `dawn-night-tint-sheet.png`), `fx_smoke_loop.png` (replaced by `smoke-sheet.png`)
-- props: `path-variants.png`; terrain: `dirt-muted.png`, `grass-soft.png` (replaced by the seasonal/edge sheets)
-- ui: `building-thumbnails-16.png`, `building-thumbnails-16-v2.png` (v3 is wired)
-Art for animal pen, loom and trading post has no thumbnail frame in the strip; the build drawer shows a text card only for those.
+## Art drawn in-game (CODE, 2026-11-26, final)
+`e2e/unused-assets.py` reports 0 unreferenced art files (4x preview files are review images and are excluded). Every `assets.ts` entry is requested by code, either by name or through the building `visualAssetId`, the per-role directional key or the dirt-edge key. Every manifest path exists on disk.
+
+Wired in this pass (previously loaded but never drawn):
+- `fx_tint` (`dawn-night-tint-sheet.png`): night overlay by season (dusk or winter night), dawn tint after night.
+- `terrain_water_quiet`: still water when motion is off.
+- `res_woodpile_states`: woodpile by the storage building (full, partial, empty).
+- `ui_emote_idea`: idea bubble for a person crafting a tool.
+- `fx_rain_splash`: splashes during rain (high quality).
+- `fx_dust`: dust puffs at resources being worked.
+- `bld_terraced_fields_stages`: irrigated farms draw terraced fields (foundation, terraces, planted).
+- `char_villager_actions_expanded`: side-facing carriers and workers use the expanded strip (carry wood, stone, food; harvest; build). North and south keep the directional sheets.
+- `char_villager_variety_32x48`: person inspector shows one of six skin and hair variants, chosen from the person's id.
+- `char_trader_portrait_64`: visiting-trader card.
+- Also wired earlier: building thumbnails v3, era badges, hint icons, event cards, trigger cards, expanded emotes.
+
+Removed (superseded, still in git history): villager samples (`villager-portraits-sample-48x48`, `villager-sample-32x32`, `villager-sample-32x48`, `villager-sample.metadata.json`), `day-night-overlay.png`, `fx_smoke_loop.png`, `path-variants.png`, `dirt-muted.png`, `grass-soft.png`, `building-thumbnails-16.png`, `building-thumbnails-16-v2.png` (+ metadata), `portraits/villager_a..d.png`.
+- Decision: thumbnail v3 is the drawn variant. IMAGE3 had marked v2 "preferred" earlier; v3 came later with distinct silhouettes. Restore v2 from history if IMAGE3 wants it back.
+- `bld_road` is a dangling `visualAssetId` (roads draw the cart-road sheet, `terrain_cart_road`); it resolves to no sprite and the road path does not depend on it.

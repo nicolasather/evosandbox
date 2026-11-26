@@ -174,6 +174,9 @@ function CodeStation({ puzzle, solved, hint, unlocked, onSubmit, onHint }: {
   );
 }
 
+/** Records a finished episode's exhibit with the time of the click. Read here, not during render. */
+const unlockAt = (exhibitId: string) => profile.unlockExhibit({ exhibitId, sourceMode: 'escape-room', unlockedAt: Date.now() });
+
 export function EscapeRoomMode({ onExit }: { onExit: () => void }) {
   const [state, setState] = useState<EpisodeState>(() => {
     escapeRoomStore.load();
@@ -224,7 +227,7 @@ export function EscapeRoomMode({ onExit }: { onExit: () => void }) {
     const memory = summarizeEpisode(episode, state);
     escapeRoomStore.archiveActive(memory);
     const exhibit = episodeExhibit(memory, episode.title);
-    profile.unlockExhibit({ exhibitId: exhibit.id, sourceMode: 'escape-room', unlockedAt: Date.now() });
+    unlockAt(exhibit.id);
     const fresh = blankState(episode);
     setState(fresh);
     escapeRoomStore.setActive(fresh);
@@ -234,7 +237,7 @@ export function EscapeRoomMode({ onExit }: { onExit: () => void }) {
     const memory = summarizeEpisode(episode, state);
     escapeRoomStore.archiveActive(memory);
     const exhibit = episodeExhibit(memory, episode.title);
-    profile.unlockExhibit({ exhibitId: exhibit.id, sourceMode: 'escape-room', unlockedAt: Date.now() });
+    unlockAt(exhibit.id);
     onExit();
   };
 

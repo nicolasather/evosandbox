@@ -114,13 +114,8 @@ export const ASSET_SPECS: Record<string, AssetSpec> = {
   bld_workshop_large: { url: `${BASE}/buildings/workshop-large-96.png`, w: 96, h: 96 },
   char_trader_directional: { url: `${BASE}/characters/trader-directions-32x48.png`, w: 32, h: 48, frames: 4 },
   char_actions_expanded: { url: `${BASE}/characters/villager-actions-expanded-32x48.png`, w: 32, h: 48, frames: 10 },
-  char_villager_variety: { url: `${BASE}/characters/villager-variety-32x48.png`, w: 32, h: 48, frames: 6 },
   terrain_sand: { url: `${BASE}/terrain/sand.png`, w: 32, h: 32 },
   bld_farm: { url: `${BASE}/buildings/farm.png`, w: 96, h: 64 },
-  portrait_villager_a: { url: `${BASE}/portraits/villager_a.png`, w: 48, h: 48 },
-  portrait_villager_b: { url: `${BASE}/portraits/villager_b.png`, w: 48, h: 48 },
-  portrait_villager_c: { url: `${BASE}/portraits/villager_c.png`, w: 48, h: 48 },
-  portrait_villager_d: { url: `${BASE}/portraits/villager_d.png`, w: 48, h: 48 },
 };
 
 /** A sheet that does not match its contract is reported and replaced by the placeholder instead of being drawn wrongly. */

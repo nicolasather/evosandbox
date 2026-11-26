@@ -91,7 +91,7 @@ export const dots = defineComponent<{ n: number; spread: number; r: number; seed
   id: 'dots', group: 'basic',
   doc: 'scattered accent dots (seeds, grains, rivets, sparks). seed makes the scatter reproducible',
   params: { n: int(1, 60, 8), spread: num(1, 60, 20), r: num(0.5, 3, 1.4), seed: int(0, 9999, 1), shape: oneOf(['disc', 'box'], 'disc') },
-  draw: (p, _r) => {
+  draw: p => {
     const rnd = rng(p.seed);
     return Array.from({ length: p.n }, () => {
       const a = rnd() * Math.PI * 2;

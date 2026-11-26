@@ -12,11 +12,12 @@ export function EmoteTray() {
   const [open, setOpen] = useState(false);
   const [said, setSaid] = useState<{ key: number; line: string; icon: SandboxIconId } | null>(null);
   const timer = useRef<number | undefined>(undefined);
+  const seq = useRef(0);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const pick = (e: (typeof EMOTES)[number]) => {
     setOpen(false);
-    setSaid({ key: Date.now(), line: e.line, icon: e.id });
+    setSaid({ key: ++seq.current, line: e.line, icon: e.id });
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setSaid(null), BUBBLE_MS);
   };

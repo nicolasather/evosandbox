@@ -37,7 +37,6 @@ check(2, 'pan and zoom change the camera', JSON.stringify(cam0) !== JSON.stringi
 // 3. at least three inhabitants idle and walk
 ev("window.__civworld.setSpeed(4); 1");
 await sleep(6000);
-const people = ev("JSON.stringify(window.__civworld.state.citizens.map(c=>[c.x!==c.px||c.y!==c.py||c.task.kind]))");
 const n = ev('window.__civworld.state.citizens.length');
 const movers = ev("window.__civworld.state.citizens.filter(c=>c.task.kind!=='idle'||c.x!==c.px).length");
 check(3, 'three or more inhabitants are active', n >= 3 && movers >= 3, `${n} people, ${movers} active`);
@@ -95,7 +94,6 @@ await waitReady();
 const unlocked = ev("window.__civworld.state.capabilities.some(c=>c.id==='stone_tool') && window.__civworld.state.unlockedBuildings.includes('workshop')");
 check(9, 'the merge engine\'s discovery reaches the settlement', unlocked === true);
 ev("window.__civworld.state.stock.wood=30; window.__civworld.state.stock.stone=20; 1");
-const wk = ev(`(()=>{const w=window.__civworld; const f=w.state.buildings[0]; for(let r=2;r<9;r++) for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){ const res=w.sim ? null : null; } return 1})()`);
 const buildable = ev(`(()=>{const w=window.__civworld; const f=w.state.buildings[0]; for(let r=2;r<10;r++) for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){ const out=w.place('workshop', f.x+dx, f.y+dy); if(out.ok) return true;} return false;})()`);
 check(10, 'the new capability is used to place a workshop', buildable === true);
 

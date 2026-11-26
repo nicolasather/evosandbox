@@ -53,7 +53,7 @@ export function SandboxGuide({ onFinish, combineKey, lastResult, variant = 'main
   const [i, setI] = useState(0);
   const [failNote, setFailNote] = useState(false);
   const step = steps[i];
-  const seenKey = useRef(combineKey);
+  const [seenCombine, setSeenCombine] = useState(combineKey);
 
   const finish = () => { markGuideDone(variant); onFinish(); };
   const go = (n: number) => setI(n);
@@ -67,7 +67,7 @@ export function SandboxGuide({ onFinish, combineKey, lastResult, variant = 'main
 
   // rail and technique clicks are the player's own choices: listen once, read the current step
   const cur = useRef(step);
-  cur.current = step;
+  useEffect(() => { cur.current = step; });
   useEffect(() => {
     const onClick = (ev: MouseEvent) => {
       const t = ev.target as HTMLElement | null;
@@ -80,13 +80,13 @@ export function SandboxGuide({ onFinish, combineKey, lastResult, variant = 'main
   }, []);
 
   // a combine: a new discovery moves on; a dud stays here and says why
-  useEffect(() => {
-    if (combineKey === seenKey.current) return;
-    seenKey.current = combineKey;
-    if (cur.current.advance !== 'combine') return;
-    if (lastResult?.status === 'new' || lastResult?.status === 'known') { setFailNote(false); setI(4); }
-    else if (lastResult?.status === 'fail') setFailNote(true);
-  }, [combineKey, lastResult]);
+  if (combineKey !== seenCombine) {
+    setSeenCombine(combineKey);
+    if (step.advance === 'combine') {
+      if (lastResult?.status === 'new' || lastResult?.status === 'known') { setFailNote(false); setI(4); }
+      else if (lastResult?.status === 'fail') setFailNote(true);
+    }
+  }
 
   const last = i === steps.length - 1;
   return (

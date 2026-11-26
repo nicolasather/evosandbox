@@ -4,8 +4,8 @@ import type { BuildingState, Citizen, CivState, NodeState } from '@/lib/civ/type
 import { NODE_SPRITE, TILE, isWater, tileAt, type Hit, type Terrain, type WorldMap } from '@/lib/civ/world';
 import { visibleTiles, type Camera, type Size } from '@/lib/civ/camera';
 import type { AssetStore } from './assets';
-import { ambientAnimals, buildingFx, groundDecor, seasonIndex, weatherOverlay, worldDecor } from './decor';
-import { hasCapability, capacity } from '@/lib/civ/sim';
+import { ambientAnimals, buildingFx, groundDecor, seasonIndex, weatherOverlay, workDust, worldDecor } from './decor';
+import { activeSeason, hasCapability, capacity } from '@/lib/civ/sim';
 import { phaseOf } from '@/lib/civ/extras';
 
 /* Canvas renderer for the settlement. It only READS simulation state; it never decides
@@ -140,10 +140,12 @@ function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: Buil
   }
   const def = BUILDINGS[b.kind];
   // farm plots show their growth: seed (new site), growing, ripe, harvested (nothing left to gather)
-  const growth = b.kind === 'farm' ? assets.get('bld_farm_growth') : null;
+  const terraced = b.kind === 'farm' && hasCap('irrigation') ? assets.get('bld_terraced') : null;
+  const growth = terraced ?? (b.kind === 'farm' ? assets.get('bld_farm_growth') : null);
   if (growth) {
     const ratio = (b.amount ?? 0) / Math.max(1, b.max ?? 1);
-    const stage = b.state === 'site' ? 0 : ratio > 0.66 ? 2 : ratio > 0 ? 1 : 3;
+    // terraced sheet: 0 foundation, 1 terraces, 2 planted; growth sheet: 0 seed, 1 growing, 2 ripe, 3 harvested
+    const stage = terraced ? (b.state === 'site' ? 0 : ratio > 0 ? 2 : 1) : b.state === 'site' ? 0 : ratio > 0.66 ? 2 : ratio > 0 ? 1 : 3;
     ctx.save();
     if (b.state === 'site') ctx.globalAlpha = 0.5 + 0.5 * b.progress;
     for (let i = 0; i < Math.ceil(b.w / 2); i++) {
@@ -202,6 +204,14 @@ function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: Buil
   }
 }
 
+/** Lays the tint tile over the view at a strength; frames are 0 dusk, 1 winter night, 2 dawn, 3 day. */
+function paintTint(ctx: CanvasRenderingContext2D, tint: HTMLImageElement, view: { w: number; h: number }, strength: number, frame: number) {
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, strength);
+  for (let y = 0; y < view.h; y += 64) for (let x = 0; x < view.w; x += 64) ctx.drawImage(tint, frame * 32, 0, 32, 32, x, y, 64, 64);
+  ctx.restore();
+}
+
 const ROW: Record<Citizen['facing'], number> = { s: 0, n: 1, e: 2, w: 3 };
 
 function drawCitizen(ctx: CanvasRenderingContext2D, assets: AssetStore, c: Citizen, alpha: number, now: number, animate: boolean) {
@@ -219,7 +229,17 @@ function drawCitizen(ctx: CanvasRenderingContext2D, assets: AssetStore, c: Citiz
   const spec = assets.spec(`char_${role}_directional`) ?? assets.spec('char_gatherer_directional');
   const poses = assets.get('char_gatherer_actions');
   const pose = sleeping ? 2 : kind === 'eat' ? 1 : c.carrying && kind === 'walk' ? 0 : -1;
-  if (poses && pose >= 0) {
+  // side-on figures use the expanded action strip (frame order in its metadata); north and south keep the directional sheets
+  const expanded = assets.get('char_actions_expanded');
+  const exFrame = !expanded || sleeping || kind === 'eat' ? -1
+    : kind === 'walk' && c.carrying ? ({ wood: 0, stone: 1, food: 9 } as Record<string, number>)[c.carrying.res] ?? -1
+    : working ? (kind === 'gather' ? 4 : 2) : -1;
+  if (expanded && exFrame >= 0 && (c.facing === 'e' || c.facing === 'w')) {
+    ctx.save();
+    if (c.facing === 'w') { ctx.translate(fx, 0); ctx.scale(-1, 1); ctx.translate(-fx, 0); }
+    ctx.drawImage(expanded, exFrame * 32, 0, 32, 48, fx - 16, fy - 47, 32, 48);
+    ctx.restore();
+  } else if (poses && pose >= 0) {
     ctx.drawImage(poses, pose * 32, ROW[c.facing] * 48, 32, 48, fx - 16, fy - 47, 32, 48);
   } else if (sheet && spec) {
     let col = 0;
@@ -248,7 +268,7 @@ function drawCitizen(ctx: CanvasRenderingContext2D, assets: AssetStore, c: Citiz
     else { ctx.fillStyle = '#cfe0ff'; ctx.font = '9px monospace'; ctx.fillText('z', fx + 8, fy - 40 - (Math.floor(now / 500) % 2) * 2); }
   } else {
     // a small thought mark when a need is pressing: world-first information, with exact numbers in the inspector
-    const em = c.hunger >= 55 ? 'ui_emote_hungry' : c.energy <= 30 ? 'ui_emote_tired' : c.task.kind === 'idle' && c.idleReason ? 'ui_emote_alert' : null;
+    const em = c.hunger >= 55 ? 'ui_emote_hungry' : c.energy <= 30 ? 'ui_emote_tired' : c.task.kind === 'craft' ? 'ui_emote_idea' : c.task.kind === 'idle' && c.idleReason ? 'ui_emote_alert' : null;
     const img = em ? assets.get(em) : null;
     if (img) ctx.drawImage(img, fx + 4, fy - 62, 16, 16);
   }
@@ -333,9 +353,10 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   }
 
   // deep water: the delivered loop when available (frame 0 under reduced motion), else cheap line glints
-  const deep = mid ? assets.get('terrain_water_deep') : null;
+  const still = assets.get('terrain_water_quiet');
+  const deep = mid ? (f.animate ? assets.get('terrain_water_deep') : still ?? assets.get('terrain_water_deep')) : null;
   if (deep) {
-    const fr = f.animate ? Math.floor(f.now / 160) % 6 : 0;
+    const fr = f.animate && deep.width >= 192 ? Math.floor(f.now / 160) % 6 : 0;
     for (let y = Math.max(0, y0); y < Math.min(map.h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(map.w, x1); x++) {
       if (tileAt(map, x, y) === 'water' && isWater(tileAt(map, x, y - 1)) && isWater(tileAt(map, x, y + 1))) ctx.drawImage(deep, fr * 32, 0, 32, 32, x * TILE, y * TILE, TILE, TILE);
     }
@@ -406,6 +427,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
     list.push({ y: fire.y + 2, draw: () => ctx.drawImage(smoke, (Math.floor(f.now / 125) % 6) * 32, 0, 32, 32, fire.x * TILE, fire.y * TILE - 26, TILE, TILE) });
   }
   if (mid) buildingFx(list, ctx, assets, s, f.now, (s.tick % DAY_TICKS) / DAY_TICKS >= 1 - NIGHT_FRACTION);
+  if (mid && f.animate && f.quality !== 'low') workDust(list, ctx, assets, s, f.now);
   if (hi && f.animate) ambientAnimals(list, ctx, assets, map, s, f.now);
   // a visiting trader waits by the fire (and a caravan stands beside the market)
   if (s.visitor && (s.visitor.kind === 'trader' || s.visitor.kind === 'caravan') && assets.get('char_trader_directional')) {
@@ -485,5 +507,8 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
       ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 3, ry + 9); ctx.stroke();
     }
   }
-  if (night > 0) { ctx.fillStyle = `rgba(12,20,52,${(0.28 * night).toFixed(3)})`; ctx.fillRect(0, 0, view.w, view.h); }
+  const tint = f.quality === 'low' ? null : assets.get('fx_tint');
+  if (tint && night > 0) paintTint(ctx, tint, view, night, activeSeason(s) === 'Winter' ? 1 : 0);
+  else if (night > 0) { ctx.fillStyle = `rgba(12,20,52,${(0.28 * night).toFixed(3)})`; ctx.fillRect(0, 0, view.w, view.h); }
+  if (tint && t < 0.06) paintTint(ctx, tint, view, (1 - t / 0.06) * 0.5, 2);
 }

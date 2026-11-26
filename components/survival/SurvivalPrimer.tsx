@@ -56,6 +56,7 @@ export function SurvivalPrimer({ open, onClose }: { open: boolean; onClose: () =
     if (!open) return undefined;
     const el = document.querySelector(`#survival-mode [data-primer="${step.target}"]`);
     el?.scrollIntoView?.({ block: 'center', behavior: reduceMotion() ? 'auto' : 'smooth' });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- measuring the DOM after the scroll is the point of this layout effect
     measure();
     const t = window.setTimeout(measure, reduceMotion() ? 0 : 420);
     return () => window.clearTimeout(t);
@@ -77,11 +78,16 @@ export function SurvivalPrimer({ open, onClose }: { open: boolean; onClose: () =
     if (!open || !cardRef.current) return;
     const r = cardRef.current.getBoundingClientRect();
     setCard(c => (c && c.rect.w === r.width && c.rect.h === r.height && c.rect.x === r.x ? c : { place: c?.place ?? 'bottom', rect: { x: r.x, y: r.y, w: r.width, h: r.height } }));
-  });
+  }, [open, i, box, vp]);
 
   // Start each opening at the first step, and put focus on the card so keys work straight away.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setI(0);
+  }
   useEffect(() => {
-    if (open) { setI(0); window.setTimeout(() => primaryRef.current?.focus(), 0); }
+    if (open) window.setTimeout(() => primaryRef.current?.focus(), 0);
   }, [open]);
 
   useEffect(() => {

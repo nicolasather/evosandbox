@@ -103,6 +103,9 @@ export function Toolbar({ drawer, setDrawer, home, tool, setTool }: { drawer: Dr
   );
 }
 
+/** One of the six skin and hair variants, chosen from the person's id so they keep their look. */
+const variantOf = (id: string) => [...id].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 6;
+
 /* ---------- drawers ---------- */
 
 export function BuildDrawer({ rt, onPick, active }: { rt: CivRuntime; onPick: (kind: string) => void; active: string | null }) {
@@ -244,6 +247,7 @@ export function TradeCard({ rt }: { rt: CivRuntime }) {
   if (!v || !p) return null;
   return (
     <div className="cw-trade" role="region" aria-label="Visiting trader">
+      {(v.kind === 'trader' || v.kind === 'caravan') && <SpriteIcon sheet="trader" frame={0} size={64} />}
       <strong>{v.kind === 'caravan' ? 'A caravan has arrived' : v.kind === 'craftsperson' ? 'A craftsperson is visiting' : v.kind === 'messenger' ? 'A messenger has arrived' : 'A trader has stopped by'}</strong>
       {v.kind === 'craftsperson' && <span>Teaches a better way of working in return for {v.want.n} food and a place to stay.</span>}
       {v.kind === 'messenger' && <span>Brings news of a nearby place.</span>}
@@ -344,7 +348,7 @@ export function Inspector({ rt, sel, onClose, onFollow }: { rt: CivRuntime; sel:
     const home = c.home ? 'a shelter' : 'the campfire (sleeping rough)';
     body = (
       <>
-        <span className="cw-villager" data-v={c.id.length % 4} aria-hidden="true" />
+        <span className="cw-villager" data-v={variantOf(c.id)} aria-hidden="true" />
         <strong>{c.name} <SpriteIcon sheet="emote" size={16} frame={c.hunger >= 55 ? EMOTE_FRAME.hungry : c.energy <= 30 ? EMOTE_FRAME.tired : c.task.kind === 'idle' ? EMOTE_FRAME.question : EMOTE_FRAME.happy} /></strong>
         <span>{c.age === 'elder' ? 'Elder' : 'Adult'} · {c.trait}</span>
         <span>Now: {c.task.kind === 'idle' ? (c.idleReason || 'Waiting') : c.task.reason}</span>
