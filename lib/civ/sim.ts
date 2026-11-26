@@ -95,7 +95,7 @@ export function createSim(seed = 1, kind: MapKind = 'classic'): CivSim {
     citizens: [],
     nodes: map.nodes.map(n => ({ id: n.id, kind: n.kind, x: n.x, y: n.y, amount: n.amount, max: n.amount, workers: 0 })),
     buildings: [{ id: fire.id, kind: 'campfire', x: fire.x, y: fire.y, w: 1, h: 1, state: 'done', progress: 1, paid: {}, workers: 0 }],
-    seenDiscoveries: [], capabilities: [], unlockedBuildings: ['shelter'], events: [], hints: {}, activeHint: null, visitor: null, revealed: '', expeditions: [], poi: [], hazard: null, children: [], foodLog: [], migrant: null, family: [], routes: [], laws: [], water: 20, pins: [], notes: [],
+    seenDiscoveries: [], capabilities: [], unlockedBuildings: ['shelter'], events: [], hints: {}, activeHint: null, visitor: null, revealed: '', expeditions: [], poi: [], hazard: null, children: [], foodLog: [], stumps: [], migrant: null, family: [], routes: [], laws: [], water: 20, pins: [], notes: [],
     policies: { resourceUse: 'balanced', constructionFocus: 'none', explorationStance: 'balanced', gatheringRadius: 'extended', knowledgeFocus: 'open' },
     tutorial: { step: 0, done: false }, alerts: [],
     milestones: [], settings: { pauseWhileCrafting: false, workIntensity: 'normal', foodReserveDays: 3, seasons: 'on', modules: { trade: true, governance: true, family: true, climate: true, hunting: true, visitors: true, water: true } },
@@ -413,6 +413,7 @@ export function stepSim(sim: CivSim): void {
     if (b.kind === 'farm' && b.state === 'done' && (b.amount ?? 0) < (b.max ?? 0) && s.tick % FARM_REGROW_TICKS === 0 && !thirsty(s)) b.amount = (b.amount ?? 0) + 1;
     if (b.kind === 'animal_pen' && b.state === 'done' && (b.amount ?? 0) < (b.max ?? 0) && s.tick % 40 === 0 && s.stock.food > 0) b.amount = (b.amount ?? 0) + 1;
   }
+  for (const n of s.nodes) if (n.kind === 'tree' && n.amount <= 0) s.stumps.push(n.y * sim.map.w + n.x);
   s.nodes = s.nodes.filter(n => n.kind === 'bush' || n.amount > 0);
 
   maybeArrival(sim);

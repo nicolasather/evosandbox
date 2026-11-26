@@ -1,9 +1,0 @@
-<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Viewport frame (QA only)</title>
-<style>html,body{margin:0;background:#222;height:100%}iframe{border:0;display:block;background:#000}</style>
-<script>
-  // Renders the app inside an iframe of a given size so responsive layouts can be checked at 375 or 768 wide: /qa/frame.html?w=375&h=740
-  const q = new URLSearchParams(location.search);
-  const w = Number(q.get('w')) || 375, h = Number(q.get('h')) || 740;
-  document.write('<iframe id="f" width="' + w + '" height="' + h + '" src="/sandbox"></iframe>');
-</script>

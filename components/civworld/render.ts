@@ -4,6 +4,9 @@ import type { BuildingState, Citizen, CivState, NodeState } from '@/lib/civ/type
 import { NODE_SPRITE, TILE, isWater, tileAt, type Hit, type Terrain, type WorldMap } from '@/lib/civ/world';
 import { visibleTiles, type Camera, type Size } from '@/lib/civ/camera';
 import type { AssetStore } from './assets';
+import { ambientAnimals, buildingFx, groundDecor, seasonIndex, weatherOverlay, worldDecor } from './decor';
+import { hasCapability, capacity } from '@/lib/civ/sim';
+import { phaseOf } from '@/lib/civ/extras';
 
 /* Canvas renderer for the settlement. It only READS simulation state; it never decides
    outcomes. Static terrain is cached on an offscreen canvas and rebuilt only when a
@@ -46,18 +49,23 @@ function drawTile(ctx: CanvasRenderingContext2D, assets: AssetStore, m: WorldMap
 }
 
 /** Build (or rebuild) the cached ground layer for the whole map. */
-export function buildTerrainLayer(m: WorldMap, assets: AssetStore): HTMLCanvasElement {
+export function buildTerrainLayer(m: WorldMap, assets: AssetStore, season = -1): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = m.w * TILE;
   c.height = m.h * TILE;
   const ctx = c.getContext('2d');
   if (!ctx) return c;
   ctx.imageSmoothingEnabled = false;
-  for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) drawTile(ctx, assets, m, m.terrain[y * m.w + x], x, y);
+  for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
+    drawTile(ctx, assets, m, m.terrain[y * m.w + x], x, y);
+    // autumn and winter recolour the grass from the season strip (frame 0 autumn, 1 winter)
+    if (season >= 0 && m.terrain[y * m.w + x] === 'grass') { const g = assets.get('terrain_grass_seasons'); if (g) ctx.drawImage(g, season * 32, 0, 32, 32, x * TILE, y * TILE, TILE, TILE); }
+  }
+  groundDecor(ctx, assets, m);
   return c;
 }
 
-function drawNode(ctx: CanvasRenderingContext2D, assets: AssetStore, n: NodeState) {
+function drawNode(ctx: CanvasRenderingContext2D, assets: AssetStore, n: NodeState, season = -1) {
   const s = NODE_SPRITE[n.kind];
   const bx = n.x * TILE + TILE / 2;
   const by = (n.y + 1) * TILE;
@@ -73,6 +81,14 @@ function drawNode(ctx: CanvasRenderingContext2D, assets: AssetStore, n: NodeStat
   const sheetId = n.kind === 'bush' ? 'res_berry_states' : n.kind === 'rock' ? 'res_stonepile_states' : null;
   const sheet = sheetId ? assets.get(sheetId) : null;
   if (sheet) { ctx.drawImage(sheet, state * 48, 0, 48, 48, bx - 24, by - 43 - 1, 48, 48); return; }
+  const hv = (n.x * 31 + n.y * 17) % 3;
+  if (n.kind === 'tree') {
+    const ss = assets.get('terrain_tree_seasons'); const tv = assets.get('terrain_tree_variants');
+    const sIdx = season >= 0 ? season : -1;
+    const src = sIdx >= 0 && ss ? ss : tv;
+    if (src) { ctx.drawImage(src, (sIdx >= 0 && ss ? sIdx : hv) * 48, 0, 48, 64, bx - 24, by - 64, 48, 64); return; }
+  }
+  if (n.kind === 'rock') { const rv = assets.get('terrain_rock_variants'); if (rv && !assets.get('res_stonepile_states')) { ctx.drawImage(rv, hv * 32, 0, 32, 32, bx - 16, by - 32, 32, 32); return; } }
   const img = n.kind === 'tree' ? assets.get('prop_tree') : n.kind === 'rock' ? assets.get('prop_rock') : null;
   if (img) { ctx.drawImage(img, bx - s.w / 2, by - s.h, s.w, s.h); return; }
   if (n.kind === 'bush') {
@@ -94,7 +110,7 @@ const PLACEHOLDER_COLOR: Record<string, [string, string]> = {
   granary: ['#8a7a4c', '#c9a85a'], forge: ['#5a5550', '#c0562a'], shelter: ['#8a6a3c', '#b8863c'], storage: ['#7a5a3a', '#9c7a4a'], workshop: ['#6d6a62', '#a05a32'], farm: ['#6b4a2c', '#3f7a35'],
 };
 
-function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: BuildingState, now: number, animate: boolean) {
+function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: BuildingState, now: number, animate: boolean, phase = 0, hasCap: (id: string) => boolean = () => false, foodFull = false) {
   const px = b.x * TILE;
   const py = b.y * TILE;
   const w = b.w * TILE;
@@ -140,11 +156,14 @@ function drawBuilding(ctx: CanvasRenderingContext2D, assets: AssetStore, b: Buil
   }
   const site = b.state === 'site';
   // construction stages from the sheet: frame 0 foundation, 1 frame, 2 finished; anchor (32,57) sits at the footprint's bottom centre
-  const large = b.kind === 'shelter' && !site ? assets.get('bld_shelter_large') : null;
+  const large = b.kind === 'shelter' && !site ? assets.get('bld_shelter_large') : b.kind === 'workshop' && !site && phase >= 2 ? assets.get('bld_workshop_large') : null;
   if (large) {
     ctx.drawImage(large, px + w / 2 - 48, py + h - 6 - 89);
     return;
   }
+  // finished houses show how advanced the settlement is (wattle, then stone, then painted); granaries show full or empty
+  if (!site && b.kind === 'house') { const hv = assets.get('bld_house_variants'); if (hv) { ctx.drawImage(hv, (hasCap('records') ? 2 : hasCap('stone_tool') ? 1 : 0) * 64, 0, 64, 64, px + w / 2 - 32, py + h - 6 - 57, 64, 64); return; } }
+  if (!site && b.kind === 'granary') { const gs = assets.get('veg_granary_state'); if (gs) { ctx.drawImage(gs, (foodFull ? 0 : 1) * 64, 0, 64, 64, px + w / 2 - 32, py + h - 6 - 57, 64, 64); return; } }
   const sheet = assets.get(def.visualAssetId);
   const frame = site ? (b.progress < 0.5 ? 0 : 1) : 2;
   const img = sheet && sheet.width >= 192 ? null : sheet;
@@ -346,10 +365,14 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
 
   type Drawable = { y: number; draw: () => void };
   const list: Drawable[] = [];
-  for (const n of s.nodes) if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && s.revealed[n.y * map.w + n.x] === '1') list.push({ y: n.y + 1, draw: () => drawNode(ctx, assets, n) });
+  const phaseIdx = phaseOf(s).index;
+  const hc = (id: string) => hasCapability(s, id);
+  const foodFull = s.stock.food >= capacity(s) * 0.5;
+  worldDecor(ctx, assets, map, s, x0, x1, y0, y1);
+  for (const n of s.nodes) if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && s.revealed[n.y * map.w + n.x] === '1') list.push({ y: n.y + 1, draw: () => drawNode(ctx, assets, n, seasonIndex(s)) });
   for (const b of s.buildings) {
     if (b.x + b.w >= x0 && b.x <= x1 && b.y >= y0 && b.y <= y1) {
-      list.push({ y: b.kind === 'farm' && b.state === 'done' ? b.y - 1 : b.y + b.h, draw: () => drawBuilding(ctx, assets, b, f.now, f.animate) });
+      list.push({ y: b.kind === 'farm' && b.state === 'done' ? b.y - 1 : b.y + b.h, draw: () => drawBuilding(ctx, assets, b, f.now, f.animate, phaseIdx, hc, foodFull) });
     }
   }
   // ambient wildlife (cosmetic, no resource accounting): a goat and a sheep wander the eastern meadow in high quality
@@ -381,6 +404,13 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   if (smoke && f.animate && mid) {
     const fire = s.buildings[0];
     list.push({ y: fire.y + 2, draw: () => ctx.drawImage(smoke, (Math.floor(f.now / 125) % 6) * 32, 0, 32, 32, fire.x * TILE, fire.y * TILE - 26, TILE, TILE) });
+  }
+  if (mid) buildingFx(list, ctx, assets, s, f.now, (s.tick % DAY_TICKS) / DAY_TICKS >= 1 - NIGHT_FRACTION);
+  if (hi && f.animate) ambientAnimals(list, ctx, assets, map, s, f.now);
+  // a visiting trader waits by the fire (and a caravan stands beside the market)
+  if (s.visitor && (s.visitor.kind === 'trader' || s.visitor.kind === 'caravan') && assets.get('char_trader_directional')) {
+    const fire = s.buildings[0];
+    list.push({ y: fire.y + 2, draw: () => { const tr = assets.get('char_trader_directional')!; ctx.drawImage(tr, 2 * 32, 0, 32, 48, (fire.x + 2) * TILE, (fire.y + 2) * TILE - 46, 32, 48); } });
   }
   list.sort((a, b) => a.y - b.y);
   for (const d of list) d.draw();
@@ -446,6 +476,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, map: WorldMap, s: CivSt
   const t = (s.tick % DAY_TICKS) / DAY_TICKS;
   const start = 1 - NIGHT_FRACTION;
   const night = t >= start ? Math.min(1, (t - start) / 0.06, (1 - t) / 0.04) : 0;
+  weatherOverlay(ctx, assets, s, view, f.now, f.quality, f.animate);
   if (s.hazard && s.hazard.phase !== 'scheduled' && f.animate && f.quality !== 'low') {
     ctx.strokeStyle = 'rgba(190,210,235,0.45)'; ctx.lineWidth = 1;
     for (let i = 0; i < 70; i++) {

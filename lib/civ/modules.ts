@@ -238,6 +238,7 @@ export function feltTemperature(s: CivState, c: Citizen): { temp: number; becaus
   let t = outsideTemperature(s);
   if (!moduleOn(s, 'climate')) return { temp: t, because };
   if (hasCapability(s, 'clothing')) { t += 5; because.push('clothing'); }
+  if (doneBuildings(s, 'loom').length > 0) { t += 3; because.push('woven cloth'); }
   const home = c.task.kind === 'rest' ? s.buildings.find(b => b.id === c.task.targetId) : null;
   if (home && (home.kind === 'shelter' || home.kind === 'house')) { t += 8; because.push('a roof'); }
   const fire = s.buildings[0];

@@ -192,6 +192,8 @@ export interface CivState {
   children: number[];
   /** Daily food stock, newest last, for the trend shown in the HUD. */
   foodLog: number[];
+  /** Tile indexes where a tree was cut down: drawn as stumps. */
+  stumps: number[];
   /** A newcomer who asks to stay: the player sees the extra demand and accepts or declines. */
   migrant: Migrant | null;
   family: FamilyMember[];

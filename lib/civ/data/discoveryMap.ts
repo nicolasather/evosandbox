@@ -59,6 +59,8 @@ export const DISCOVERY_MAP: CapabilityMapping[] = [
     message: 'Animals can be kept and fed. An animal pen can now be built.' },
   { discoveryId: 'clothing', capability: 'clothing', grants: [{ type: 'knowledge', note: 'Clothing: people feel 5 degrees warmer.' }],
     message: 'Sewn skins keep the cold out. Everyone feels warmer.' },
+  { discoveryId: 'exp26_plain_weave_linen', capability: 'weaving', grants: [{ type: 'unlock_building', buildingId: 'loom' }],
+    message: 'Threads crossed on a frame make cloth. A loom can now be built.' },
   { discoveryId: 'cordage', capability: 'cordage', grants: [{ type: 'knowledge', note: 'Cordage: lashing and binding are now understood.' }],
     message: 'Twisted fibre makes strong cord. Not much changes yet, but binding is understood.' },
   { discoveryId: 'shelter', capability: 'shelter_craft', grants: [{ type: 'knowledge', note: 'Shelter craft is understood by the settlement.' }],

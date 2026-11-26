@@ -4,7 +4,7 @@ import type { ResourceId } from '../types';
    docs/civilization-overhaul/ASSET_MANIFEST.md. */
 
 export interface BuildingDef {
-  id: 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly' | 'house' | 'pottery_kiln' | 'drying_rack' | 'well' | 'records_hall' | 'animal_pen';
+  id: 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly' | 'house' | 'pottery_kiln' | 'drying_rack' | 'well' | 'records_hall' | 'animal_pen' | 'loom';
   name: string;
   description: string;
   footprint: { w: number; h: number };
@@ -105,6 +105,12 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover the Hand-Dug Shaft Well in Merging.', visualAssetId: 'bld_well',
     purpose: 'Reliable water: the settlement can hold 2 more people.',
   },
+  loom: {
+    id: 'loom', name: 'Loom', description: 'A frame for weaving cloth.',
+    footprint: { w: 1, h: 1 }, cost: { wood: 8 }, buildTicks: 24, workerSlots: 1, requires: 'weaving',
+    terrain: ['grass', 'dirt', 'sand', 'path'], unlockHint: 'Discover Plain Weave in Merging.', visualAssetId: 'bld_loom',
+    purpose: 'Woven cloth keeps people warmer: they feel 3 degrees warmer.',
+  },
   animal_pen: {
     id: 'animal_pen', name: 'Animal pen', description: 'A fenced pen for goats and sheep.',
     footprint: { w: 2, h: 1 }, cost: { wood: 10 }, buildTicks: 36, workerSlots: 1, requires: 'herding', rotatable: true,
@@ -119,4 +125,4 @@ export const BUILDINGS: Record<string, BuildingDef> = {
   },
 };
 
-export const BUILD_ORDER = ['shelter', 'house', 'storage', 'workshop', 'farm', 'road', 'well', 'drying_rack', 'pottery_kiln', 'granary', 'forge', 'market', 'animal_pen', 'records_hall', 'assembly'] as const;
+export const BUILD_ORDER = ['shelter', 'house', 'storage', 'workshop', 'farm', 'road', 'well', 'drying_rack', 'pottery_kiln', 'granary', 'forge', 'market', 'animal_pen', 'loom', 'records_hall', 'assembly'] as const;

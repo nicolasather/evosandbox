@@ -8,7 +8,7 @@ export const TILE = 32;
 
 export type Terrain = 'grass' | 'dirt' | 'water' | 'path' | 'sand';
 export type NodeKind = 'tree' | 'bush' | 'rock' | 'game';
-export type BuildingKind = 'campfire' | 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly' | 'house' | 'pottery_kiln' | 'drying_rack' | 'well' | 'records_hall' | 'animal_pen';
+export type BuildingKind = 'campfire' | 'shelter' | 'storage' | 'workshop' | 'farm' | 'granary' | 'forge' | 'road' | 'market' | 'assembly' | 'house' | 'pottery_kiln' | 'drying_rack' | 'well' | 'records_hall' | 'animal_pen' | 'loom';
 
 export interface ResourceNode { id: string; kind: NodeKind; x: number; y: number; amount: number }
 export interface Building { id: string; kind: BuildingKind; x: number; y: number; w: number; h: number }
@@ -30,7 +30,7 @@ export const NODE_SPRITE: Record<NodeKind, { w: number; h: number }> = {
   game: { w: 32, h: 48 },
 };
 export const NODE_LABEL: Record<NodeKind, string> = { tree: 'Tree', bush: 'Berry bush', rock: 'Stone outcrop', game: 'Game herd' };
-export const BUILDING_LABEL: Record<BuildingKind, string> = { campfire: 'Campfire', shelter: 'Shelter', storage: 'Storage', workshop: 'Workshop', farm: 'Farm plot', granary: 'Granary', forge: 'Forge', road: 'Road', market: 'Market', assembly: 'Assembly', house: 'House', pottery_kiln: 'Pottery kiln', drying_rack: 'Drying rack', well: 'Well', records_hall: 'Records hall', animal_pen: 'Animal pen' };
+export const BUILDING_LABEL: Record<BuildingKind, string> = { campfire: 'Campfire', shelter: 'Shelter', storage: 'Storage', workshop: 'Workshop', farm: 'Farm plot', granary: 'Granary', forge: 'Forge', road: 'Road', market: 'Market', assembly: 'Assembly', house: 'House', pottery_kiln: 'Pottery kiln', drying_rack: 'Drying rack', well: 'Well', records_hall: 'Records hall', animal_pen: 'Animal pen', loom: 'Loom' };
 
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
