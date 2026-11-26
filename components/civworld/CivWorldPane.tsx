@@ -140,10 +140,17 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
         else follow.current = null;
       }
       const alpha = rt.paused ? 1 : Math.max(0, Math.min(1, (now - rt.lastTickAt) / (TICK_MS / rt.speed)));
+      const t0 = process.env.NODE_ENV !== 'production' ? performance.now() : 0;
       drawFrame(ctx, rt.sim.map, rt.state, assets, ground.current, {
         cam: cam.current, view: view.current, dpr: dpr.current, now, alpha, animate: animationOn(reduced.current, uiRef.current), quality: uiRef.current.quality,
         hover: hover.current, selected: lv.selected, ghost: ghost.current, overlays: lv.drawer === 'build' || uiRef.current.overlays,
       });
+      if (process.env.NODE_ENV !== 'production') {
+        // development and test builds record the pure draw cost, which does not depend on the browser's frame throttling
+        const w = window as unknown as { __civperf?: { n: number; total: number } };
+        const p = (w.__civperf ??= { n: 0, total: 0 });
+        p.n++; p.total += performance.now() - t0;
+      }
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
@@ -250,7 +257,7 @@ function CivWorld({ visible, rt }: { visible: boolean; rt: CivRuntime }) {
     else if (e.key === 'Home') goHome();
     else if ((e.key === 'r' || e.key === 'R') && buildKind) { rotated.current = !rotated.current; setGhostMsg(m => m + ' (rotated)'); }
     else if (e.key === ' ') rt.togglePause();
-    else if (e.key === 'Escape') { if (buildKind) cancelBuild(); else setSelected(null); }
+    else if (e.key === 'Escape') { if (buildKind) cancelBuild(); else if (drawer) setDrawer(null); else setSelected(null); }
     else return;
     e.preventDefault();
   };
